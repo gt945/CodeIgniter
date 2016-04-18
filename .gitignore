@@ -13,6 +13,11 @@ user_guide_src/cilexer/build/*
 user_guide_src/cilexer/dist/*
 user_guide_src/cilexer/pycilexer.egg-info/*
 /vendor/
+captcha/*
+!captcha/index.html
+session_file/*
+session_file/index.html
+!session_file/.htaccess
 
 # IDE Files
 #-------------------------

@@ -241,6 +241,13 @@ abstract class CI_DB_query_builder extends CI_DB_driver {
 	 * @var	array
 	 */
 	protected $qb_cache_set				= array();
+	
+	/**
+	 * QB Cache aliased tables list
+	 *
+	 * @var	array
+	 */
+	protected $qb_cache_aliased_tables		= array();
 
 	/**
 	 * QB No Escape data
@@ -256,6 +263,12 @@ abstract class CI_DB_query_builder extends CI_DB_driver {
 	 */
 	protected $qb_cache_no_escape			= array();
 
+	/**
+	 * QB Cache stash
+	 *
+	 * @var	array
+	 */
+	protected $qb_cache_stash				= array();
 	// --------------------------------------------------------------------
 
 	/**
@@ -2274,6 +2287,11 @@ abstract class CI_DB_query_builder extends CI_DB_driver {
 			if ( ! in_array($table, $this->qb_aliased_tables))
 			{
 				$this->qb_aliased_tables[] = $table;
+				if ($this->qb_caching === TRUE)
+				{
+					$this->qb_cache_aliased_tables[] = $table;
+					$this->qb_cache_exists[] = 'aliased_tables';
+				}
 			}
 		}
 	}
@@ -2615,12 +2633,60 @@ abstract class CI_DB_query_builder extends CI_DB_driver {
 			'qb_cache_orderby'		=> array(),
 			'qb_cache_set'			=> array(),
 			'qb_cache_exists'		=> array(),
-			'qb_cache_no_escape'	=> array()
+			'qb_cache_no_escape'	=> array(),
+			'qb_cache_aliased_tables'	=> array()
 		));
 
 		return $this;
 	}
 
+	public function stash_cache()
+	{
+		$this->qb_cache_stash = array (
+				'qb_cache_select'		=> $this->qb_cache_select,
+				'qb_cache_from'			=> $this->qb_cache_from,
+				'qb_cache_join'			=> $this->qb_cache_join,
+				'qb_cache_where'			=> $this->qb_cache_where,
+				'qb_cache_groupby'		=> $this->qb_cache_groupby,
+				'qb_cache_having'		=> $this->qb_cache_having,
+				'qb_cache_orderby'		=> $this->qb_cache_orderby,
+				'qb_cache_set'			=> $this->qb_cache_set,
+				'qb_cache_exists'		=> $this->qb_cache_exists,
+				'qb_cache_no_escape'	=> $this->qb_cache_no_escape,
+				'qb_cache_aliased_tables' => $this->qb_cache_aliased_tables	
+		);
+		return $this;
+	}
+	
+	
+	public function pop_cache()
+	{
+		$this->_reset_run($this->qb_cache_stash);
+		return $this;
+	}
+	
+	
+	public function save_cache()
+	{
+		return array (
+				'qb_cache_select'		=> $this->qb_cache_select,
+				'qb_cache_from'			=> $this->qb_cache_from,
+				'qb_cache_join'			=> $this->qb_cache_join,
+				'qb_cache_where'			=> $this->qb_cache_where,
+				'qb_cache_groupby'		=> $this->qb_cache_groupby,
+				'qb_cache_having'		=> $this->qb_cache_having,
+				'qb_cache_orderby'		=> $this->qb_cache_orderby,
+				'qb_cache_set'			=> $this->qb_cache_set,
+				'qb_cache_exists'		=> $this->qb_cache_exists,
+				'qb_cache_no_escape'	=> $this->qb_cache_no_escape,
+				'qb_cache_aliased_tables' => $this->qb_cache_aliased_tables	
+		);
+	}
+	
+	public function load_cache($cache)
+	{
+		$this->_reset_run($cache);
+	}
 	// --------------------------------------------------------------------
 
 	/**
