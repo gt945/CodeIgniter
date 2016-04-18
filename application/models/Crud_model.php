@@ -9,24 +9,31 @@ defined ( 'BASEPATH' ) or exit ( 'No direct script access allowed' );
 class Crud_model extends CI_Model {
 
 	var $dbContext = null;
-	const TYPE_TEXT = 0;
-	const TYPE_READONLY = 1;
-	const TYPE_SELECT = 2;
-	const TYPE_MULTI = 3;
-	const TYPE_BOOL = 4;
-	const TYPE_TEXTAREA = 5;
-	const TYPE_PASSWORD = 6;
-	const TYPE_DATE = 7;
-	const TYPE_DATETIME = 8;
+	const TYPE_LABEL = 0;
+	const TYPE_NUMBER = 1;
+	const TYPE_DATE = 2;
+	const TYPE_TIME = 3;
+	const TYPE_DATETIME = 4;
+	const TYPE_SELECT = 5;
+	const TYPE_MULTI = 6;
+	const TYPE_BOOL = 7;
+	const TYPE_TEXTAREA = 8;
+	const TYPE_PASSWORD = 9;
+	const TYPE_BIT = 10;
+	const TYPE_REF = 11;
 	
 	const ALIGN_LEFT = 0;
 	const ALIGN_CENTER = 1;
 	const ALIGN_RIGHT = 2;
 	
-	const PROP_FIELD_FILTER = 0x0001;
-	const PROP_FIELD_HIDDEN = 0x0002;
-	const PROP_FIELD_LITE = 0x0004;
+	const PROP_FIELD_PRIMARY = 0x0001;
+	const PROP_FIELD_FILTER = 0x0002;
+	const PROP_FIELD_HIDDEN = 0x0004;
 	const PROP_FIELD_UNIQUE = 0x0008;
+	const PROP_FIELD_SORT = 0x0010;
+	
+	const CRUD_TABLE = 'crud_table';
+	const CRUD_FIELD = 'crud_field';
 	
 	public function __construct() {
 		parent::__construct ();
@@ -37,29 +44,35 @@ class Crud_model extends CI_Model {
 	}
 	public function install($table) {
 		$fields = $this->db->field_data ( $table );						//get all fields in table
+		echo "<pre>";
+		print_r($fields);
+		echo "</pre>";
 		if (count ( $fields ) > 0) {
 			$this->db->select ( 'id' );
 			$this->db->where ( 'name', $table );
-			
-			$tid = $this->db->get ( 'crud_table' )->row ( 'id' );
+				
+			$tid = $this->db->get ( Crud_model::CRUD_TABLE )->row ( 'id' );
 			if (! $tid) {
 				$data = array (
 						'name' => $table,
-						'caption' => $table 
+						'caption' => $table
 				);
+				if ($table == "user_group") {
+					$data['pid_field'] = 'gid';
+				}
 				foreach ( $fields as $f ) {
 					if ($f->name === 'pid') {							//if table have pid field, set pid_field
 						$data['pid_field'] = 'pid';
 					}
 				}
-				$this->db->insert ( 'crud_table', $data );
+				$this->db->insert ( Crud_model::CRUD_TABLE, $data );
 				$tid = $this->db->insert_id ();
 			}
 			if ($tid) {
 				$this->db->select ( 'id,name' );
 				$this->db->where ( 'tid', $tid );						//get all fields in crud_field table
-				$exist_fields = $this->db->get ( 'crud_field' )->result_array ();
-				
+				$exist_fields = $this->db->get ( Crud_model::CRUD_FIELD )->result_array ();
+	
 				$this->db->trans_start ();
 				foreach ( $fields as $f ) {
 					$find = false;
@@ -76,49 +89,65 @@ class Crud_model extends CI_Model {
 								'name' => $f->name,
 								'caption' => $f->name,
 								'width' => 80,
-								'type' => Crud_model::TYPE_TEXT,
 								'prop' => 0,
-								'search_option' => 0x0003 
+								'search_option' => 0x0003
 						);
-						if ($f->name === 'id') {
-							$data ['type'] = Crud_model::TYPE_READONLY;
-							$data ['prop'] |= Crud_model::PROP_FIELD_HIDDEN;
+						switch ($f->type) {
+							case "int":
+								$data['type'] = Crud_model::TYPE_NUMBER;
+								break;
+							case "varchar":
+								$data['type'] = Crud_model::TYPE_LABEL;
+								break;
+							case "datetime":
+								$data['type'] = Crud_model::TYPE_DATETIME;
+								break;
+							case "date":
+								$data['type'] = Crud_model::TYPE_DATE;
+								break;
 						}
-
+						if ($f->name === 'id') {
+							$data ['type'] = Crud_model::TYPE_NUMBER;
+							$data ['prop'] |= Crud_model::PROP_FIELD_PRIMARY;
+						}
+	
 						if ($f->name === 'uid') {
-							$data ['type'] |= Crud_model::TYPE_SELECT;
+							$data ['type'] = Crud_model::TYPE_SELECT;
 							$data['join_table'] = 'user';
 							$data['join_value'] = 'id';
 							$data['join_caption'] = 'username';
 						}
 						if ($f->name === 'gid') {
-							$data ['type'] |= Crud_model::TYPE_SELECT;
+							$data ['type'] = Crud_model::TYPE_SELECT;
 							$data['join_table'] = 'user_group';
 							$data['join_value'] = 'id';
 							$data['join_caption'] = 'groupname';
 						}
 						if ($f->name === 'rid') {
-							$data ['type'] |= Crud_model::TYPE_SELECT;
+							$data ['type'] = Crud_model::TYPE_SELECT;
 							$data['join_table'] = 'user_role';
 							$data['join_value'] = 'id';
 							$data['join_caption'] = 'rolename';
 						}
 						if ($f->name === 'tree_code') {
-							$data ['type'] = Crud_model::TYPE_READONLY;
+							$data ['type'] = Crud_model::TYPE_NUMBER;
 							$data ['prop'] |= Crud_model::PROP_FIELD_HIDDEN;
 						}
 						if ($f->name === 'pid') {
-							$data ['type'] |= Crud_model::TYPE_SELECT;
+							$data ['type'] = Crud_model::TYPE_SELECT;
 							$data['join_table'] = $table;
 							$data['join_value'] = 'id';
 							$data['join_caption'] = 'id';
 						}
-						$this->db->insert ( 'crud_field', $data );
+						if ($f->name === 'password') {
+							$data ['type'] = Crud_model::TYPE_PASSWORD;
+						}
+						$this->db->insert ( Crud_model::CRUD_FIELD, $data );
 					}
 				}
 				foreach ( $exist_fields as $k => $ef ) {				//delete not exist field
 					$this->db->where ( 'id', $ef ['id'] );
-					$this->db->delete ( 'crud_field' );
+					$this->db->delete ( Crud_model::CRUD_FIELD );
 				}
 				$this->db->trans_complete ();
 			} else {
@@ -128,10 +157,17 @@ class Crud_model extends CI_Model {
 			// TODO: ERROR: no such table
 		}
 	}
+	
 	public function check_role($role)
 	{
 		$rid = $_SESSION['userinfo']['rid'];
 		return check_str_bool($role, $rid);
+	}
+	public function context()
+	{
+		$dbContext = new stdClass();
+		$dbContext->db = $this->load->database ('default', true);
+		return $dbContext;
 	}
 	public function table($name) {
 		$cache_id = "table_{$name}";
@@ -139,7 +175,7 @@ class Crud_model extends CI_Model {
 			$this->db->select ( '*' );
 			$this->db->where ( 'name', $name );
 			$crud_field = array();
-			$crud_table = $this->db->get ( 'crud_table', 1 )->row_array ();
+			$crud_table = $this->db->get ( Crud_model::CRUD_TABLE, 1 )->row_array ();
 			if ($crud_table) {
 				$crud_table['_role_c'] = $this->check_role($crud_table['role_c'] );
 				$crud_table['_role_r'] = $this->check_role($crud_table['role_r'] );
@@ -148,7 +184,7 @@ class Crud_model extends CI_Model {
 				$this->db->select ( '*' );
 				$this->db->where ( 'tid', $crud_table ['id'] );
 				$this->db->order_by ( 'seq', 'asc' );
-				$crud_field = $this->db->get ( 'crud_field' )->result_array ();
+				$crud_field = $this->db->get ( Crud_model::CRUD_FIELD )->result_array ();
 				foreach ( $crud_field as $k => $f ) {
 					$f['_role_r'] = $this->check_role($f['role_r']);
 					$f['_role_u'] = $this->check_role($f['role_u']);
@@ -195,6 +231,30 @@ class Crud_model extends CI_Model {
 		return $dbContext;
 	}
 
+	public function update($dbContext)
+	{
+		$this->db->select ( '*' );
+		$this->db->where ( 'id', $dbContext->crud_table['id'] );
+		$save = $dbContext->crud_table;
+		foreach ($save as $k=>$v) {
+			if (substr( $k, 0, 1 ) === "_") {
+				unset($save[$k]);
+			}
+		}
+		$this->db->update ( Crud_model::CRUD_TABLE, $save );
+		$this->db->trans_start ();
+		foreach ($dbContext->crud_field as $f) {
+			foreach ($f as $k=>$v) {
+				if (substr( $k, 0, 1 ) === "_") {
+					unset($f[$k]);
+				}
+			}
+			$this->db->where( 'id', $f['id'] );
+			$this->db->update ( Crud_model::CRUD_FIELD, $f );
+		}
+		$this->db->trans_complete ();
+	}
+
 	public function prepare(&$dbContext, $join = true)
 	{
 		if (!$dbContext) {
@@ -223,7 +283,7 @@ class Crud_model extends CI_Model {
 			if ($join) {
 				if ($f ['type'] == Crud_model::TYPE_SELECT
 						|| $f ['type'] == Crud_model::TYPE_MULTI
-						|| $f ['type'] == Crud_model::TYPE_BOOL) {
+						|| $f ['type'] == Crud_model::TYPE_BIT) {
 					$f ['_joined_data'] = $this->get_left_join ( $table, $f ['name'], $f );
 				}
 				if ($f ['type'] == Crud_model::TYPE_SELECT) {
@@ -243,452 +303,26 @@ class Crud_model extends CI_Model {
 		return true;
 	}
 	
-	public function jqgrid($dbContext)
-	{
-		if (!$dbContext) {
-			return false;
-		}
-		$table = $dbContext->name;
-		$data = array();
-		$data['jqgrid'] = "jqgrid_{$table}";
-		$data['jqpager'] = "jqpager_{$table}";
-		$data['jqdata'] = "jqdata_{$table}";
-		$data['jqgid'] = "jqgid_{$table}";
-		$data['jqgid_value'] = $_SESSION['userinfo']['gid'];
-		
-		$this->load->helper ( 'url' );
-		$base_url = base_url ();
-		
-		$dataurl = site_url ( "crud/data" );
-		$editurl = site_url ( "crud/edit" );
-		$editdataurl = site_url ( "crud/editdata" );
-		$resizeurl = site_url ( "crud/resize" );
-		
-		$recreateForm = false;
-		$colNames = array ();
-		$colModel = array ();
-		
-		$search = false;
-		$field_index = 0;
-		foreach ( $dbContext->crud_field as &$f ) {
-			$editOptions = array ();
-			$formOptions = array ();
-			
-			if(!$f['_role_r']) {
-				continue;
-			}
-			$colNames [] = "'{$f['caption']}'";
-			$cm = array ();
-			$fp = array ();
-			if ($f ['type'] != Crud_model::TYPE_READONLY) {
-				$cm [] = "editable:true";
-			}
-			if (!$f['_role_u'] ) {
-				$editOptions[] = "readonly: true";
-			}
-			if ($f ['name'] === 'id') {
-				$cm [] = "key:true";
-			}
-			if ($f ['prop'] & Crud_model::PROP_FIELD_HIDDEN) {
-				$cm [] = "hidden:true";
-			}
-			if ($f ['prop'] & Crud_model::PROP_FIELD_LITE ) {
-				$cm [] = "hidden:true";
-				$cm [] = "editrules: {edithidden:true}";
-			}
-			$cm [] = "name:'{$f['name']}'";
-			$cm [] = "index:'{$f['name']}'";
-			$cm [] = "width:{$f['width']}";
-			switch ($f ['align']) {
-				case Crud_model::ALIGN_RIGHT :
-					$cm [] = "align:'right'";
-					break;
-				case Crud_model::ALIGN_CENTER :
-					$cm [] = "align:'center'";
-					break;
-				case Crud_model::ALIGN_LEFT :
-				default :
-					$cm [] = "align:'left'";
-					break;
-			}
-			switch ($f ['type']) {
-				case Crud_model::TYPE_PASSWORD :
-					$cm [] = "edittype:'password'";
-					break;
-				case Crud_model::TYPE_SELECT :
-					// if ($this->dm->grade && 'gid' == $f ['name']) {
-					// $editOptions[] = "defaultValue:function(){ return gid;}";
-					// } else if ($this->dm->tree && $this->dm->pfield == $f ['name']) {
-					if ($dbContext->pid && $dbContext->pid == $f ['name']) {
-						$editOptions [] = "defaultValue:function(){ var id=$(this).jqGrid('getGridParam', 'selrow');id=id?id:0;return id;}";
-					}
-				// NO BREAK HERE
-				case Crud_model::TYPE_BOOL :
-				case Crud_model::TYPE_MULTI :
-					if ($f ['join_table'] === $dbContext->name) {
-						$recreateForm = true;
-					}
-					$cm [] = "edittype:'select'";
-					$cm [] = "stype:'select'";
-					if ($f ['type'] == Crud_model::TYPE_MULTI || $f ['type'] == Crud_model::TYPE_BOOL) {
-						$editOptions [] = "multiple:true";
-					}
-					$editOptions [] = "dataUrl:\"{$editdataurl}?t={$table}&f=\"+encodeURIComponent(\"{$f['name']}\")";
-					$editOptions [] = "dataInit: select2_init";
-					if (!$recreateForm) {
-						$editOptions [] = "cacheUrlData:true";
-					}
-					break;
-				case Crud_model::TYPE_TEXTAREA :
-					$cm [] = "edittype:'textarea'";
-					break;
-				case Crud_model::TYPE_DATE :
-					$cm[] = "formatter:'date'";
-					$fp[] = "reformatAfterEdit:true";
-					$fp[] = "srcformat:'Y-m-d'";
-					$fp[] = "newformat:'Y-m-d'";
-					$editOptions[] = "dataInit:
-							function(elm){setTimeout(function(){
-								jQuery(elm).datepicker({dateFormat:'yy-mm-dd',beforeShow: function(i) { if ($(i).attr('readonly')) { return false; } } });
-                    			jQuery('.ui-datepicker').css({'font-size':'75%'});
-                			},200);}";
-					break;
-				case Crud_model::TYPE_DATETIME :
-					$cm[] = "formatter:'date'";
-					$fp[] = "reformatAfterEdit:true";
-					$fp[] = "srcformat:'Y-m-d H:i:s'";
-					$fp[] = "newformat:'Y-m-d H:i:s'";
-					$editOptions[] = "dataInit:
-					function(elm){setTimeout(function(){
-						jQuery(elm).datetimepicker({dateFormat:'yy-mm-dd', timeFormat:'HH:mm:ss',beforeShow: function(i) { if ($(i).attr('readonly')) { return false; } } });
-                    	jQuery('.ui-datepicker').css({'font-size':'75%'});
-                	},200);}";
-					break;
-				default :
-					break;
-			}
-			
-			$cm [] = "formatoptions:{" . implode ( ",", $fp ) . "}";
-			$cm [] = "editoptions:{" . implode ( ",", $editOptions ) . "}";
-			if ($f ['prop'] & Crud_model::PROP_FIELD_FILTER) {
-				$searchOptions = Array ();
-				if ($f ['type'] == Crud_model::TYPE_SELECT) {
-					$searchOptions [] = "dataUrl:\"{$editdataurl}?t={$table}&f=\"+encodeURIComponent(\"{$f['name']}\")";
-					$searchOptions [] = "dataInit: select2_init";
-					// } else if ($f ['type'] == Crud_model::TYPE_DATE) {
-					// $searchOptions[] = "dataInit:function(el){search_datetime($(el), 'yyyy-MM-dd'); }";
-					// } else if ($f ['type'] == Crud_model::TYPE_DATETIME) {
-					// $searchOptions[] = "dataInit:function(el){ $(el).addClass('filter_datetime').attr('data-format', 'yyyy-MM-dd hh:mm:ss')}";
-				}
-				$sopt = array();
-				$sopts = array(
-						'eq' => 0x0001,
-						'ne' => 0x0002,
-						'lt' => 0x0004,
-						'le' => 0x0008,
-						'gt' => 0x0010,
-						'ge' => 0x0020,
-						'cn' => 0x0040,
-						'nc' => 0x0080,
-						'bw' => 0x0100,
-						'bn' => 0x0200,
-						'ew' => 0x0400,
-						'en' => 0x0800,
-						'in' => 0x1000,
-						'ni' => 0x2000,
-						'nu' => 0x4000,
-						'nn' => 0x8000,
-				);
-				foreach ( $sopts as $k => $opt ) {
-					if ( $f ['search_option']  & $opt) {
-						array_push($sopt, "'{$k}'");
-					}
-				}
-				$searchOptions [] = "sopt:[" . implode ( ",", $sopt ) . "]";
-				$cm [] = "searchoptions:{" . implode ( ",", $searchOptions ) . "}";
-				$search = true;
-			} else {
-				$cm [] = "search:false";
-			}
-			$formOptionsRow = ($field_index >> 1)  + 1;
-			$formOptionsCol = ($field_index % 2)  + 1;
-			$formOptions[] = "rowpos: {$formOptionsRow}";
-			$formOptions[] = "colpos: {$formOptionsCol}";
-			$cm [] = "formoptions:{".implode ( ",", $formOptions ) . "}";
-			$colModel [] = "{" . implode ( ",", $cm ) . "}";
-			
-			if ($f ['type'] != Crud_model::TYPE_READONLY && !($f ['prop'] & Crud_model::PROP_FIELD_HIDDEN)) {
-				$field_index++;
-			}
-		}
-		
-		$colNames = implode ( ",", $colNames );
-		$colModel = implode ( ",\n\t\t\t\t", $colModel );
-		
-		$parm = Array ();
-		$parm [] = "mtype: 'POST'";
-		$parm [] = "width: $('#tab_main').width()";
-		$parm [] = "url:'{$dataurl}'";
-		$parm [] = "datatype:'json'";
-		$parm [] = "multiselect:true";
-		$parm [] = "colNames:[{$colNames}]";
-		$parm [] = "colModel:[{$colModel}]";
-		$parm [] = "rowNum: 20";
-		$parm [] = "rowList:[20,50,100,500]";
-		$parm [] = "height: $('#tabs_div').height() - 170";
-		$parm [] = "pager: '#{$data['jqpager']}'";
-		$parm [] = "sortname: 'id'";
-		$parm [] = "hidegrid: false";
-		$parm [] = "viewrecords: true";
-		$parm [] = "shrinkToFit: true";
-		$parm [] = "sortorder: 'asc'";
-		$parm [] = "editurl: '{$editurl}'";
-		$parm [] = "serializeGridData: {$data['jqdata']}.grid_data";
-		$parm [] = "onSelectRow: {$data['jqdata']}.select_row";
-		$parm [] = "resizeStop:{$data['jqdata']}.resize";
-		$parm [] = "storeNavOptions:true";
-		$parm [] = "ondblClickRow:function(id){ $(this).jqGrid('editGridRow', id, $('#{$data['jqgrid']}').jqGrid('getGridParam', 'editOptions') ); }";
-		if ($dbContext->group) {
-			$parm [] = "caption: \" {$dbContext->crud_field['gid']['caption']}<select id='{$data['jqgid']}_s'>".implode ( "", $dbContext->groupTreeOption )."</select>\"";
-		}
-
-		if ($dbContext->pid) {
-			$parm[] = "treeGrid:true";
-			$parm[] = "treedatatype:'json'";
-			$parm[] = "treeGridModel:'adjacency'";
-			$parm[] = "ExpandColumn:'{$dbContext->crud_table['expand_field']}'";
-		}
-		// $parm[] = "treeIcons:";
-		$prmedit = array ();
-		$prmadd = array ();
-		$prmdel = array ();
-		$prmsearch = array ();
-		$prmenable = array ();
-		
-		if ($dbContext->crud_table['_role_u']) {
-			$prmedit [] = "width:650";
-			$prmedit [] = "onclickPgButtons: function(){ $(\"#{$data['jqgrid']}\").jqGrid(\"resetSelection\");}";
-			$prmedit [] = "afterclickPgButtons:select2_change";
-			$prmedit [] = "serializeEditData:{$data['jqdata']}.grid_data";
-			$prmedit [] = "beforeShowForm: {$data['jqdata']}.before_show";
-			$prmedit [] = "afterSubmit: {$data['jqdata']}.jqcallback";
-			$prmedit [] = "closeAfterEdit:true";
-			$prmedit [] = "closeOnEscape:true";
-			// if ($this->dm->table_info ['prop'] & Crud_model::PROP_TABLE_NEW_WINDOW ) {
-			// $prmedit[] = "beforeInitData: function(){debugger;return open_new_window(this, true);}";
-			// }
-			if ($recreateForm) {
-				$prmedit [] = "recreateForm : true";
-			}
-		} else {
-			$prmenable[] = "edit: false";
-		}
-		
-		if ($dbContext->crud_table['_role_c']) {
-			$prmadd [] = "width:650";
-			$prmadd [] = "beforeShowForm: function(){
-$('.CaptionTD .form-lock').remove();
-$('.DataTD').children().prop('disabled', false).removeClass('datatd-disabled');
-}";
-			$prmadd [] = "serializeEditData:{$data['jqdata']}.grid_data";
-			$prmadd [] = "afterSubmit: {$data['jqdata']}.jqcallback";
-			$prmadd [] = "closeOnEscape:true";
-			// if (check_bool ( $this->dm->table_info ['prop'], Crud_model::PROP_TABLE_NEW_WINDOW )) {
-			// $prmadd[] = "beforeInitData: function(){return open_new_window(this, false);}";
-			// }
-			if ($recreateForm) {
-				$prmadd [] = "recreateForm : true";
-			}
-		} else {
-			$prmenable [] = "add: false";
-		}
-		
-		if ($dbContext->crud_table ['_role_d']) {
-			$prmdel [] = "serializeDelData:{$data['jqdata']}.grid_data";
-			$prmdel [] = "afterSubmit: {$data['jqdata']}.jqcallback";
-		} else {
-			$prmenable [] = "del: false";
-		}
-		
-		if ($search) {
-			$prmsearch [] = "multipleSearch:true";
-			$prmsearch [] = "multipleGroup:true";
-			$prmsearch [] = "showQuery: false";
-			$prmsearch [] = "width:600";
-			// $prmsearch[] = "afterRedraw: filter_datetime";
-			// $prmsearch[] = "afterChange: filter_datetime";
-		} else {
-			$prmenable [] = "search: false";
-		}
-		
-		$prmenable [] = "addtext: '添加'";
-		$prmenable [] = "deltext: '删除'";
-		$prmenable [] = "edittext: '编辑'";
-		$prmenable [] = "searchtext: '查找'";
-		$prmenable [] = "refreshtext: '刷新'";
-		$data ['base_url'] = $base_url;
-		$data ['resizeurl'] = $resizeurl;
-		$data ['table'] = $table;
-		$data ['parm'] = implode ( ",\n\t\t", $parm );
-		$data ['prmedit'] = implode ( ",\n\t\t\t", $prmedit );
-		$data ['prmadd'] = implode ( ",\n\t\t\t", $prmadd );
-		$data ['prmdel'] = implode ( ",\n\t\t\t", $prmdel );
-		$data ['prmsearch'] = implode ( ",\n\t\t\t", $prmsearch );
-		$data ['prmenable'] = implode ( ",\n\t\t\t", $prmenable );
-		
-		if ($dbContext->group) {
-			$data ['group'] = true;
-		} else {
-			$data ['group'] = false;
-		}
-		
-		// $this->cache->save ( $cacheid, $data, $cache_time );
-		
-		return $data;
-	}
-	public function data($dbContext)
-	{
-		if (!$this->prepare($dbContext)) {
-			return false;
-		}
-		$table = $dbContext->name;
-		$response = new stdClass ();
-		$rows = array ();
-		
-		//paging
-		$pageIndex = (int)$this->input->post("page");
-		$pageRows = $this->input->post_get("rows");
-		$start = ($pageIndex - 1) * $pageRows;
-		$data= array();
-		$response->records = $dbContext->db->count_all_results();
-		$dbContext->db->limit($pageRows, $start);
-		
-		//sort
-		$sort = $this->input->post_get("sidx");
-		$sord = $this->input->post_get("sord");
-		$sord = ($sord === 'asc')?'asc':'desc';
-		if (isset($dbContext->crud_field[$sort])) {
-			if ($dbContext->crud_field[$sort]['type'] == Crud_model::TYPE_SELECT) {
-				$dbContext->db->order_by("{$dbContext->crud_field[$sort]['_joined']}", $sord);
-			} else {
-				$dbContext->db->order_by("{$dbContext->name}.{$sort}", $sord);
-			}
-		}
-		
-		//search
-		if ($this->input->post_get("_search") === "true") {
-			$dbContext->search = true;
-			$filters = json_decode($this->input->post_get("filters"));
-			$this->parse($dbContext, $filters);
-		} else {
-			$dbContext->search = false;
-		}
-		//group
-		if ($dbContext->group) {
-			$gid = (int)$this->input->post_get("_gid");
-			$subgroup = (int)$this->input->post_get("_subgroup");
-			if (!$subgroup) {
-				$dbContext->db->where("{$dbContext->name}.gid", $gid);
-			} else {
-				$gids = $this->get_group_ids($gid, true);
-				$dbContext->db->where_in("{$dbContext->name}.gid", $gids);
-			}
-		}
-		$dbContext->db->stash_cache();
-		
-		if ($dbContext->pid) {
-			$nodeid = (int)$this->input->post('nodeid');
-			$level = (int)$this->input->post('n_level');
-			if ($dbContext->search == false) {
-				$dbContext->db->where("{$table}.{$dbContext->pid}", $nodeid);
-			}
-		}
-		
-		$data = $dbContext->db->get ()->result_array ();
-		$response->sql = $dbContext->db->get_compiled_select();
-		foreach ( $data as $d ) {
-			$row = array ();
-			$tmp = array ();
-			foreach ( $dbContext->crud_field as $k => $f ) {
-				if(!$f['_role_r']) {
-					continue;
-				}
-				// if (function_exists ( $f['process'] )) {
-				// $d [$k] = $f['process'] ( $d [$k] );
-				// }
-				if ($f ['type'] == Crud_model::TYPE_SELECT) {
-					array_push ( $tmp, $d [$f ['_joined']] );
-				} else if ($f ['type'] == Crud_model::TYPE_PASSWORD) {
-					array_push ( $tmp, "******" );
-				} else if ($f ['type'] == Crud_model::TYPE_MULTI) {
-					$new_val = array ();
-					$select_data = $f['_joined_data'];
-					$vals = explode ( ",", $d [$k] );
-					foreach ( $vals as $v ) {
-						if (isset ( $select_data [$v] )) {
-							$new_val [] = $select_data [$v]['_option'];
-						}
-					}
-					array_push ( $tmp, implode ( ",", $new_val ) );
-				} else if ($f ['type'] == Crud_model::TYPE_BOOL) {
-					$new_val = array ();
-					$select_data = $f['_joined_data'];
-					foreach ($select_data as $sk=>$sv) {
-						if (((int)$d [$k]) & ((int)$sk)) {
-							$new_val[] = $sv['_option'];
-						}
-					}
-					
-					array_push ( $tmp, implode ( ",", $new_val ) );
-				} else {
-					array_push ( $tmp, $d [$f ['name']] );
-				}
-			}
-			if ($dbContext->pid) {
-				array_push ( $tmp, $level + 1 );						// level
-				if ($nodeid) {
-					array_push ( $tmp, $nodeid );						//parent id
-				} else { 
-					array_push ( $tmp, NULL );							// no parent
-				}
-				$dbContext->db->pop_cache();
-				$dbContext->db->where("{$table}.{$dbContext->pid}", $d['id']);
-				$child_count = $dbContext->db->count_all_results();
-				if ($child_count > 0) {
-					array_push ( $tmp, false );							// not isLeaf
-				} else {
-					array_push ( $tmp, true );							// isLeaf
-				}
-			
-				array_push($tmp, false); //expanded
-			
-			}
-			$row ['id'] = $d ['id'];
-			$row ['cell'] = $tmp;
-			
-			array_push ( $rows, $row );
-		}
-		$response->page = $pageIndex;
-		$response->total = ( int ) ($response->records / $pageRows) + (($response->records % $pageRows) > 0 ? 1 : 0);
-		$response->rows = $rows;
-		return $response;
-	}
 	public function edit($dbContext, $oper, $ids, $post)
 	{
+		$ret = (object)array(
+				"message" => null
+		);
 		if (!$this->prepare($dbContext)) {
-			return false;
+			$ret->message = "Can Not Prepare";
+			return $ret;
 		}
 		$this->load->library('crud_hook');
 		$table = $dbContext->name;
 		switch ($oper) {
-			case 'edit' :
-			case 'add' :
+			case 'set' :
+			case 'create' :
 				$data = array ();
 				foreach ( $dbContext->crud_field as $k => $f ) {
 					if(!$f['_role_u']) {
 						continue;
 					}
-					if (! isset ( $post [$k] ) || $f ['type'] == Crud_model::TYPE_READONLY) {
+					if (! isset ( $post [$k] )  || $f['prop'] & Crud_model::PROP_FIELD_PRIMARY) {
 						continue;
 					}
 					
@@ -698,24 +332,24 @@ $('.DataTD').children().prop('disabled', false).removeClass('datatd-disabled');
 						continue;
 					}
 					
-					if ($f ['type'] == Crud_model::TYPE_MULTI) {
-					$data_in = explode(',', $data [$k]);
-						$data [$k] = '';
-						foreach ($data_in as $d) {
-							if (isset($f ['_joined_data'][$d])) {
-								$data [$k] .= "{$d},";
-							}
-						}
-					}
-					if ($f ['type'] == Crud_model::TYPE_BOOL) {
-						$data_in = explode(',', $data [$k]);
-						$data [$k] = 0;
-						foreach ($data_in as $d) {
-							if (isset($f ['_joined_data'][$d])) {
-								$data [$k] |= (int)$d;
-							}
-						}
-					}
+// 					if ($f ['type'] == Crud_model::TYPE_MULTI) {
+// 					$data_in = explode(',', $data [$k]);
+// 						$data [$k] = '';
+// 						foreach ($data_in as $d) {
+// 							if (isset($f ['_joined_data'][$d])) {
+// 								$data [$k] .= "{$d},";
+// 							}
+// 						}
+// 					}
+// 					if ($f ['type'] == Crud_model::TYPE_BIT) {
+// 						$data_in = explode(',', $data [$k]);
+// 						$data [$k] = 0;
+// 						foreach ($data_in as $d) {
+// 							if (isset($f ['_joined_data'][$d])) {
+// 								$data [$k] |= (int)$d;
+// 							}
+// 						}
+// 					}
 					
 					if ($f ['type'] == Crud_model::TYPE_SELECT) { 		// 如果为选择项，但是为-1，那么去掉
 						$options = $this->get_left_join ( $table, $f ['name'], $f);
@@ -730,18 +364,20 @@ $('.DataTD').children().prop('disabled', false).removeClass('datatd-disabled');
 						$this->db->where($k, $data [$k]);
 						$exist = $this->db->get()->result_array();
 						
-						if ($oper=="edit") {
+						if ($oper=='set') {
 							if (count($ids) > 1) {
 								unset ( $data [$k] );
 								continue;
 							} else {
 								if (count($exist) && $exist[0]['id'] != $ids[0]) {
-									die("已存在重复数据2");
+									$ret->message = "已存在重复数据";
+									return $ret;
 								}
 							}
-						} else if ($oper=="add") {
+						} else if ($oper=='create') {
 							if (count($exist)) {
-								die("已存在重复数据1");
+								$ret->message = "已存在重复数据";
+								return $ret;
 							}
 						}
 						
@@ -758,46 +394,58 @@ $('.DataTD').children().prop('disabled', false).removeClass('datatd-disabled');
 					$this->crud_hook->$method($oper, $data, $dbContext->crud_field);
 				}
 				
-				if ($oper == "add") {
+				if ($oper == 'create') {
 					if (count($data)) {
 						$dbContext->db->insert ( $table, $data );
 						$id = $dbContext->db->insert_id ();
+						$ret->id = $id;
 					}
 					if ($dbContext->tree) {
 						$this->build_all_tree_code($table, $id, $dbContext->pid);
 					}
-				} else if ($oper == "edit" && count($data)) {
-					$dbContext->db->trans_start ();
-					$dbContext->db->where_in ( 'id', $ids );
-					$dbContext->db->update ( $table, $data );
-					$dbContext->db->trans_complete ();
-					
-					if ($dbContext->pid) {
-						if (! $this->check_pid_confilct ( $dbContext, $ids, $data [$dbContext->pid] )) {
-							echo "Check Failed";
-						} else if ($dbContext->tree) {
-							foreach ( $ids as $id ) {
-								$this->build_all_tree_code ( $table, $id, $dbContext->pid );
+				} else if ($oper == 'set') {
+					if (count($data)) {
+						if ($dbContext->pid) {
+							if (! $this->check_pid_confilct ( $dbContext, $ids, $data [$dbContext->pid] )) {
+								$ret->message = "数据冲突";
+								return $ret;
 							}
 						}
+						$dbContext->db->trans_start ();
+						$dbContext->db->where_in ( 'id', $ids );
+						$dbContext->db->update ( $table, $data );
+						
+						if ($dbContext->pid) {
+							if ($dbContext->tree) {
+								foreach ( $ids as $id ) {
+									$this->build_all_tree_code ( $table, $id, $dbContext->pid );
+								}
+							}
+						}
+						$dbContext->db->trans_complete ();
+					} else {
+						$ret->message = "无修改";
+						return $ret;
 					}
-					
 				}
 				break;
-			case 'del' :
+			case 'delete' :
 				//TODO: change delete behavior
 				if($dbContext->crud_table['_role_d']) {
 					if ($dbContext->tree) {
 						//TODO check depends
-						return null;
+						$ret->message = "无法删除";
+						return $ret;
 					}
 					$dbContext->db->where_in ( 'id', $ids );
 					$dbContext->db->delete ( $table );
 				}
 				break;
 			default :
+				$ret->message = "不支持的操作";
 				break;
 		}
+		return $ret;
 	}
 	
 	public function parm($dbContext, $method, $arg1, $arg2 = null)
@@ -845,32 +493,40 @@ $('.DataTD').children().prop('disabled', false).removeClass('datatd-disabled');
 		if ($field_info == null) {
 			$dbContext = $this->table($table);
 			if (!$dbContext) {
-				return NULL;
+				return 1;
 			}
 			$field_info = $dbContext->crud_field[$field];
 		}
 		$join_dbContext = $this->table($field_info['join_table']);
+		if (!$join_dbContext) {
+			return 4;
+		}
 		if (!$this->prepare($join_dbContext, false)) {
-			return null;
+			return 2;
 		}
 		switch ($field_info['type']) {
 			case Crud_model::TYPE_SELECT :
 			case Crud_model::TYPE_MULTI :
-			case Crud_model::TYPE_BOOL :
+			case Crud_model::TYPE_BIT :
 				$join_dbContext->db->select ( "{$field_info['join_value']} _value,{$field_info['join_caption']} _option" );
 				if ($field_info['join_condition'] != '' && $field_info['join_condition_value'] != '') {
 					$join_dbContext->db->where ( $field_info['join_condition'], $field_info['join_condition_value'] );
 				}
+				$join_dbContext->db->order_by("_value", "asc");
 				$data = $join_dbContext->db->get ()->result_array ();
 				$response = array ();
 				foreach ( $data as $k => $d ) {
-					$response [$d ['_value']] = $d;
+					$response[] = array(
+							'id'=>$d ['_value'],
+							'caption'=>$d ['_option']
+					);
 				}
-				if ($join_dbContext->pid) {
-					$response [0] = array('_value' => 0, '_option' => '');
-				}
+// 				if ($join_dbContext->pid) {
+// 					$response [0] = array('_value' => 0, '_option' => '');
+// 				}
 				break;
 			default :
+				return 3;
 				break;
 		}
 		return $response;
@@ -882,17 +538,15 @@ $('.DataTD').children().prop('disabled', false).removeClass('datatd-disabled');
 		if ($start) {
 			$dbContext->db->group_start();
 		}
-		if (count ($filters->rules) != 0) {
-			$is_blank = false;
-		}
 		foreach ($filters->rules as $r) {
-			$this->_parse_rules($dbContext, $filters->groupOp, $r->field, $r->op, $r->data);
-		}
-		
-		if (isset($filters->groups)) {
-			if (count ($filters->groups) != 0) {
+			if ($dbContext->crud_field[$r->field]['prop'] & PROP_FIELD_FILTER) {
+				$this->_parse_rules($dbContext, $filters->groupOp, $r->field, $r->op, $r->data);
 				$is_blank = false;
 			}
+		}
+		
+		if (isset($filters->groups) && count ($filters->groups) != 0) {
+			$is_blank = false;
 			foreach ($filters->groups as $g) {
 				if ($filters->groupOp === "OR") {
 					$dbContext->db->or_group_start();
@@ -1149,5 +803,384 @@ $('.DataTD').children().prop('disabled', false).removeClass('datatd-disabled');
 			}
 		}
 		return true;
+	}
+	public function grid_header($dbContext, &$data)
+	{
+		$data->cols = array();
+		$data->setting = new stdClass ();
+		foreach ( $dbContext->crud_field as $k => $f ) {
+			if(!$f['_role_r']) {
+				continue;
+			}
+			$data->cols[] = $f['name'];
+			$setting = new stdClass ();
+			$setting->width = $f['width'];
+			$setting->x = (int)$f['x'];
+			$setting->y = (int)$f['y'];
+			$setting->w = (int)$f['w'];
+			$setting->h = (int)$f['h'];
+			$setting->type = (int)$f['type'];
+			$form_class = "";
+			$form_obj = (object)array(
+					"properties" => (object)array(),
+					"events" => (object)array()
+			);
+					
+			switch ($f['type']) {
+				case Crud_model::TYPE_LABEL :
+					$form_class = "xui.UI.ComboInput";
+					$form_obj->properties->type = "none";
+					break;
+				case Crud_model::TYPE_NUMBER :
+					$form_class = "xui.UI.ComboInput";
+					$form_obj->properties->type = "none";
+					break;
+					$form_obj->properties->type = "none";
+				case Crud_model::TYPE_DATE :
+					$form_class = "xui.UI.ComboInput";
+					$form_obj->properties->type = "date";
+					break;
+				case Crud_model::TYPE_TIME :
+					$form_class = "xui.UI.ComboInput";
+					$form_obj->properties->type = "time";
+					break;
+				case Crud_model::TYPE_DATETIME :
+					$form_class = "xui.UI.ComboInput";
+					$form_obj->properties->type = "datetime";
+					break;
+				case Crud_model::TYPE_SELECT:
+					$form_class = "xui.UI.ComboInput";
+					$form_obj->properties->type = "listbox";
+					$form_obj->events->beforePopShow = "_select_beforepopshow";
+					$data->cols[] = $f['_joined'];
+					$setting->tag = $f['_joined'];
+					break;
+				case Crud_model::TYPE_MULTI :
+					$form_class = "xui.UI.ComboInput";
+					$form_obj->properties->type = "cmdbox";
+					$form_obj->properties->cmd = "multi";
+					$form_obj->events->beforeComboPop = "_select_beforecombopop";
+					break;
+				case Crud_model::TYPE_BOOL :
+					$form_class = "xui.UI.ComboInput";
+					$form_obj->properties->type = "bool";
+					break;
+				case Crud_model::TYPE_TEXTAREA :
+					$form_class = "xui.UI.ComboInput";
+					$form_obj->properties->type = "none";
+					$form_obj->properties->multiLines = true;
+					break;
+				case Crud_model::TYPE_PASSWORD :
+					$form_class = "xui.UI.ComboInput";
+					$form_obj->properties->type = "password";
+					break;
+				case Crud_model::TYPE_BIT :
+					$form_class = "xui.UI.ComboInput";
+					$form_obj->properties->type = "cmdbox";
+					$form_obj->properties->cmd = "bit";
+					$form_obj->events->beforeComboPop = "_select_beforecombopop";
+					break;
+				default:
+					break;
+			}
+			if ($f['prop'] & Crud_model::PROP_FIELD_PRIMARY) {
+				$form_obj->properties->readonly = true;
+			}
+			if ($f['prop'] & Crud_model::PROP_FIELD_FILTER) {
+				$setting->filter = true;
+				$setting->filterOpts = $f['search_option'];
+			}
+			$form_obj->key = $form_class;
+			$setting->form = "new {$form_class}(".json_encode($form_obj).")";
+			$setting->caption[] = $f['caption'];
+			$name = $f['name'];
+			$data->setting->$name = $setting;
+		}
+		if($dbContext->pid){
+			$data->cols[] = "_sub";
+		}
+	}
+	public function request_grid($dbContext, $paras)
+	{
+		if (!$this->prepare($dbContext)) {
+			return false;
+		}
+		$this->load->library( 'xui' );
+		$ret = new stdClass ();
+		$header = new stdClass();
+		$this->grid_header($dbContext, $header);
+		$ret->gridName = $dbContext->name;
+		$ret->gridForm = "App.GridForm";
+		$ret->gridFilter = "App.GridFilter";
+		$ret->gridCols = $header->cols;
+		$ret->gridSetting = $header->setting;
+		$ret->gridFormDlg = $this->xui->form($dbContext);
+		$ret->gridFormWidth = (int)$dbContext->crud_table['w'];
+		$ret->gridFormHeight = (int)$dbContext->crud_table['h'];
+		$ret->gridTreeMode = ($dbContext->pid != "");
+		return $ret;
+	}
+	public function request_getlist($dbContext, $paras)
+	{
+		$table = $dbContext->name;
+		$ret = new stdClass ();
+		
+		$ret->rows = array();
+		$data= array();
+		$ret->count = array(array($dbContext->db->count_all_results()));
+		//paging
+		$pageIndex = (int)$paras->page;
+		$pageRows = (int)$paras->size;
+		if ($pageRows>0) {
+			if ($pageRows < 20) {
+				$pageRows = 20;
+			}
+			$start = ($pageIndex - 1) * $pageRows;
+			$dbContext->db->limit($pageRows, $start);
+		}
+	
+		//sort
+		if(isset($paras->sidx) && isset($paras->sord)) {
+			$sort = $paras->sidx;
+			$sord = $paras->sord;
+			$sord = ($sord === 'asc')?'asc':'desc';
+			if (isset($dbContext->crud_field[$sort])) {
+				if ($dbContext->crud_field[$sort]['type'] == Crud_model::TYPE_SELECT) {
+					$dbContext->db->order_by("{$dbContext->crud_field[$sort]['_joined']}", $sord);
+				} else {
+					$dbContext->db->order_by("{$dbContext->name}.{$sort}", $sord);
+				}
+			}
+		}
+		//search
+		if ($this->input->post_get("_search") === "true") {
+			$dbContext->search = true;
+			$filters = json_decode($this->input->post_get("filters"));
+			$this->parse($dbContext, $filters);
+		} else {
+			$dbContext->search = false;
+		}
+		/*		
+		//group
+		if ($dbContext->group) {
+			$gid = (int)$this->input->post_get("_gid");
+			$subgroup = (int)$this->input->post_get("_subgroup");
+			if (!$subgroup) {
+				$dbContext->db->where("{$dbContext->name}.gid", $gid);
+			} else {
+				$gids = $this->get_group_ids($gid, true);
+				$dbContext->db->where_in("{$dbContext->name}.gid", $gids);
+			}
+		}
+*/		
+		$dbContext->db->stash_cache();
+		
+		if ($dbContext->pid) {
+			$nodeid = isset($paras->nodeid)?(int)$paras->nodeid:0;
+			if ($dbContext->search == false) {
+				$dbContext->db->where("{$table}.{$dbContext->pid}", $nodeid);
+			}
+		}
+		$data = $dbContext->db->get ()->result_array ();
+		$ret->sql = $dbContext->db->get_compiled_select();
+		foreach ( $data as $d ) {
+			$tmp = array ();
+			foreach ( $dbContext->crud_field as $k => $f ) {
+				if(!$f['_role_r']) {
+					continue;
+				}
+				// if (function_exists ( $f['process'] )) {
+				// $d [$k] = $f['process'] ( $d [$k] );
+				// }
+				if ($f ['type'] == Crud_model::TYPE_SELECT) {
+					array_push ( $tmp, $d [$f ['name']] );
+					array_push ( $tmp, $d [$f ['_joined']] );
+				} else if ($f ['type'] == Crud_model::TYPE_PASSWORD) {
+					array_push ( $tmp, "******" );
+// 				} else if ($f ['type'] == Crud_model::TYPE_MULTI && 0) {
+// 					$new_val = array ();
+// 					$select_data = $f['_joined_data'];
+// 					$vals = explode ( ",", $d [$k] );
+// 					foreach ( $vals as $v ) {
+// 						if (isset ( $select_data [$v] )) {
+// 							$new_val [] = $select_data [$v]['_option'];
+// 						}
+// 					}
+// 					array_push ( $tmp, implode ( ",", $new_val ) );
+// 				} else if ($f ['type'] == Crud_model::TYPE_BIT && 0) {
+// 					$new_val = array ();
+// 					$select_data = $f['_joined_data'];
+// 					foreach ($select_data as $sk=>$sv) {
+// 						if (((int)$d [$k]) & ((int)$sk)) {
+// 							$new_val[] = $sv['_option'];
+// 						}
+// 					}
+						
+// 					array_push ( $tmp, implode ( ",", $new_val ) );
+				} else {
+					array_push ( $tmp, $d [$f ['name']] );
+				}
+			}
+			if ($dbContext->pid) {
+// 				array_push ( $tmp, $level + 1 );						// level
+// 				if ($nodeid) {
+// 					array_push ( $tmp, $nodeid );						//parent id
+// 				} else {
+// 					array_push ( $tmp, NULL );							// no parent
+// 				}
+				$dbContext->db->pop_cache();
+				$dbContext->db->where("{$table}.{$dbContext->pid}", $d['id']);
+				$child_count = $dbContext->db->count_all_results();
+				if ($child_count > 0) {
+					array_push ( $tmp, true );
+				} else {
+					array_push ( $tmp, false );
+				}
+					
+// 				array_push($tmp, false); //expanded
+					
+			}
+			$ret->rows[] = $tmp;
+		}
+		return $ret;
+	}
+	function request_get($dbContext, $paras)
+	{
+		$id = $paras->id;
+		$ret = (object) array(
+				"cols" => array(),
+				"rows" => array(),
+				"caps" => (object)array()
+		);
+		$dbContext->db->where("{$dbContext->name}.id", $id);
+		$data = $dbContext->db->get ()->row_array ();
+		if ($data) {
+			foreach ( $dbContext->crud_field as $k => $f ) {
+				if(!$f['_role_r']) {
+					continue;
+				}
+				$ret->cols[] = $f ['name'];
+				if ($f['type']==Crud_model::TYPE_SELECT){
+					$ret->rows[0][] = $data [$f ['name']];
+					$ret->cols[] = $f ['_joined'];
+					$ret->rows[0][] = $data [$f ['_joined']];
+					$method=$f ['name'];
+					$ret->caps->$method = $f ['_joined'];
+				} else if ($f ['type'] == Crud_model::TYPE_PASSWORD) {
+					$ret->rows[0][] = "******";
+				} else {
+					$ret->rows[0][] = $data [$f ['name']];
+				}
+			}
+			if ($dbContext->pid) {
+				$ret->pid=$data[$dbContext->pid];
+			}
+		} else {
+			$ret->warn = (object) array(
+				"message" => "No Such Data"	
+			);
+		}
+		return $ret;
+	}
+	function request_set($dbContext, $paras)
+	{
+		$ret = $this->edit($dbContext, $paras->action, array($paras->id), (array)$paras->fields);
+		if ($ret->message) {
+			return ( object ) array (
+					"warn" => ( object ) array (
+							"message" => $ret->message
+					)
+			);
+		} else {
+			return 1;
+		}
+	}
+	
+	function request_create($dbContext, $paras)
+	{
+		$ret = $this->edit($dbContext, $paras->action, null, (array)$paras->fields);
+		if ($ret->message) {
+			return ( object ) array (
+					"warn" => ( object ) array (
+							"message" => $ret->message
+					)
+			);
+		} else if($ret->id){
+			return $this->request_get($dbContext, $ret);
+		}else{
+			return 0;
+		}
+	}
+	
+	function request_delete($dbContext, $paras)
+	{
+		$ret = $this->edit($dbContext, $paras->action, $paras->ids, null);
+		if ($ret->message) {
+			return ( object ) array (
+					"warn" => ( object ) array (
+							"message" => $ret->message
+					)
+			);
+		} else {
+			return 1;
+		}
+	}
+	
+	function request_tables($paras)
+	{
+		$this->db->select("id,caption,w,h");
+		$this->db->from(Crud_model::CRUD_TABLE);
+		$ret = $this->db->get ()->result();
+		return $ret;
+	}
+	function request_fields($paras)
+	{
+		$this->db->select("id,caption,x,y,w,h");
+		$this->db->from(Crud_model::CRUD_FIELD);
+		$this->db->where("tid", $paras->tid);
+		$this->db->order_by ( 'seq', 'asc' );
+		$ret = $this->db->get ()->result();
+		return $ret;
+	}
+	function request_setting($paras)
+	{
+		$this->db->trans_start ();
+		foreach ($paras->fields as $k=>$f) {
+			$this->db->set("seq", $k);
+			$this->db->set("x", $f->x);
+			$this->db->set("y", $f->y);
+			$this->db->set("w", $f->w);
+			$this->db->set("h", $f->h);
+			$this->db->where( 'id', $f->id );
+			$this->db->update ( Crud_model::CRUD_FIELD );
+		}
+		$this->db->set("w", $paras->table_w);
+		$this->db->set("h", $paras->table_h);
+		$this->db->where( 'id', $paras->tid );
+		$this->db->update ( Crud_model::CRUD_TABLE );
+		$this->db->trans_complete ();
+		return 1;
+	}
+	function request_get_select($dbContext, $paras)
+	{
+		$data=$this->get_left_join($dbContext->name, $paras->field, $dbContext->crud_field[$paras->field]);
+		return $data;
+	}
+	function request_getlist_sel($dbContext, $paras)
+	{
+		$ret = new stdClass ();
+		$data=$this->get_left_join($dbContext->name, $paras->field, $dbContext->crud_field[$paras->field]);
+		$ret->count = array(array(count($data)));
+		$ret->cols = array("value", "caption");
+		$ret->setting = (object)array(
+				"value" => (object)array(
+						"width"=>60
+				),
+				"caption" => (object)array(
+						"width"=>140
+				)
+		);
+		$ret->rows = $data;
+		return $ret;
 	}
 }
