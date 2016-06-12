@@ -1,27 +1,11 @@
-// 默认的代码是一个从 xui.Com 派生来的类
 Class('App.TableSetting', 'xui.Com',{
-    // 要确保键值对的值不能包含外部引用
     Instance:{
-        // 本Com是否随着第一个控件的销毁而销毁
         autoDestroy : true,
-        // 初始化属性
         properties : {},
-        // 实例的属性要在此函数中初始化，不要直接放在Instance下
         initialize : function(){
         },
-        // 初始化内部控件（通过界面编辑器生成的代码，大部分是界面控件）
-        // *** 如果您不是非常熟悉XUI框架，请慎重手工改变本函数的代码 ***
         iniComponents : function(){
-            // [[Code created by CrossUI RAD Studio
             var host=this, children=[], append=function(child){children.push(child.get(0));};
-            
-//            append(
-//                (new xui.DataBinder())
-//                .setHost(host,"databinder")
-//                .setPropBinder({})
-//                .setName("databinder")
-//                .afterUpdateDataFromUI("_databinder_afterupdatedatafromui")
-//            );
             
             append(
                 (new xui.UI.Dialog())
@@ -31,7 +15,7 @@ Class('App.TableSetting', 'xui.Com',{
                 .setWidth(250)
                 .setHeight(120)
                 .setResizer(false)
-                .setCaption("Form")
+                .setCaption("自定义表单")
                 .setImagePos("left top")
                 .setMovable(false)
                 .setMinBtn(false)
@@ -80,7 +64,7 @@ Class('App.TableSetting', 'xui.Com',{
                 .setWidth(100)
                 .setHeight(22)
                 .setRight(20)
-                .setCaption("Save")
+                .setCaption("保存")
                 .onClick("_save_onclick")
             );
             
@@ -125,7 +109,7 @@ Class('App.TableSetting', 'xui.Com',{
                 .setTop(40)
                 .setWidth(100)
                 .setHeight(22)
-                .setCaption("Layout")
+                .setCaption("自动布局")
                 .onClick("_layout_onclick")
             );
             
@@ -154,28 +138,9 @@ Class('App.TableSetting', 'xui.Com',{
                 
             
             return children;
-            // ]]Code created by CrossUI RAD Studio
         },
-        // 可以自定义哪些界面控件将会被加到父容器中
         customAppend : function(parent, subId, left, top){
-            // "return false" 表示默认情况下所有的第一层内部界面控件会被加入到父容器
             return false;
-        },
-        // 加载其他资源可以用本函数
-        iniResource: function(com, threadid){
-            //xui.Thread.suspend(threadid);
-            //var callback=function(/**/){
-            //    /**/
-            //    xui.Thread.resume(threadid);
-            //};
-        },
-        // 加载其他Com可以用本函数
-        iniExComs : function(com, threadid){
-            //xui.Thread.suspend(threadid);
-            //var callback=function(/**/){
-            //    /**/
-            //    xui.Thread.resume(threadid);
-            //};
         },
         events:{"onRender":"_com_onrender"},
         _com_onrender:function (com, threadid){
@@ -355,54 +320,6 @@ Class('App.TableSetting', 'xui.Com',{
 	                    return false;
 	            	})
             	);
-//        		xui.ComFactory.newCom('App.AdvResizer', function(){
-//        			this.setHost(ns).resetTarget(ele, false);
-//        			ns.block.append(this);
-//                }, null, {
-//        			ele:o.id,
-//                    forceMovable:false,
-//                    minWidth:0,
-//                    minHeight:0,
-//                    dragArgs:{
-//                        widthIncrement:1,
-//                        heightIncrement:1
-//                    },
-//                    zIndex:xui.Dom.TOP_ZINDEX
-//                }, {
-//                    onUpdate:function(resizer, target, size, cssPos){
-//	                    if(target){
-//	                        target.each(function(target){
-//	                            target = xui([target]);
-//	                            items=fl.getItems();
-//	                            i=_.arr.subIndexOf(items,"id",resizer.properties.ele)
-//	                            var profile = xui.UIProfile.getFromDom(target.get(0).id);
-//                                if(size){
-//                                	orig_size=profile.getRoot().cssSize();
-//                                	items[i].w=ns._width_r(size.width+orig_size.width);
-//                                	items[i].h=ns._height_r(size.height+orig_size.height);
-//                                	size.width=ns._width(items[i].w);
-//                                	size.height=ns._height(items[i].h);
-//                                	profile.getRoot().cssSize(size);
-//                                    xui.UI.$tryResize(profile,size.width,size.height,null,true);
-//                                }
-//                                if(cssPos){
-//                                	orig_pos=profile.getRoot().cssPos();
-//                                	items[i].x=ns._left_r(cssPos.left+orig_pos.left);
-//                                	items[i].y=ns._top_r(cssPos.top+orig_pos.top);
-//                                	cssPos.left=ns._left(items[i].x);
-//                                	cssPos.top=ns._top(items[i].y);
-//                                    profile.getRoot().cssPos(cssPos);
-//                                }
-//                                
-//                        	});
-//	                    }
-//	                    resizer.boxing().rePosSize();
-//	                    return false;
-//	            	},
-//	            	onContextmenu:function(){
-//	            		return false;
-//	            	}
-//                });
             });
         }
     }

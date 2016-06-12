@@ -9,6 +9,6 @@
 if ( ! function_exists('check_str_bool')) {
 	function check_str_bool($bool, $val)
 	{
-		return (strpos("{$bool}," , "{$val}," ) === false) ? false : true;
+		return (strpos(",{$bool}," , ",{$val}," ) === false) ? false : true;
 	}
 }

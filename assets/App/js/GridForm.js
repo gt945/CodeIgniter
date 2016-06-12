@@ -1,10 +1,6 @@
-// The default code is a com class (inherited from xui.Com)
 Class('App.GridForm', 'xui.Com',{
     Instance:{
-        // To initialize internal components (mostly UI controls)
-        // *** If you're not a skilled, dont modify this function manually ***
         iniComponents : function(){
-            // [[Code created by CrossUI RAD Tools
             var host=this, children=[], append=function(child){children.push(child.get(0));};
             append((new xui.DataBinder())
             .setHost(host,"databinder")
@@ -39,26 +35,16 @@ Class('App.GridForm', 'xui.Com',{
             var index=1;
             for(var f in setting){
             	var dataField=f;
-            	var lableWidth=75;
             	var ele;
-            	host.ctl_block.append((new xui.UI.Label())
-					.setHost(host,"ctl_slabel"+f)
-					.setLeft(host._left(setting[f].x))
-					.setTop(host._top(setting[f].y))
-					.setWidth(lableWidth)
-					.setHeight(host._height(setting[f].h))
-					.setVAlign("middle")
-					.setCaption(setting[f].caption)
-					);
             	ele=_.unserialize(setting[f].form);
             	
             	host.ctl_block.append(ele
 					.setHost(host,"form_input"+f)
 					.setDataBinder("databinder")
 					.setDataField(dataField)
-					.setLeft(host._left(setting[f].x)+lableWidth+5)
+					.setLeft(host._left(setting[f].x)+5)
 					.setTop(host._top(setting[f].y))
-					.setWidth(host._width(setting[f].w)-lableWidth-5)
+					.setWidth(host._width(setting[f].w)-5)
 					.setHeight(host._height(setting[f].h))
 					.setTabindex(index++)
 					);
@@ -85,39 +71,22 @@ Class('App.GridForm', 'xui.Com',{
                 );
                     
             return children;
-            // ]]Code created by CrossUI RAD Tools
         },
         customAppend : function(parent, subId, left, top){
             this.mainDlg.showModal(parent, left, top);
             return false;
         },
         _width:function(v){
-        	return (v+1)*120+v*30;
-        },
-        _width_r:function(v){
-        	r=Math.round((v-80)/150);
-        	return r<0?0:r;
+        	return (v+1)*120;
         },
         _height:function(v){
         	return (v+1)*24+v*6;
         },
-        _height_r:function(v){
-        	r=Math.round((v-24)/30);
-        	return r<0?0:r;
-        },
         _left:function(v){
-        	return 15+v*120+v*30;
-        },
-        _left_r:function(v){
-        	r=Math.round((v-15)/150);
-        	return r<0?0:r;
+        	return 15+v*120;
         },
         _top:function(v){
         	return v*30+15;
-        },
-        _top_r:function(v){
-        	r=Math.round((v-15)/30);
-        	return r<0?0:r;
         },
         events:{"onRender":"_com_onrender"},
         _com_onrender:function (com, threadid){
@@ -167,7 +136,7 @@ Class('App.GridForm', 'xui.Com',{
                 
                 if(recordId){
                     //update
-                    rqsD={
+                    var rqsD={
                         id:recordId
                     };
                     if(db.isDirtied() && hash && !_.isEmpty(hash))
@@ -178,15 +147,14 @@ Class('App.GridForm', 'xui.Com',{
                     AJAX.callService(ns.getProperties("gridName"),"set",rqsD,function(rsp){
                         if(rsp.data==1){
                             xui.message("保存成功!");
+                            ns.fireEvent("afterUpdated", [recordId, db.getDirtied(true)], ns);
+                            db.updateValue();
+                            ns.setDirty(false);
+                            if(callback)callback(ns.mainDlg,rsp.data);
                         }else{
                             xui.message(rsp);
                         }
                         
-                        // update grid value
-                        ns.fireEvent("afterUpdated", [recordId, db.getDirtied(true)], ns);
-                        db.updateValue();
-                        ns.setDirty(false);
-                        if(callback)callback(ns.mainDlg,rsp.data);
                     },function(){
                         ns.mainDlg.busy("正在处理 ...");
                     },function(){
@@ -201,18 +169,15 @@ Class('App.GridForm', 'xui.Com',{
                     },function(rsp){
                         if(rsp.data){
                             xui.message("保存成功!");
+                            db.updateValue();
+                            
+                            // add to grid 
+                            ns.fireEvent("afterCreated", [rsp.data], ns);
+                            ns.setDirty(false);
+                            if(callback)callback(ns.mainDlg,1);
                         }else{
                             xui.message(rsp);
                         }
-                        // rsp.data
-                        ns.mainDlg.free();
-                        db.updateValue();
-                        
-                        // add to grid 
-                        ns.fireEvent("afterCreated", [rsp.data], ns);
-                        ns.setDirty(false);
-                        if(callback)callback(ns.mainDlg,rsp.data);
-                        
                     },function(){
                         ns.mainDlg.busy("正在处理 ...");
                     },function(){
@@ -305,21 +270,25 @@ Class('App.GridForm', 'xui.Com',{
         },
         _select_beforecombopop:function (profile, pos,e ,src){
             var ns=this,ctrl=profile.boxing();
-            
-            xui.ComFactory.newCom('App.AdvInput', function(){
+            var setting=ns.getProperties("gridSetting")
+            xui.ComFactory.newCom(ctrl.getProperties("app"), function(){
                 this.setProperties({
                     key:ns.getProperties("gridName"),
                     field:ctrl.getDataField(),
                     pos:ctrl.getRoot(),
                     cmd:ctrl.getProperties("cmd"),
-                    value:ctrl.getUIValue()
+                    value:ctrl.getUIValue(),
+                    setting:setting[ctrl.getDataField()]
                 });
                 this.setEvents({
                     onCancel:function(){
                         ctrl.activate();
                     },
-                    onSelect:function(value){
+                    onSelect:function(value,caption,item){
                         ctrl.setUIValue(value);
+                        if(caption){
+                        	ctrl.setCaption(caption);
+                        }
                         ctrl.activate();
                     }
                 });

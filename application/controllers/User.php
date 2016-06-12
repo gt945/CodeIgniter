@@ -102,18 +102,30 @@ class User extends CI_Controller {
 		$base_url = base_url ();
 		
 		$data = array ();
-		
+		$data ['error'] = "";
 		$js = array (
-				"assets/js/jquery.min.js" 
+				"assets/js/md5.min.js",
+				"assets/js/jsencrypt.min.js",
+				"assets/js/xui-debug.js",
+				"assets/App/login.js",
+		);
+		$css = array (
+				"assets/appearance/vista/theme.css",
 		);
 		foreach ( $js as &$j ) {
 			$j = "<script type=\"text/javascript\" src=\"{$base_url}{$j}\"></script>";
 		}
+		$data['js'] = implode ( "\n", $js );
+		
+		foreach ( $css as &$c ) {
+			$c = "<link rel=\"stylesheet\" href=\"{$base_url}{$c}\" type=\"text/css\" />";
+		}
+		$data['siteurl'] = site_url("/");
+		$data['css'] = implode ( "\n", $css );
+// 		$data['login'] = site_url("user/login");
+		$data['appPath'] = "{$base_url}assets/";
 		$cap = $this->auth_model->captcha();
-		$data ['js'] = implode ( "\n", $js );
-		$data ['captcha'] = $cap['image'];
-		$data ['captcha_time'] = $cap['time'];
-		$data ['captcha_url'] = site_url("user/captcha");
+// 		$data ['captcha_url'] = site_url("user/captcha");
 		$this->load->helper ( 'form' );
 		$this->load->library ( 'form_validation' );
 		
@@ -123,29 +135,34 @@ class User extends CI_Controller {
 		if ($this->form_validation->run () == false) {
 			$this->load->view ( 'user/login', $data );
 		} else {
+			$ret = (object)array(
+					"error" => "",
+					"ok" => 0,
+					"redirct" => ""
+			);
 			$username = $this->input->post ( 'username' );
 			$password = $this->input->post ( 'password' );
 			
 			$result = $this->auth_model->login ( $username, $password );
 			if ($result == 0) {
 				$url = $this->input->get ( "redirect" );
-				redirect ( rawurldecode ( $url ) );
+				$ret->ok = 1;
+				$ret->url = site_url(rawurldecode ($url));
 			} else {
 				$error = array(
 					1 => "验证码错误",
 					2 => "用户名或密码错误"
 				);
-				$data ['error'] = $error[$result];
-				$this->load->view ( 'user/login', $data );
+				$ret->error = $error[$result];
 			}
+			echo json_encode($ret);
 		}
 	}
 	
 	public function captcha()
 	{
 		$cap = $this->auth_model->captcha();
-		echo $cap['image'];
-		echo "<input type=\"hidden\" name=\"captcha_time\" value=\"{$cap['time']}\">";
+		echo json_encode($cap);
 	}
 	/**
 	 * logout function.
@@ -153,9 +170,16 @@ class User extends CI_Controller {
 	 * @access public
 	 * @return void
 	 */
-	public function logout() {
+	public function logout()
+	{
 		$this->auth_model->login_out();
 		redirect('/');
 	}
 	
+	public function pubkey()
+	{
+		$response = new stdClass();
+		$response->data = $this->auth_model->get_pubkey();
+		echo json_encode($response);
+	}
 }

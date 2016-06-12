@@ -10,8 +10,8 @@ defined('BASEPATH') OR exit('No direct script access allowed');
 class Auth_model extends CI_Model {
 	
 	const EXPIRATION = 300; 
-	
-	
+	const CERT_PRIV = "cert_priv";
+	const CERT_PUB = "cert_pub";
 	/**
 	 * __construct function.
 	 *
@@ -24,6 +24,7 @@ class Auth_model extends CI_Model {
 		$this->load->helper(array('url'));
 		$this->load->library(array('session'));
 		$this->load->database ();
+		$this->load->driver('cache', array('adapter' => 'file'));
 	}
 	
 	/**
@@ -74,7 +75,7 @@ class Auth_model extends CI_Model {
 		}
 		$hash = $userinfo ['password'];
 		unset($userinfo ['password']);
-		if ($this->verify_password_hash ( $password, $hash )) {
+		if ($this->verify_password_hash ( $password, $hash, $captcha)) {
 			
 			$this->session->set_userdata ( array( "userinfo" => $userinfo) );
 			$this->db->from ( 'user_group' );
@@ -152,12 +153,12 @@ class Auth_model extends CI_Model {
 		$base_url = base_url ();
 		$vals = array(
 				'img_path'      => BASEPATH.'../'.'captcha/',
-				'img_url'       => "{$base_url}/captcha/",
+				'img_url'       => "{$base_url}captcha/",
 				'font_path'     => BASEPATH.'../'.'assets/font/vera.ttf',
 				'word_length'   => 4,
 				'font_size'     => 20,
-				'img_width'     => '130',
-				'img_height'     => '40',
+				'img_width'     => '120',
+				'img_height'     => '50',
 				'expiration'    => Auth_model::EXPIRATION,
 		);
 		
@@ -165,8 +166,10 @@ class Auth_model extends CI_Model {
 		$cap['time'] = (int)$cap['time'];
 		$data = array("cap_{$cap['time']}" => $cap['word']);
 		$this->session->set_userdata ( $data );
-		
-		return $cap;
+		return array(
+				"url" => "{$base_url}captcha/{$cap['filename']}",
+				"time" => $cap['time']
+		);
 	}
 	
 	public function captcha_verify($word, $captcha_time)
@@ -189,7 +192,7 @@ class Auth_model extends CI_Model {
 		if (strtolower($_SESSION["cap_{$captcha_time}"]) !== strtolower($word)) {
 			return false;
 		}
-		unset($_SESSION["cap{$captcha_time}"]);
+		unset($_SESSION["cap_{$captcha_time}"]);
 		return true;
 	}
 	/**
@@ -200,11 +203,49 @@ class Auth_model extends CI_Model {
 	 * @param mixed $hash
 	 * @return bool
 	 */
-	private function verify_password_hash($password, $hash)
+	private function verify_password_hash($password, $hash, $captcha)
 	{
 	
-		return password_verify($password, $hash);
+// 		return password_verify($password, $hash);
+		$privKey = $this->cache->get(Auth_model::CERT_PRIV);
+		if (openssl_private_decrypt(base64_decode($password), $decrypted, $privKey)) {
+			$passHash = hash_hmac('md5', $hash, $captcha);
+			return $decrypted === $passHash;
+		}
+		return false;
 	
+	}
+	
+	private function gen_certificate()
+	{
+		$config = array(
+				"digest_alg" => "sha512",
+				"private_key_bits" => 2048,
+				"private_key_type" => OPENSSL_KEYTYPE_RSA,
+		);
+			
+		// Create the private and public key
+		$res = openssl_pkey_new($config);
+		
+		// Extract the private key from $res to $privKey
+		openssl_pkey_export($res, $privKey);
+		
+		// Extract the public key from $res to $pubKey
+		$pubKey = openssl_pkey_get_details($res);
+		$pubKey = $pubKey["key"];
+		
+		$this->cache->save(Auth_model::CERT_PRIV, $privKey, 3600);
+		$this->cache->save(Auth_model::CERT_PUB, $pubKey, 3600);
+		return $pubKey;
+	}
+	
+	public function get_pubkey()
+	{
+		$pubKey = $this->cache->get(Auth_model::CERT_PUB);
+		if (!$pubKey) {
+			$pubKey = $this->gen_certificate();
+		}
+		return $pubKey;
 	}
 	
 }

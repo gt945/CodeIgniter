@@ -7,7 +7,7 @@ class Main extends CI_Controller {
 	{
 		parent::__construct ();
 		$this->load->model ( 'auth_model' );
-		$this->load->library( 'xui' );
+		$this->load->library( 'xui_utils' );
 		if (! $this->auth_model->check( true, uri_string() )) {
 			die ();
 		}
@@ -19,6 +19,7 @@ class Main extends CI_Controller {
 		$this->load->helper("url");
 		$base_url = base_url();
 		$js = array (
+				"assets/App/log.js",
 				"assets/js/xui-debug.js",
 				"assets/App/ajax.js",
 				"assets/App/main.js",
@@ -39,19 +40,33 @@ class Main extends CI_Controller {
 		$data['title'] = "main";
 		$data['baseurl'] = $base_url;
 		$data['appPath'] = "{$base_url}assets/";
-		$data['gridRPC'] = site_url('crud/request');
-		
+		$data['logUrl'] = site_url('log/index');
+		$data['xuiRPC'] = site_url('xui/request');
 		if ( ! $menus = $this->cache->get('menus')) {
 				
 			$this->load->model('crud_model');
 			$dbContext = $this->crud_model->table("menu");
 			$menu_array = $this->crud_model->get_tree_data_by_pid($dbContext, 0, true);
-			$menus = $this->xui->menus($menu_array[0]['children']);
+			$menus = $this->xui_utils->menus($menu_array[0]['children']);
 			$this->cache->save('menus', $menus);
 		}
 		$data['menus'] = $menus;
 		$data['username'] = $_SESSION['userinfo']['username'];
 		$data['logout'] = site_url('user/logout');
 		$this->load->view('main', $data);
+	}
+	
+	public function install()
+	{
+		$this->load->model('crud_model');
+		$this->crud_model->install('user');
+		$this->crud_model->install('user_group');
+		$this->crud_model->install('user_role');
+		$this->crud_model->install('crud_join');
+		$this->crud_model->install('crud_table');
+		$this->crud_model->install('crud_field');
+		$this->crud_model->install('menu');
+		$this->crud_model->install('test1');
+		$this->crud_model->install('test2');
 	}
 }

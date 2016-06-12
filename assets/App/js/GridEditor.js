@@ -1,4 +1,3 @@
-// The default code is a com class (inherited from xui.Com)
 Class('App.GridEditor', 'xui.Com',{
     Instance:{ 
     	properties : {
@@ -7,10 +6,7 @@ Class('App.GridEditor', 'xui.Com',{
     		sord:"",
     		search:false
     	},
-        // To initialize internal components (mostly UI controls)
-        // *** If you're not a skilled, dont modify this function manually ***
         iniComponents : function(){
-            // [[Code created by CrossUI RAD Tools
             var host=this, children=[], append=function(child){children.push(child.get(0));};
             
             append((new xui.UI.TreeGrid())
@@ -26,12 +22,7 @@ Class('App.GridEditor', 'xui.Com',{
             
             append((new xui.UI.ToolBar())
             .setHost(host,"toolbar")
-            .setItems([{"id":"grp1", "sub":[
-                 {"id":"filter", "image":"@xui_ini.appPath@image/filter.png", "caption":"过滤"},
-                 {"id":"new", "image":"@xui_ini.appPath@image/new.png", "caption":"增加"},
-                 {"id":"edit", "image":"@xui_ini.appPath@image/edit.png", "caption":"修改", "disabled":true},
-                 {"id":"delete", "image":"@xui_ini.appPath@image/delete.png", "caption":"删除", "disabled":true}
-                 ], "caption":"grp1"}])
+            .setItems([{"id":"grp1", "sub":[{"id":"null","caption":""}], "caption":"grp1"}])
             .onClick("_toolbar_onclick")
             );
             
@@ -54,7 +45,6 @@ Class('App.GridEditor', 'xui.Com',{
             );
             
             return children;
-            // ]]Code created by CrossUI RAD Tools
         },
         events:{"onRender":"_com_onrender"},
         _com_onrender:function (com, threadid){
@@ -62,6 +52,7 @@ Class('App.GridEditor', 'xui.Com',{
         		grid=ns.grid;
         	AJAX.callService(ns.getProperties("target"),"grid",null,function(rsp){
         		ns.setProperties(rsp.data);
+        		ns.toolbar.setItems(_.unserialize(ns.getProperties("gridToolBarItems")));
         		if(ns.getProperties("gridTreeMode")){
         			grid.setTreeMode(true)
         			.setRowHandlerWidth(60)
@@ -78,43 +69,49 @@ Class('App.GridEditor', 'xui.Com',{
                 grid.busy("正在处理 ...");
             });
         },
-        loadGridData:function(curPage){
-            var ns=this, grid=ns.grid;
+        _fetch_data:function(callback){
+        	var ns=this, grid=ns.grid;
             var pageSize=ns.getProperties("pageSize");
-            
-            ns._curPage=curPage;
-            AJAX.callService(ns.getProperties("gridName"),"getlist",{
-                page:curPage,
+            var post={
+            	nodeid:ns._nodeid,
+                page:ns._curPage,
                 size:pageSize,
                 sidx:ns.getProperties("sidx"),
                 sord:ns.getProperties("sord"),
-                search:ns.getProperties("search")
-            },function(rsp){
+                search:ns.getProperties("search"),
+                gid:ns._gid,
+                sub:ns._sub
+            };
+            AJAX.callService(ns.getProperties("gridName"),"getlist",post,function(rsp){
                 if(!ns.isDestroyed()){
-                    ns.pagebar.setValue("1:"+curPage+":"+( Math.ceil(parseInt(rsp.data.count[0][0],10)/pageSize) ),true);
-                    ns._fillGrid(rsp.data.rows);
+               	 callback(rsp);
                 }
             },function(){
                 grid.busy("正在处理 ...");
             },function(result){
                 grid.free();
-            });   
+            }); 
+        },
+        loadGridData:function(curPage){
+            var ns=this, grid=ns.grid;
+            var pageSize=ns.getProperties("pageSize");
+            
+            ns._curPage=curPage;
+            ns._fetch_data(function(rsp){
+            	if(!ns.isDestroyed()){
+                    ns.pagebar.setValue("1:"+curPage+":"+( Math.ceil(parseInt(rsp.data.count[0][0],10)/pageSize) ),true);
+                    ns._fillGrid(rsp.data.rows);
+                }
+            });
         },
         _grid_ongetcontent:function(profile, row, callback){
         	 var ns=this, grid=ns.grid;
-             var pageSize=ns.getProperties("pageSize");
-             AJAX.callService(ns.getProperties("gridName"),"getlist",{
-            	 nodeid:row.id,
-                 page:1,
-                 size:pageSize,
-                 sidx:ns.getProperties("sidx"),
-                 sord:ns.getProperties("sord"),
-                 search:ns.getProperties("search")
-             },function(rsp){
-                 if(!ns.isDestroyed()){
+        	 ns._nodeid=row.id;
+        	 ns._fetch_data(function(rsp){
+        		 if(!ns.isDestroyed()){
                 	 callback(ns._buildRows(ns.header,ns.cols,ns.setting,rsp.data.rows));
                  }
-             }); 
+             });
         },
         _fillHeader:function(cols,setting) {
         	var ns=this,
@@ -127,7 +124,7 @@ Class('App.GridEditor', 'xui.Com',{
         _fillGrid:function(rows){
             var ns=this,
                 grid=ns.grid;
-        	grows = this._buildRows(ns.header,ns.cols,ns.setting,rows);
+        	var grows = this._buildRows(ns.header,ns.cols,ns.setting,rows);
             grid.setRows(grows);
         },
         _buildHeader:function(cols,setting){
@@ -238,6 +235,8 @@ Class('App.GridEditor', 'xui.Com',{
             var ns=this, grid=ns.grid;
             AJAX.callService(ns.getProperties("gridName"),"delete",{ids:ids},function(rsp){
                 grid.removeRows(ids);
+                grid.setActiveRow(null);
+                grid.setUIValue(null,true);
                 xui.message("已删除"+ids.length+"条数据");
             },function(){
                 xui.Dom.busy("正在处理 ...");
@@ -246,7 +245,7 @@ Class('App.GridEditor', 'xui.Com',{
             }); 
         },
         _toolbar_onclick:function (profile, item, group, e, src){
-            var ns = this,row;
+            var ns = this,ctrl=profile.boxing(),row;
             switch(item.id){
             	case "filter":
             		ns._openFilter();
@@ -256,7 +255,6 @@ Class('App.GridEditor', 'xui.Com',{
                     break;
                 case "edit": 
                     if((row=ns.grid.getActiveRow())){
-                    	debugger;
                         ns._openForm(row.id);
                     }
                     break;
@@ -273,6 +271,34 @@ Class('App.GridEditor', 'xui.Com',{
                         xui.message("请选择您要删除的数据!");
                     }
                     break;
+                case "group":
+                	var setting=ns.getProperties("gridSetting")
+                	xui.ComFactory.newCom('App.AdvSelect', function(){
+                        this.setProperties({
+                            key:ns.getProperties("gridName"),
+                            field:ns.getProperties("gridGroup"),
+                            pos:src,
+                            id:ns._gid,
+                            setting:setting['gid']
+                        });
+                        this.setEvents({
+                            onSelect:function(value,caption,item){
+                            	ns.toolbar.updateItem("group",{caption:caption});
+                            	ns._gid=value;
+                            	ns.loadGridData(1);
+                            }
+                        });
+                        this.show(); 
+                    });
+                	break;
+                case "sub":
+                	if (item.value){
+                		ns._sub=1;
+                	}else{
+                		ns._sub=0;
+                	}
+                	ns.loadGridData(1);
+                	break;
             }
         },
         _grid_afterrowactive:function (profile, row){
@@ -282,6 +308,7 @@ Class('App.GridEditor', 'xui.Com',{
             this.toolbar.updateItem("delete",{disabled:!newValue});
         },
         _ctl_sbutton1_onclick:function (profile, e, src, value){
+        	this._nodeid=null;
             this.loadGridData(this._curPage);
         },
         _pagebar_onclick:function (profile, page){

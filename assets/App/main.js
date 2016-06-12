@@ -1,5 +1,5 @@
 // 默认的代码是一个从 xui.Com 派生来的类
-Class('App', 'xui.Com',{
+Class('App.main', 'xui.Com',{
     // 要确保键值对的值不能包含外部引用
     Instance:{
         // 本Com是否随着第一个控件的销毁而销毁
@@ -21,8 +21,8 @@ Class('App', 'xui.Com',{
                 .setItems([{
                     "id" : "before",
                     "pos" : "before",
-                    "min" : 60,
-                    "size" : 60,
+                    "min" : 32,
+                    "size" : 32,
                     "locked" : true,
                     "folded" : false,
                     "hidden" : false,
@@ -31,6 +31,29 @@ Class('App', 'xui.Com',{
                     "id" : "main"
                 }])
             );
+            
+            host.layout_v.append(
+                (new xui.UI.ToolBar())
+                .setHost(host,"toolbar")
+                .setHAlign("right")
+                .setHandler(false)
+                .setDock("fill")
+                .setItems([{
+                    "id" : "grp1",
+                    "sub" : [{
+                        "id" : "logout",
+                        "image" : "@xui_ini.appPath@image/logout.png",
+                        "caption" : "退出"
+                    },{
+                        "id" : "userinfo",
+                        "image" : "@xui_ini.appPath@image/user.png",
+                        "caption" : USERNAME
+                    }],
+                    "caption" : "grp1"
+                }])
+                .onClick("_toolbar_click")
+                , "before");
+            
             
             host.layout_v.append(
                 (new xui.UI.Layout())
@@ -103,8 +126,20 @@ Class('App', 'xui.Com',{
             	tabs.fireItemClickEvent(item.id);
             }
             profile.boxing().setUIValue("");
+        },
+        _toolbar_click:function(profile, item, group, e, src){
+        	 var ns = this;
+             switch(item.id){
+             case "logout":
+            	 xui.confirm("确认", "确定退出吗?", function(){
+            		 window.location.replace(LOGOUT);
+                 });
+            	 break;
+             case "userinfo":
+            	 break;
+             }
         }
     }
 });
 
-xui.launch('App',null,'cn','vista');
+xui.launch('App.main',function(){xui('loading').remove();},'cn','vista');

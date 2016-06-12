@@ -1,6 +1,6 @@
 AJAX={
     
-    serviceURI:GRIDRPC,
+    serviceURI:XUIRPC,
     pageSize:20,
     callService:function(objectName, action, paras, callback, onStart, onEnd, file){
         _.tryF(onStart);
