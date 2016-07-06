@@ -44,7 +44,7 @@ Class('App.login', 'xui.Com',{
                 .setDataBinder("databinder")
                 .setDataField("username")
                 .setLeft(35)
-                .setTop(26)
+                .setTop(30)
                 .setWidth(200)
                 .setType("input")
                 .setLabelSize(80)
@@ -58,7 +58,7 @@ Class('App.login', 'xui.Com',{
                 .setDataBinder("databinder")
                 .setDataField("password")
                 .setLeft(35)
-                .setTop(66)
+                .setTop(70)
                 .setWidth(200)
                 .setType("password")
                 .setLabelSize(80)
@@ -72,7 +72,7 @@ Class('App.login', 'xui.Com',{
                 .setDataBinder("databinder")
                 .setDataField("captcha")
                 .setLeft(35)
-                .setTop(106)
+                .setTop(110)
                 .setWidth(200)
                 .setType("input")
                 .setLabelSize(80)
@@ -84,7 +84,7 @@ Class('App.login', 'xui.Com',{
             	(new xui.UI.Pane())
             	.setHost(host,"captcha_block")
             	.setLeft(115)
-                .setTop(146)
+                .setTop(150)
                 .setWidth(120)
                 .setHeight(50)
             	);
@@ -102,7 +102,7 @@ Class('App.login', 'xui.Com',{
                 (new xui.UI.Button())
                 .setHost(host)
                 .setLeft(100)
-                .setTop(220)
+                .setTop(225)
                 .setWidth(100)
                 .setCaption("登　录")
                 .onClick("_login_onclick")
@@ -111,6 +111,7 @@ Class('App.login', 'xui.Com',{
             return children;
             // ]]Code created by CrossUI RAD Studio
         },
+        events:{"onRender":"_com_onrender"},
         // 可以自定义哪些界面控件将会被加到父容器中
         customAppend : function(parent, subId, left, top){
         	this.dialog.showModal(parent, left, top);
@@ -118,14 +119,14 @@ Class('App.login', 'xui.Com',{
         },
         // 加载其他资源可以用本函数
         iniResource: function(com, threadid){
-            xui.Thread.suspend(threadid);
-            var callback=function(resp){
-                com.encrypt.setPrivateKey(resp.data);
-                xui.Thread.resume(threadid);
-            };
-            xui.Thread.observableRun(function(threadid){
-                xui.Ajax(SITEURL+'user/pubkey', null, callback, null,threadid).start();
-            });
+            //xui.Thread.suspend(threadid);
+            //var callback=function(resp){
+            //    com.encrypt.setPrivateKey(resp.data);
+            //    xui.Thread.resume(threadid);
+            //};
+            //xui.Thread.observableRun(function(threadid){
+            //    xui.Ajax(SITEURL+'user/pubkey', null, callback, null,threadid).start();
+            //});
         },
         // 加载其他Com可以用本函数
         iniExComs : function(com, threadid){
@@ -135,11 +136,24 @@ Class('App.login', 'xui.Com',{
             //    xui.Thread.resume(threadid);
             //};
         },
-        _login_onclick:function (profile, e, value){
-            var ns = this, uictrl = profile.boxing();
+        _com_onrender:function(){
+        	var ns=this;
+            xui.Event.keyboardHook("enter", 0, 0, 0, function(){
+            	var db = ns.databinder.updateDataFromUI(true);
+            	if (db.getData("username").value.length 
+            			&&db.getData("password").value.length
+            			&&db.getData("captcha").value.length){
+            		ns._login_onclick();
+            	}
+            });
+        },
+        _login_onclick:function(){
+            var ns = this;
             var db = ns.databinder.updateDataFromUI(true);
-            vp=md5(md5(db.getData("password").value),db.getData("captcha").value,false);
+            var ps=db.getData("password").value;
+            vp=md5(md5(ps),db.getData("captcha").value,false);
             ve=ns.encrypt.encrypt(vp);
+            
             args={
              		username:db.getData("username").value,
             		password:ve,
@@ -168,24 +182,17 @@ Class('App.login', 'xui.Com',{
             			}
             	);
             }else{
-            	xui.alert("aaa");
+            	xui.alert("请填写完整");
             }
-            
-//            if(db){
-//                 xui.Dom.submit(null,{
-//                 		username:db.getData("username").value,
-//                		password:db.getData("password").value,
-//                		captcha:db.getData("captcha").value,
-//                		captcha_time:ns.captcha_time
-//                },'post','_self');
-//            }
         },
-        _update_captcha_image:function (){
+        _update_captcha_image:function(){
             var ns = this;
             ns.captcha_block.busy(null,null);
             xui.request(SITEURL+'user/captcha', null, function(rsp){
-            	ns.captcha_image.setSrc(rsp.url);
-            	ns.captcha_time=rsp.time;
+        		ns.captcha_image.setSrc(rsp.url);
+        		ns.captcha_time=rsp.time;
+        		ns.pubkey=rsp.pubkey;
+        		ns.encrypt.setPrivateKey(rsp.pubkey);
             	ns.captcha_block.free();
             });
         }

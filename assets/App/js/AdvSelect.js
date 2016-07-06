@@ -89,9 +89,6 @@ Class('App.AdvSelect', 'xui.Com',{
             
             return children;
         },
-        customAppend : function(parent, subId, left, top){
-            return false;
-        },
         _fillGrid:function(items){
             var ns=this,grid=ns.grid;
             grid.setItems(items);

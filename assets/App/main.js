@@ -84,6 +84,7 @@ Class('App.main', 'xui.Com',{
                     "caption" : "main",
                 }])
                 .setValue("main")
+                .beforePageClose("_xui_ui_main_tabs_beforepageclose")
                 , "main");
             return children;
             // ]]Code created by CrossUI RAD Studio
@@ -132,12 +133,22 @@ Class('App.main', 'xui.Com',{
              switch(item.id){
              case "logout":
             	 xui.confirm("确认", "确定退出吗?", function(){
-            		 window.location.replace(LOGOUT);
+            		 window.location.replace(SITEURL+'user/logout');
                  });
             	 break;
              case "userinfo":
+            	 xui.ComFactory.newCom("App.UserInfo",function(){
+            		 this.show();
+            	 },null);
             	 break;
              }
+        },
+        _xui_ui_main_tabs_beforepageclose:function (profile,item,src){
+            var ns = this, uictrl = profile.boxing();
+            xui.confirm("确认", "确定关闭吗?", function(){
+            	uictrl.removeItems(item.id);
+            });
+            return false;
         }
     }
 });

@@ -120,12 +120,10 @@ class User extends CI_Controller {
 		foreach ( $css as &$c ) {
 			$c = "<link rel=\"stylesheet\" href=\"{$base_url}{$c}\" type=\"text/css\" />";
 		}
+		$data['title'] = $this->config->item('sys_title');
 		$data['siteurl'] = site_url("/");
 		$data['css'] = implode ( "\n", $css );
-// 		$data['login'] = site_url("user/login");
 		$data['appPath'] = "{$base_url}assets/";
-		$cap = $this->auth_model->captcha();
-// 		$data ['captcha_url'] = site_url("user/captcha");
 		$this->load->helper ( 'form' );
 		$this->load->library ( 'form_validation' );
 		
@@ -142,8 +140,10 @@ class User extends CI_Controller {
 			);
 			$username = $this->input->post ( 'username' );
 			$password = $this->input->post ( 'password' );
+			$captcha = $this->input->post('captcha');
+			$captcha_time = $this->input->post('captcha_time');
 			
-			$result = $this->auth_model->login ( $username, $password );
+			$result = $this->auth_model->login ( $username, $password, $captcha, $captcha_time);
 			if ($result == 0) {
 				$url = $this->input->get ( "redirect" );
 				$ret->ok = 1;
@@ -181,5 +181,24 @@ class User extends CI_Controller {
 		$response = new stdClass();
 		$response->data = $this->auth_model->get_pubkey();
 		echo json_encode($response);
+	}
+	
+	public function userinfo()
+	{
+// 		$name = $this->input->post ( 'name' );
+// 		$contact = $this->input->post ( 'contact' );
+		$response = $this->auth_model->userinfo();
+		echo json_encode($response);
+	}
+	
+	
+	public function updateinfo()
+	{
+		$password = $this->input->post ( 'password' );
+		$newpassword = $this->input->post ( 'newpassword' );
+		$name = $this->input->post ( 'name' );
+		$contact = $this->input->post ( 'contact' );
+		$response = $this->auth_model->updateinfo ($password, $newpassword, $name, $contact);
+		echo json_encode ( $response );
 	}
 }

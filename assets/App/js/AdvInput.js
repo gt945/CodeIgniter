@@ -70,9 +70,6 @@ Class('App.AdvInput', 'xui.Com',{
             
             return children;
         },
-        customAppend : function(parent, subId, left, top){
-            return false;
-        },
         _fillGrid:function(cols,setting,rows){
             var ns=this,grid=ns.grid,caps={},
                 header=[];

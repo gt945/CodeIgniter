@@ -35,8 +35,7 @@ Class('App.GridForm', 'xui.Com',{
             var index=1;
             for(var f in setting){
             	var dataField=f;
-            	var ele;
-            	ele=_.unserialize(setting[f].form);
+            	var ele=_.unserialize(setting[f].form);
             	
             	host.ctl_block.append(ele
 					.setHost(host,"form_input"+f)
@@ -74,7 +73,7 @@ Class('App.GridForm', 'xui.Com',{
         },
         customAppend : function(parent, subId, left, top){
             this.mainDlg.showModal(parent, left, top);
-            return false;
+            return true;
         },
         _width:function(v){
         	return (v+1)*120;
@@ -195,7 +194,7 @@ Class('App.GridForm', 'xui.Com',{
             var ns=this,data=ns.databinder.getData();
             // In this class, we use control's get/setValue directly
             AJAX.callService(ns.getProperties("gridName"),"get",{id:recordId},function(rsp){
-                var row=rsp.data.rows[0], map=rsp.data.caps,bmap=rsp.data.bools;
+                var row=rsp.data.rows[0].row, map=rsp.data.caps,bmap=rsp.data.bools;
                 _.arr.each(rsp.data.cols,function(col,i){
                     data[col]=row[i];
                     if(map && map[col]){
@@ -282,14 +281,18 @@ Class('App.GridForm', 'xui.Com',{
                 });
                 this.setEvents({
                     onCancel:function(){
-                        ctrl.activate();
+                    	if(!ctrl.isDestroyed()){
+                    		ctrl.activate();
+                    	}
                     },
                     onSelect:function(value,caption,item){
-                        ctrl.setUIValue(value);
-                        if(caption){
-                        	ctrl.setCaption(caption);
-                        }
-                        ctrl.activate();
+                    	if(!ctrl.isDestroyed()){
+	                        ctrl.setUIValue(value);
+	                        if(caption){
+	                        	ctrl.setCaption(caption);
+	                        }
+	                        ctrl.activate();
+                    	}
                     }
                 });
                 this.show(); 

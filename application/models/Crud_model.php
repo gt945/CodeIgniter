@@ -28,25 +28,33 @@ class Crud_model extends CI_Model {
 	
 	const PROP_FIELD_PRIMARY = 0x0001;
 	const PROP_FIELD_FILTER = 0x0002;
-	const PROP_FIELD_HIDDEN = 0x0004;
+	const PROP_FIELD_HIDE = 0x0004;
 	const PROP_FIELD_UNIQUE = 0x0008;
-	const PROP_FIELD_SORT = 0x0010;
+	const PROP_FIELD_READONLY = 0x0010;
+	const PROP_FIELD_SORT = 0x0020;
+	const PROP_FIELD_MINIFY = 0x0040;
 	
 	const CRUD_TABLE = 'crud_table';
 	const CRUD_FIELD = 'crud_field';
 	
-	public function __construct() {
+	public function __construct()
+	{
 		parent::__construct ();
 		$this->load->database ();
 		$this->load->helper ( 'bool' );
 		$this->load->library( 'session' );
 		$this->load->driver('cache', array('adapter' => 'file', 'key_prefix' => "u{$_SESSION['userinfo']['id']}_"));
 	}
-	public function install($table) {
+	
+	public function install($table)
+	{
+		if (!$this->check_role(1)){
+			return 0;
+		}
 		$fields = $this->db->field_data ( $table );						//get all fields in table
-		echo "<pre>";
-		print_r($fields);
-		echo "</pre>";
+// 		echo "<pre>";
+// 		print_r($fields);
+// 		echo "</pre>";
 		if (count ( $fields ) > 0) {
 			$this->db->select ( 'id' );
 			$this->db->where ( 'name', $table );
@@ -131,7 +139,7 @@ class Crud_model extends CI_Model {
 						}
 						if ($f->name === 'tree_code') {
 							$data ['type'] = Crud_model::TYPE_NUMBER;
-							$data ['prop'] |= Crud_model::PROP_FIELD_HIDDEN;
+							$data ['prop'] |= Crud_model::PROP_FIELD_HIDE;
 						}
 						if ($f->name === 'pid') {
 							$data ['type'] = Crud_model::TYPE_SELECT;
@@ -150,11 +158,12 @@ class Crud_model extends CI_Model {
 					$this->db->delete ( Crud_model::CRUD_FIELD );
 				}
 				$this->db->trans_complete ();
+				return 1;
 			} else {
-				// TODO: ERROR: insert error
+				return 0;
 			}
 		} else {
-			// TODO: ERROR: no such table
+			return 0;
 		}
 	}
 	
@@ -163,18 +172,22 @@ class Crud_model extends CI_Model {
 		$rid = $_SESSION['userinfo']['rid'];
 		return check_str_bool($role, $rid);
 	}
+	
 	public function context()
 	{
 		$dbContext = new stdClass();
 		$dbContext->db = $this->load->database ('default', true);
 		return $dbContext;
 	}
-	public function table($name) {
+	
+	public function table($name)
+	{
 		$cache_id = "table_{$name}";
 		if ( ! $dbContext = $this->cache->get($cache_id)) {
 			$this->db->select ( '*' );
 			$this->db->where ( 'name', $name );
 			$crud_field = array();
+			$dbContext = new stdClass();
 			$crud_table = $this->db->get ( Crud_model::CRUD_TABLE, 1 )->row_array ();
 			if ($crud_table) {
 				$crud_table['_role_c'] = $this->check_role($crud_table['role_c'] );
@@ -190,10 +203,12 @@ class Crud_model extends CI_Model {
 					$f['_role_u'] = $this->check_role($f['role_u']);
 					$crud_field [$f ['name']] = $f;
 					unset ( $crud_field [$k] );
+					if($f['prop'] & Crud_model::PROP_FIELD_PRIMARY) {
+						$dbContext->primary = $f['name'];
+					}
 				}
 			}
 			if (is_array($crud_table) && is_array($crud_field)) {
-				$dbContext = new stdClass();
 				$dbContext->tree_code = $_SESSION['groupinfo']['tree_code'];
 				$dbContext->crud_table = $crud_table;
 				$dbContext->crud_field = $crud_field;
@@ -308,12 +323,13 @@ class Crud_model extends CI_Model {
 	public function edit($dbContext, $oper, $ids, $post)
 	{
 		$ret = (object)array(
-				"message" => null
+				"message" => "未知错误"
 		);
 		if (!$this->prepare($dbContext)) {
-			$ret->message = "Can Not Prepare";
+			$ret->message = "内部错误";
 			return $ret;
 		}
+		
 		$this->load->library('crud_hook');
 		$table = $dbContext->name;
 		switch ($oper) {
@@ -324,7 +340,9 @@ class Crud_model extends CI_Model {
 					if(!$f['_role_u']) {
 						continue;
 					}
-					if (! isset ( $post [$k] )  || $f['prop'] & Crud_model::PROP_FIELD_PRIMARY) {
+					if (! isset ( $post [$k] ) 
+							|| ($f['prop'] & Crud_model::PROP_FIELD_PRIMARY)
+							|| ($f['prop'] & Crud_model::PROP_FIELD_READONLY)) {
 						continue;
 					}
 					
@@ -351,7 +369,7 @@ class Crud_model extends CI_Model {
 						}
 						$data [$k] = implode ( ",", $data_new );
 					}
-					
+/*					
 					if ($f ['type'] == Crud_model::TYPE_BIT) {
 						$data_in = explode(',', $data [$k]);
 						$data [$k] = 0;
@@ -361,7 +379,7 @@ class Crud_model extends CI_Model {
 							}
 						}
 					}
-					
+*/			
 					if ($f ['prop'] & Crud_model::PROP_FIELD_UNIQUE) {
 						$this->db->select("*");
 						$this->db->from($dbContext->name);
@@ -392,7 +410,6 @@ class Crud_model extends CI_Model {
 						continue;
 					}
 				}
-				
 				if (method_exists($this->crud_hook, $dbContext->crud_table['before_edit'])) {
 					$method = $dbContext->crud_table['before_edit'];
 					$this->crud_hook->$method($oper, $data, $dbContext->crud_field);
@@ -407,6 +424,7 @@ class Crud_model extends CI_Model {
 					if ($dbContext->tree) {
 						$this->build_all_tree_code($table, $id, $dbContext->pid);
 					}
+					$ret->message = null;
 				} else if ($oper == 'set') {
 					if (count($data)) {
 						if ($dbContext->pid && isset($data[$dbContext->pid])) {
@@ -418,7 +436,6 @@ class Crud_model extends CI_Model {
 						$dbContext->db->trans_start ();
 						$dbContext->db->where_in ( 'id', $ids );
 						$dbContext->db->update ( $table, $data );
-						
 						if ($dbContext->pid) {
 							if ($dbContext->tree) {
 								foreach ( $ids as $id ) {
@@ -427,6 +444,7 @@ class Crud_model extends CI_Model {
 							}
 						}
 						$dbContext->db->trans_complete ();
+						$ret->message = null;
 					} else {
 						$ret->message = "无修改";
 						return $ret;
@@ -443,6 +461,7 @@ class Crud_model extends CI_Model {
 					}
 					$dbContext->db->where_in ( 'id', $ids );
 					$dbContext->db->delete ( $table );
+					$ret->message = null;
 				}
 				break;
 			default :
@@ -640,8 +659,9 @@ class Crud_model extends CI_Model {
 		if ($start) {
 			$dbContext->db->group_start();
 		}
+		
 		foreach ($filters->rules as $r) {
-			if ($dbContext->crud_field[$r->field]['prop'] & PROP_FIELD_FILTER) {
+			if ($dbContext->crud_field[$r->field]['prop'] & Crud_model::PROP_FIELD_FILTER) {
 				$this->_parse_rules($dbContext, $filters->groupOp, $r->field, $r->op, $r->data);
 				$is_blank = false;
 			}
@@ -911,11 +931,17 @@ class Crud_model extends CI_Model {
 		$data = new stdClass();
 		$data->cols = array();
 		$data->setting = new stdClass ();
+
 		$dbContext->filter = false;
 		foreach ( $dbContext->crud_field as $k => $f ) {
 			if(!$f['_role_r']) {
 				continue;
 			}
+			if ( ($f['prop'] & Crud_model::PROP_FIELD_PRIMARY)
+					|| ($f['prop'] & Crud_model::PROP_FIELD_HIDE)) {
+				continue;
+			}
+			
 			$data->cols[] = $f['name'];
 			$setting = new stdClass ();
 			$setting->width = $f['width'];
@@ -926,12 +952,13 @@ class Crud_model extends CI_Model {
 			$setting->type = (int)$f['type'];
 			$setting->tree = ($dbContext->pid == $f['name'] || $f['name']=="gid")?true:false;
 			$setting->caption[] = $f['caption'];
+			$setting->search_option = (int)$f['search_option'];
 			$form_class = "";
 			$form_obj = (object)array(
 					"properties" => (object)array(),
 					"events" => (object)array()
 			);
-					
+			
 			switch ($f['type']) {
 				case Crud_model::TYPE_LABEL :
 					$form_class = "xui.UI.ComboInput";
@@ -999,12 +1026,11 @@ class Crud_model extends CI_Model {
 				$data->cols[] = $f['_caption'];
 				$setting->tag = $f['_caption'];
 			}
+			
 			$form_obj->properties->labelSize = 70;
 			$form_obj->properties->labelCaption = "{$f['caption']} ";
-			if ($f['prop'] & Crud_model::PROP_FIELD_PRIMARY) {
-				$form_obj->properties->readonly = true;
-			}
-			if (!$f['_role_u']) {
+			
+			if (!$f['_role_u'] || ($f['prop'] & Crud_model::PROP_FIELD_READONLY)) {
 				$form_obj->properties->readonly = true;
 			}
 			if ($f['prop'] & Crud_model::PROP_FIELD_FILTER) {
@@ -1014,6 +1040,18 @@ class Crud_model extends CI_Model {
 			}
 			$form_obj->key = $form_class;
 			$setting->form = "new {$form_class}(".json_encode($form_obj).")";
+			$setting->form_properties = $form_obj;
+			if ($f['prop'] & Crud_model::PROP_FIELD_SORT) {
+				$setting->sort = true;
+			} else {
+				$setting->sort = false;
+			}
+			if ($f['prop'] & Crud_model::PROP_FIELD_MINIFY) {
+				$setting->minify = true;
+			} else {
+				$setting->minify = false;
+			}
+			
 			$name = $f['name'];
 			$data->setting->$name = $setting;
 		}
@@ -1040,6 +1078,7 @@ class Crud_model extends CI_Model {
 		$ret->gridTreeMode = ($dbContext->pid != "");
 		$ret->gridToolBarItems = $this->xui_utils->grid_toolbar_items($dbContext);
 		$ret->gridGroup = ($dbContext->group != null)?"gid":null;
+		$ret->gridPrimary = $dbContext->primary;
 		return $ret;
 	}
 	public function request_getlist($dbContext, $paras)
@@ -1049,36 +1088,15 @@ class Crud_model extends CI_Model {
 		
 		$ret->rows = array();
 		$data= array();
-		$ret->count = array(array($dbContext->db->count_all_results()));
-		//paging
-		$pageIndex = (int)$paras->page;
-		$pageRows = (int)$paras->size;
-		if ($pageRows>0) {
-			if ($pageRows < 20) {
-				$pageRows = 20;
-			}
-			$start = ($pageIndex - 1) * $pageRows;
-			$dbContext->db->limit($pageRows, $start);
-		}
 	
-		//sort
-		if(isset($paras->sidx) && isset($paras->sord)) {
-			$sort = $paras->sidx;
-			$sord = $paras->sord;
-			$sord = ($sord === 'asc')?'asc':'desc';
-			if (isset($dbContext->crud_field[$sort])) {
-				if ($dbContext->crud_field[$sort]['type'] == Crud_model::TYPE_SELECT) {
-					$dbContext->db->order_by("{$dbContext->crud_field[$sort]['_caption']}", $sord);
-				} else {
-					$dbContext->db->order_by("{$dbContext->name}.{$sort}", $sord);
-				}
-			}
-		}
 		//search
 		if (isset($paras->search) && $paras->search == true) {
 			$dbContext->search = true;
-			$filters = json_decode($paras->filters);
-			$this->parse($dbContext, $filters);
+// 			$filters = json_decode($paras->filters);
+// 			print_r($paras->filters);
+			if (isset($paras->filters->rules) && isset($paras->filters->groupOp)) {
+				$this->parse($dbContext, $paras->filters);
+			}
 		} else {
 			$dbContext->search = false;
 		}
@@ -1103,6 +1121,33 @@ class Crud_model extends CI_Model {
 			}
 		}
 		
+		$ret->count = array(array($dbContext->db->count_all_results()));
+		
+		//paging
+		$pageIndex = isset($paras->page) ? (int)$paras->page : 1;
+		$pageRows = isset($paras->size) ? (int)$paras->size : 20;
+		if ($pageRows>0) {
+			if ($pageRows < 20) {
+				$pageRows = 20;
+			}
+			$start = ($pageIndex - 1) * $pageRows;
+			$dbContext->db->limit($pageRows, $start);
+		}
+		
+		//sort
+		if(isset($paras->sidx) && isset($paras->sord)) {
+			$sort = $paras->sidx;
+			$sord = $paras->sord;
+			$sord = ($sord === 'asc')?'asc':'desc';
+			if (isset($dbContext->crud_field[$sort]) && ($dbContext->crud_field[$sort]['prop'] & Crud_model::PROP_FIELD_SORT)) {
+				if ($dbContext->crud_field[$sort]['type'] == Crud_model::TYPE_SELECT) {
+					$dbContext->db->order_by("{$dbContext->crud_field[$sort]['_caption']}", $sord);
+				} else {
+					$dbContext->db->order_by("{$dbContext->name}.{$sort}", $sord);
+				}
+			}
+		}
+		
 		$dbContext->db->stash_cache();
 		
 		if ($dbContext->pid) {
@@ -1119,8 +1164,18 @@ class Crud_model extends CI_Model {
 // 		$ret->sql = $dbContext->db->get_compiled_select();
 		foreach ( $data as $d ) {
 			$tmp = array ();
+			
+			if (isset($dbContext->primary)){
+				$primary = $d[$dbContext->primary];
+			} else if (isset($d['id'])) {
+				$primary = $d['id'];
+			}
 			foreach ( $dbContext->crud_field as $k => $f ) {
 				if(!$f['_role_r']) {
+					continue;
+				}
+				if (($f['prop'] & Crud_model::PROP_FIELD_PRIMARY)
+						|| ($f['prop'] & Crud_model::PROP_FIELD_HIDE)) {
 					continue;
 				}
 				// if (function_exists ( $f['process'] )) {
@@ -1156,6 +1211,7 @@ class Crud_model extends CI_Model {
 				} else {
 					array_push ( $tmp, $d [$f ['name']] );
 				}
+				
 			}
 			if ($dbContext->pid) {
 				$dbContext->db->pop_cache();
@@ -1170,7 +1226,10 @@ class Crud_model extends CI_Model {
 // 				array_push($tmp, false); //expanded
 					
 			}
-			$ret->rows[] = $tmp;
+			$ret->rows [] = array (
+					"primary" => $primary,
+					"row" => $tmp 
+			);
 		}
 		return $ret;
 	}
@@ -1189,8 +1248,18 @@ class Crud_model extends CI_Model {
 			$data = array();
 		}
 		if ($data) {
+			$tmp = array ();
+			if (isset($dbContext->primary)){
+				$primary = $data[$dbContext->primary];
+			} else if (isset($data['id'])) {
+				$primary = $data['id'];
+			}
 			foreach ( $dbContext->crud_field as $k => $f ) {
 				if(!$f['_role_r']) {
+					continue;
+				}
+				if (($f['prop'] & Crud_model::PROP_FIELD_PRIMARY)
+						|| ($f['prop'] & Crud_model::PROP_FIELD_HIDE)) {
 					continue;
 				}
 				$ret->cols[] = $f ['name'];
@@ -1200,10 +1269,10 @@ class Crud_model extends CI_Model {
 					$ret->caps->$method = $f ['_caption'];
 				}
 				if ($f['type']==Crud_model::TYPE_SELECT){
-					$ret->rows[0][] = $data [$f ['name']];
-					$ret->rows[0][] = $data [$f ['_caption']];
+					$tmp[] = $data [$f ['name']];
+					$tmp[] = $data [$f ['_caption']];
 				} else if ($f ['type'] == Crud_model::TYPE_PASSWORD) {
-					$ret->rows[0][] = "******";
+					$tmp[] = "******";
 				} else if ($f ['type'] == Crud_model::TYPE_MULTI) {
 					$new_val = array ();
 					$select_data = $f['_joined_data']->data;
@@ -1213,8 +1282,8 @@ class Crud_model extends CI_Model {
 							$new_val [] = $select_data [$v]['_option'];
 						}
 					}
-					$ret->rows[0][] = $data [$f ['name']];
-					$ret->rows[0][] = implode ( ",", $new_val );
+					$tmp[] = $data [$f ['name']];
+					$tmp[] = implode ( ",", $new_val );
 				} else if ($f ['type'] == Crud_model::TYPE_BIT) {
 					$new_val = array ();
 					$select_data = $f['_joined_data']->data;
@@ -1224,19 +1293,23 @@ class Crud_model extends CI_Model {
 						}
 					}
 						
-					$ret->rows[0][] = $data [$f ['name']];
-					$ret->rows[0][] = implode ( ",", $new_val );
+					$tmp[] = $data [$f ['name']];
+					$tmp[] = implode ( ",", $new_val );
 				} else {
-					$ret->rows[0][] = $data [$f ['name']];
+					$tmp[] = $data [$f ['name']];
 				}
 			}
+			$ret->rows[0] = array(
+					"primary" => $primary,
+					"row" => $tmp
+			);
 			if ($dbContext->pid) {
 				$ret->pid=$data[$dbContext->pid];
 			}
 		} else {
 			$ret->warn = (object) array(
 					//TODO
-				"message" => "No Such Data"	
+				"message" => "无此数据"	
 			);
 		}
 		return $ret;
@@ -1250,7 +1323,7 @@ class Crud_model extends CI_Model {
 				$message = $ret->message;
 			}
 		} else {
-			$message = "Error Role";
+			$message = "无此权限";
 		}
 		if ($message) {
 			return ( object ) array (
@@ -1272,7 +1345,7 @@ class Crud_model extends CI_Model {
 				$message = $ret->message;
 			}
 		} else {
-			$message = "Error Role";
+			$message = "无此权限";
 		}
 		if ($message) {
 			return ( object ) array (
@@ -1296,7 +1369,7 @@ class Crud_model extends CI_Model {
 				$message = $ret->message;
 			}
 		} else {
-			$message = "Error Role";
+			$message = "无此权限";
 		}
 		if ($message) {
 			return ( object ) array (
@@ -1311,18 +1384,30 @@ class Crud_model extends CI_Model {
 	
 	function request_tables($paras)
 	{
-		$this->db->select("id,caption,w,h");
+		$this->db->select("id,name,caption,w,h");
 		$this->db->from(Crud_model::CRUD_TABLE);
 		$ret = $this->db->get ()->result();
 		return $ret;
 	}
-	function request_fields($paras)
+	function request_fields($dbContext, $paras)
 	{
-		$this->db->select("id,caption,x,y,w,h");
-		$this->db->from(Crud_model::CRUD_FIELD);
-		$this->db->where("tid", $paras->tid);
-		$this->db->order_by ( 'seq', 'asc' );
-		$ret = $this->db->get ()->result();
+		$ret = array();
+		foreach($dbContext->crud_field as $f){
+			if ( ($f['prop'] & Crud_model::PROP_FIELD_PRIMARY)
+				|| ($f['prop'] & Crud_model::PROP_FIELD_HIDE)) {
+				continue;
+			}
+			
+			$ret[] = (object)array(
+					"id" => $f['id'],
+					"caption" => $f['caption'],
+					"x" => $f['x'],
+					"y" => $f['y'],
+					"w" => $f['w'],
+					"h" => $f['h']
+			);
+			
+		}
 		return $ret;
 	}
 	function request_setting($paras)
@@ -1344,11 +1429,13 @@ class Crud_model extends CI_Model {
 		$this->db->trans_complete ();
 		return 1;
 	}
+	
 	function request_get_select($dbContext, $paras)
 	{
 		$data=$this->get_left_join_for_list($dbContext, $paras->field);
 		return $data->data;
 	}
+	
 	function request_advance_input($dbContext, $paras)
 	{
 		$ret = new stdClass ();
@@ -1367,6 +1454,7 @@ class Crud_model extends CI_Model {
 		$ret->rows = $data->data;
 		return $ret;
 	}
+	
 	function request_advance_select($dbContext, $paras)
 	{
 		$this->load->library( 'xui_utils' );
@@ -1386,5 +1474,21 @@ class Crud_model extends CI_Model {
 			$ret->items = $data->data;
 		}
 		return $ret;
+	}
+	
+	function request_add_table($paras)
+	{
+		return $this->install($paras->table);
+	}
+	
+	function request_resize($dbContext, $paras)
+	{
+		if (isset($dbContext->crud_field[$paras->name])) {
+			$this->db->set("width", $paras->width);
+			$this->db->where("id", $dbContext->crud_field[$paras->name]['id']);
+			$this->db->update ( Crud_model::CRUD_FIELD );
+			return 1;
+		}
+		return 0;
 	}
 }

@@ -60,10 +60,8 @@ class Auth_model extends CI_Model {
 	 * @param mixed $password
 	 * @return bool true on success, false on failure
 	 */
-	public function login($username, $password)
+	public function login($username, $password, $captcha, $captcha_time)
 	{
-		$captcha = $this->input->post('captcha');
-		$captcha_time = $this->input->post('captcha_time');
 		if (!$this->captcha_verify($captcha, $captcha_time)) {
 			return 1;
 		}
@@ -164,11 +162,18 @@ class Auth_model extends CI_Model {
 		
 		$cap = create_captcha($vals);
 		$cap['time'] = (int)$cap['time'];
-		$data = array("cap_{$cap['time']}" => $cap['word']);
+		$data = array(
+				"cap_{$cap['time']}" => array(
+						"word" => $cap['word'],
+						"ip" => $this->input->ip_address()
+				)
+		);
 		$this->session->set_userdata ( $data );
-		return array(
+		return (object) array(
+				"error" => null,
 				"url" => "{$base_url}captcha/{$cap['filename']}",
-				"time" => $cap['time']
+				"time" => $cap['time'],
+				"pubkey" => $this->get_pubkey()
 		);
 	}
 	
@@ -189,33 +194,103 @@ class Auth_model extends CI_Model {
 		if (!isset($_SESSION["cap_{$captcha_time}"])) {
 			return false;
 		}
-		if (strtolower($_SESSION["cap_{$captcha_time}"]) !== strtolower($word)) {
+		if (strtolower($_SESSION["cap_{$captcha_time}"]["word"]) !== strtolower($word)) {
+			return false;
+		}
+		if ($_SESSION["cap_{$captcha_time}"]["ip"] != $this->input->ip_address()) {
 			return false;
 		}
 		unset($_SESSION["cap_{$captcha_time}"]);
 		return true;
 	}
+	
+	public function userinfo()
+	{
+		$response = (object) array(
+				"error" => null
+		);
+		if (!$this->check()){
+			$response->error="未登录";
+		} else {
+			$this->db->select('contact,name');
+			$this->db->from('user');
+			$this->db->where('id', $_SESSION['userinfo']['id']);
+			$userinfo = $this->db->get ()->row_array();
+			$response->contact = $userinfo['contact'];
+			$response->name = $userinfo['name'];
+			$response->pubkey = $this->get_pubkey();
+		}
+		return $response;
+	}
+	
+	public function updateinfo($password, $newpassword, $name, $contact)
+	{
+		$response = (object) array(
+				"error" => null
+		);
+		if (!$this->check()){
+			$response->error="未登录";
+		} else {
+			$decrypted = $this->decrypt_data($password);
+			
+			$this->db->select('password');
+			$this->db->from('user');
+			$this->db->where('id', $_SESSION['userinfo']['id']);
+			$userinfo = $this->db->get ()->row_array();
+			if ($userinfo['password'] != $decrypted) {
+				$response->error="密码错误";
+			} else {
+				if(strlen($newpassword)){
+					$decrypted = $this->decrypt_data($newpassword);
+					$this->db->set("password", $decrypted);
+				}
+				$this->db->set("name", $name);
+				$this->db->set("contact", $contact);
+				$this->db->where( 'id', $_SESSION['userinfo']['id']);
+				$this->db->update ( "user");
+				$response->ok = true;
+				$response->error = "修改成功";
+			}
+		}
+		return $response;
+	}
+	
+	private function decrypt_data($encrypted)
+	{
+		$pubKey = $this->get_pubkey();
+		$privKey = $this->cache->get(Auth_model::CERT_PRIV);
+		if (openssl_private_decrypt(base64_decode($encrypted), $decrypted, $privKey)) {
+			return $decrypted;
+		}
+		return null;
+	}
 	/**
 	 * verify_password_hash function.
 	 *
 	 * @access private
-	 * @param mixed $password
-	 * @param mixed $hash
+	 * @param string $password
+	 * @param string $hash
+	 * @param string $captcha
 	 * @return bool
 	 */
 	private function verify_password_hash($password, $hash, $captcha)
 	{
 	
-// 		return password_verify($password, $hash);
-		$privKey = $this->cache->get(Auth_model::CERT_PRIV);
-		if (openssl_private_decrypt(base64_decode($password), $decrypted, $privKey)) {
+		$decrypted = $this->decrypt_data($password);
+		if ($decrypted) {
 			$passHash = hash_hmac('md5', $hash, $captcha);
-			return $decrypted === $passHash;
+			return ($decrypted === $passHash);
 		}
 		return false;
 	
 	}
 	
+	/**
+	 * gen_certificate
+	 * 
+	 * generate rsa key pair and save to cache
+	 * 
+	 */
 	private function gen_certificate()
 	{
 		$config = array(
@@ -239,7 +314,11 @@ class Auth_model extends CI_Model {
 		return $pubKey;
 	}
 	
-	public function get_pubkey()
+	/**
+	 * get current public key, it not exist, generate one
+	 * 
+	 */
+	private function get_pubkey()
 	{
 		$pubKey = $this->cache->get(Auth_model::CERT_PUB);
 		if (!$pubKey) {

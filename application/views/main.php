@@ -4,16 +4,13 @@
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
 <meta name="language" content="zh_CN" />
 
-<title>Layout with Accordion</title>
+<title><?php echo $title?></title>
 <script>
-	var BASEURL = "<?php echo $baseurl ?>";
+	var SITEURL = "<?php echo $siteurl ?>";
 	var USERNAME = "<?php echo $username ?>";
-	var LOGOUT = "<?php echo $logout ?>";
-	var LOGURL = "<?php echo $logUrl ?>";
 	var xui_ini = {
 			appPath:"<?php echo $appPath ?>"
 	}
-	var XUIRPC = '<?php echo $xuiRPC ?>';
 	var MENUS = '<?php echo $menus ?>';
 </script>
 

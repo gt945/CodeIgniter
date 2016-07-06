@@ -1,6 +1,5 @@
 AJAX={
-    
-    serviceURI:XUIRPC,
+    serviceURI:SITEURL+'xui/request',
     pageSize:20,
     callService:function(objectName, action, paras, callback, onStart, onEnd, file){
         _.tryF(onStart);
@@ -17,7 +16,7 @@ AJAX={
             xui.request(AJAX.serviceURI, data, function(rsp){
                 var obj=rsp,result="ok";
                 if(obj){
-                    if(!obj.error){
+                    if(obj.code==200){
                         if(obj.data && obj.data.warn){
                             result="fail";
                             xui.message(obj.data.warn.message || obj.data.warn);
@@ -26,7 +25,7 @@ AJAX={
                         }
                     }else{
                         result="fail";
-                        xui.alert(obj.error.message);
+                        xui.alert(obj.msg);
                     }
                 }else{
                     result="fail";

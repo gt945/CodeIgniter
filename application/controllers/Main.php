@@ -20,6 +20,8 @@ class Main extends CI_Controller {
 		$base_url = base_url();
 		$js = array (
 				"assets/App/log.js",
+				"assets/js/md5.min.js",
+				"assets/js/jsencrypt.min.js",
 				"assets/js/xui-debug.js",
 				"assets/App/ajax.js",
 				"assets/App/main.js",
@@ -37,10 +39,9 @@ class Main extends CI_Controller {
 		}
 		$data['css'] = implode ( "\n", $css );
 		
-		$data['title'] = "main";
-		$data['baseurl'] = $base_url;
+		$data['title'] = $this->config->item('sys_title');
+		$data['siteurl'] = site_url("/");
 		$data['appPath'] = "{$base_url}assets/";
-		$data['logUrl'] = site_url('log/index');
 		$data['xuiRPC'] = site_url('xui/request');
 		if ( ! $menus = $this->cache->get('menus')) {
 				
@@ -52,7 +53,6 @@ class Main extends CI_Controller {
 		}
 		$data['menus'] = $menus;
 		$data['username'] = $_SESSION['userinfo']['username'];
-		$data['logout'] = site_url('user/logout');
 		$this->load->view('main', $data);
 	}
 	

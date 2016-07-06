@@ -91,7 +91,7 @@ var LOG = {
 }
 window.onerror = function(message, url, lineNumber) {
 	LOG.request({
-	    url: LOGURL,
+	    url: SITEURL+'log/index',
 	    method: 'post',
 	    data: {
 	        message: message,

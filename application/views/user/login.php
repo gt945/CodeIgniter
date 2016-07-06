@@ -4,7 +4,7 @@
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
 <meta name="language" content="zh_CN" />
 
-<title>Layout with Accordion</title>
+<title><?php echo $title?></title>
 <script>
 	var SITEURL = "<?php echo $siteurl ?>";
 	var ERROR = "<?php echo $error ?>";

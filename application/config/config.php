@@ -23,7 +23,8 @@ defined('BASEPATH') OR exit('No direct script access allowed');
 | a PHP script and you can easily do that on your own.
 |
 */
-$config['base_url'] = 'https://gt945.mynetgear.com/QKZX/';
+$config['base_url'] = 'https://gt945.vicp.net/QKZX/';
+// $config['base_url'] = 'https://gt945.mynetgear.com/QKZX/';
 // $config['base_url'] = '';
 
 /*

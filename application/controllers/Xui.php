@@ -10,9 +10,14 @@ class Xui extends CI_Controller {
 
 	public function request()
 	{
-		$response = new stdClass();
+		$response = (object)array(
+				'code' => 200,
+				'msg' => ''
+		);
+		
 		if (! $this->auth_model->check( false )) {
-			$response->error = (object) array("message" => "请重新登录");
+			$response->code = 401;
+			$response->msg = "请重新登录";
 			goto exit1;
 		}
 		$this->load->model('crud_model');
@@ -20,7 +25,8 @@ class Xui extends CI_Controller {
 		$paras_json = $this->input->post_get("paras");
 		$paras = json_decode($paras_json);
 		if (!$paras) {
-			$response->error = (object) array("message" => "err");
+			$response->code = 400;
+			$response->msg = "格式错误";
 			goto exit1;
 		}
 		$method = "request_{$paras->action}";
@@ -32,15 +38,15 @@ class Xui extends CI_Controller {
 					if ($this->crud_model->prepare($dbContext)) {
 						$response->data = $this->crud_model->$method($dbContext, $paras);
 						if (!$response->data) {
-							$error = "Error Process";
+							$error = "操作失败";
 						} else if(is_string($response->data)) {
 							$error=$response->data;
 						}
 					} else {
-						$error = "Error Prepare";
+						$error = "内部错误";
 					}
 				} else {
-					$error = "Error Table";
+					$error = "数据表错误";
 				}
 			} else{
 				$response->data = $this->crud_model->$method($paras);
@@ -48,10 +54,12 @@ class Xui extends CI_Controller {
 			
 			
 			if ($error) {
-				$response->error = (object) array("message" => $error);
+				$response->code = 500;
+				$response->msg = $error;
 			}
 		} else {
-			$response->error = (object) array("message" => "Not Support Action");
+			$response->code = 501;
+			$response->msg = "不支持的操作";
 		}
 exit1:
 		echo json_encode($response);
