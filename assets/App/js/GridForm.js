@@ -192,19 +192,16 @@ Class('App.GridForm', 'xui.Com',{
         },
         updateUIfromService:function(recordId){
             var ns=this,data=ns.databinder.getData();
-            // In this class, we use control's get/setValue directly
             AJAX.callService(ns.getProperties("gridName"),"get",{id:recordId},function(rsp){
-                var row=rsp.data.rows[0].row, map=rsp.data.caps,bmap=rsp.data.bools;
-                _.arr.each(rsp.data.cols,function(col,i){
-                    data[col]=row[i];
-                    if(map && map[col]){
-                        data[col]={
-                            value:row[i],
-                            caption:row[_.arr.indexOf(rsp.data.cols, map[col])]
-                        };
-                    }
-                    if(bmap && bmap[col]){
-                        data[col]=parseInt(data[col],10);
+                var row=rsp.data.rows[0].row,cols=ns.properties.gridCols,settings=ns.properties.gridSetting; //, map=rsp.data.caps,bmap=rsp.data.bools;
+                _.arr.each(cols,function(col,i){
+                	if(settings[col]&&settings[col].tag){
+                		data[col]={
+                			value:row[i],
+                			caption:row[_.arr.indexOf(cols, settings[col].tag)]
+                		};
+                    }else{
+                    	data[col]=row[i];
                     }
                 });
                 
@@ -257,15 +254,20 @@ Class('App.GridForm', 'xui.Com',{
         },
         _select_beforepopshow:function(profile, popCtl){
         	var ns = this, elem = popCtl.boxing();
-        	AJAX.callService(ns.getProperties("gridName"),"get_select",{field:profile.boxing().getDataField()},function(rsp){
-                if(!elem.isDestroyed()){
-                    profile.boxing().setItems(rsp.data);
-                    elem.setItems(rsp.data).setValue(null,true);
-                }
-            },function(){
-            	elem.setItems(["加载中 ..."],true);
-            },function(){
-            });
+        	if(!elem._isset){
+        		AJAX.callService(ns.getProperties("gridName"),"get_select",{field:profile.boxing().getDataField()},
+        			function(rsp){
+	                    if(!elem.isDestroyed()){
+	                        profile.boxing().setItems(rsp.data);
+	                        elem.setItems(rsp.data).setValue(null,true);
+	                        elem._isset=1;
+	                    }
+                	},function(){
+                		elem.setItems(["加载中 ..."],true);
+                	},function(){
+                });
+        	}
+        	
         },
         _select_beforecombopop:function (profile, pos,e ,src){
             var ns=this,ctrl=profile.boxing();

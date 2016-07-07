@@ -113,7 +113,7 @@ Class('App.GridEditor', 'xui.Com',{
             ns._curPage=curPage;
             ns._fetch_data(function(rsp){
             	if(!ns.isDestroyed()){
-                    ns.pagebar.setValue("1:"+curPage+":"+( Math.ceil(parseInt(rsp.data.count[0][0],10)/pageSize) ),true);
+                    ns.pagebar.setValue("1:"+curPage+":"+( Math.ceil(parseInt(rsp.data.count,10)/pageSize) ),true);
                     ns._fillGrid(rsp.data.rows);
                 }
             });
@@ -170,7 +170,7 @@ Class('App.GridEditor', 'xui.Com',{
             });
             var grows=[],grow,cell,index;
             _.arr.each(rows,function(row){
-            	grow={id:row.primary,cells:[],sub:false};
+            	grow={id:row.id,cells:[],sub:false};
                 _.arr.each(header,function(col){
                     index=_.arr.indexOf(cols, col.id);
                     cell={
@@ -340,7 +340,7 @@ Class('App.GridEditor', 'xui.Com',{
         _grid_afteruivalueset:function (profile, oldValue, newValue){
         	var ns = this,ctrl=profile.boxing();
         	if(newValue){
-	        	values=newValue.split(';');
+	        	var values=newValue.split(';');
 	            this.toolbar.updateItem("delete",{disabled:!newValue});
 	            if(values.length>1){
 	            	ns.toolbar.updateItem("edit",{disabled:true});

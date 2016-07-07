@@ -109,9 +109,11 @@ class Crud_model extends CI_Model {
 								break;
 							case "datetime":
 								$data['type'] = Crud_model::TYPE_DATETIME;
+								$data ['prop'] |= Crud_model::PROP_FIELD_SORT;
 								break;
 							case "date":
 								$data['type'] = Crud_model::TYPE_DATE;
+								$data ['prop'] |= Crud_model::PROP_FIELD_SORT;
 								break;
 						}
 						if ($f->name === 'id') {
@@ -124,12 +126,14 @@ class Crud_model extends CI_Model {
 							$data['join_table'] = 'user';
 							$data['join_value'] = 'id';
 							$data['join_caption'] = 'username';
+							$data ['prop'] |= Crud_model::PROP_FIELD_SORT;
 						}
 						if ($f->name === 'gid') {
 							$data ['type'] = Crud_model::TYPE_SELECT;
 							$data['join_table'] = 'user_group';
 							$data['join_value'] = 'id';
 							$data['join_caption'] = 'groupname';
+							$data ['prop'] |= Crud_model::PROP_FIELD_SORT;
 						}
 						if ($f->name === 'rid') {
 							$data ['type'] = Crud_model::TYPE_SELECT;
@@ -546,7 +550,7 @@ class Crud_model extends CI_Model {
 				}
 				if (isset($paras->page) && isset($paras->size)) {
 					$start = ($paras->page - 1) * $paras->size;
-					$paras->count = array(array($join_dbContext->db->count_all_results()));
+					$paras->count = $join_dbContext->db->count_all_results();
 					$join_dbContext->db->limit($paras->size, $start);
 				}
 				$join_dbContext->db->order_by("_value", "asc");
@@ -1121,7 +1125,7 @@ class Crud_model extends CI_Model {
 			}
 		}
 		
-		$ret->count = array(array($dbContext->db->count_all_results()));
+		$ret->count = $dbContext->db->count_all_results();
 		
 		//paging
 		$pageIndex = isset($paras->page) ? (int)$paras->page : 1;
@@ -1227,7 +1231,7 @@ class Crud_model extends CI_Model {
 					
 			}
 			$ret->rows [] = array (
-					"primary" => $primary,
+					"id" => $primary,
 					"row" => $tmp 
 			);
 		}
@@ -1237,9 +1241,7 @@ class Crud_model extends CI_Model {
 	{
 		$id = $paras->id;
 		$ret = (object) array(
-				"cols" => array(),
 				"rows" => array(),
-				"caps" => (object)array()
 		);
 		$dbContext->db->where("{$dbContext->name}.id", $id);
 		if ($dbContext->crud_table['_role_r']) {
@@ -1261,12 +1263,6 @@ class Crud_model extends CI_Model {
 				if (($f['prop'] & Crud_model::PROP_FIELD_PRIMARY)
 						|| ($f['prop'] & Crud_model::PROP_FIELD_HIDE)) {
 					continue;
-				}
-				$ret->cols[] = $f ['name'];
-				if (isset($f ['_caption'])) {
-					$ret->cols[] = $f ['_caption'];
-					$method=$f ['name'];
-					$ret->caps->$method = $f ['_caption'];
 				}
 				if ($f['type']==Crud_model::TYPE_SELECT){
 					$tmp[] = $data [$f ['name']];
@@ -1300,7 +1296,7 @@ class Crud_model extends CI_Model {
 				}
 			}
 			$ret->rows[0] = array(
-					"primary" => $primary,
+					"id" => $primary,
 					"row" => $tmp
 			);
 			if ($dbContext->pid) {
@@ -1470,7 +1466,7 @@ class Crud_model extends CI_Model {
 			$ret->items = $data;
 		} else {
 			$data = $this->get_left_join_for_list($dbContext, $paras->field, $paras);
-			$ret->count = array(array($data->count));
+			$ret->count = $data->count;
 			$ret->items = $data->data;
 		}
 		return $ret;

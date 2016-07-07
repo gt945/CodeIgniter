@@ -125,7 +125,7 @@ Class('App.AdvSelect', 'xui.Com',{
             },function(rsp){
                 if(!ns.isDestroyed()){
                 	if (!ns.properties.setting.tree){
-                		ns.pagebar.setValue("1:"+curPage+":"+( Math.ceil(parseInt(rsp.data.count[0][0],10)/5) ),true);
+                		ns.pagebar.setValue("1:"+curPage+":"+( Math.ceil(parseInt(rsp.data.count,10)/5) ),true);
                 	}
                     ns._fillGrid(rsp.data.items);
                     grid.toggleNode(null,true,true)

@@ -218,13 +218,13 @@ Class('App.GridFilter', 'xui.Com',{
 				if (o.alias!="xui_ui_c_bar"){
 					var group={};
 					_.arr.each(o.boxing().getChildren(null, true), function(c,d){
-						e=c.boxing();
+						var ele=c.boxing();
 						if(c.type=="field"){
-							group.field=e.getUIValue();
+							group.field=ele.getUIValue();
 						}else if(c.type=="operation") {
-							group.op=e.getUIValue();
+							group.op=ele.getUIValue();
 						}else if (c.type=="value"){
-							group.data=e.getUIValue();
+							group.data=ele.getUIValue();
 						}
 					});
 					filters.rules.push(group);
