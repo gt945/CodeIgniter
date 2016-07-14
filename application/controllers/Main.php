@@ -56,17 +56,17 @@ class Main extends CI_Controller {
 		$this->load->view('main', $data);
 	}
 	
-	public function install()
-	{
-		$this->load->model('crud_model');
-		$this->crud_model->install('user');
-		$this->crud_model->install('user_group');
-		$this->crud_model->install('user_role');
-		$this->crud_model->install('crud_join');
-		$this->crud_model->install('crud_table');
-		$this->crud_model->install('crud_field');
-		$this->crud_model->install('menu');
-		$this->crud_model->install('test1');
-		$this->crud_model->install('test2');
-	}
+// 	public function install()
+// 	{
+// 		$this->load->model('crud_model');
+// 		$this->crud_model->install('user');
+// 		$this->crud_model->install('user_group');
+// 		$this->crud_model->install('user_role');
+// 		$this->crud_model->install('crud_join');
+// 		$this->crud_model->install('crud_table');
+// 		$this->crud_model->install('crud_field');
+// 		$this->crud_model->install('menu');
+// 		$this->crud_model->install('test1');
+// 		$this->crud_model->install('test2');
+// 	}
 }

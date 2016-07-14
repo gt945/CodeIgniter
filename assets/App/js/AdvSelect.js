@@ -8,83 +8,83 @@ Class('App.AdvSelect', 'xui.Com',{
             var host=this, children=[], append=function(child){children.push(child.get(0));};
             
             append((new xui.UI.Panel())
-            .setHost(host,"mainPanel")
-            .setDock("none")
-            .setLeft(0)
-            .setTop(0)
-            .setWidth(250)
-            .setHeight(300)
-            .setZIndex(1)
-            .setCaption("选择窗口")
-            .setCloseBtn(true)
-            .beforeClose("_mainpanel_beforeclose")
+	            .setHost(host,"mainPanel")
+	            .setDock("none")
+	            .setLeft(0)
+	            .setTop(0)
+	            .setWidth(250)
+	            .setHeight(300)
+	            .setZIndex(1)
+	            .setCaption("选择窗口")
+	            .setCloseBtn(true)
+	            .beforeClose("_mainpanel_beforeclose")
             );
             
             host.mainPanel.append((new xui.UI.TreeView())
-            .setHost(host,"grid")
+            	.setHost(host,"grid")
             );
             
             host.mainPanel.append((new xui.UI.Block())
-            .setHost(host,"ctl_block8")
-            .setDock("top")
-            .setHeight(30)
+	            .setHost(host,"ctl_block8")
+	            .setDock("top")
+	            .setHeight(30)
             );
             
             host.ctl_block8.append((new xui.UI.SButton())
-            .setHost(host)
-            .setTop(3)
-            .setWidth(80)
-            .setRight(10)
-            .setImage("@xui_ini.appPath@image/refresh.png")
-            .setCaption("刷新")
-            .onClick("_ctl_sbutton1_onclick")
+	            .setHost(host)
+	            .setTop(3)
+	            .setWidth(80)
+	            .setRight(10)
+	            .setImage("@xui_ini.appPath@image/refresh.png")
+	            .setCaption("刷新")
+	            .onClick("_ctl_sbutton1_onclick")
             );
             
             host.ctl_block8.append((new xui.UI.PageBar())
-            .setHost(host,"pagebar")
-            .setTop(3)
-            .setRight(100)
-            .setCaption("页数:")
-            .onClick("_pagebar_onclick")
+	            .setHost(host,"pagebar")
+	            .setTop(3)
+	            .setRight(100)
+	            .setCaption("页数:")
+	            .onClick("_pagebar_onclick")
             );
             
             host.mainPanel.append((new xui.UI.Block())
-            .setHost(host,"ctl_block9")
-            .setDock("top")
-            .setHeight(30)
+	            .setHost(host,"ctl_block9")
+	            .setDock("top")
+	            .setHeight(30)
             );
             
             host.ctl_block9.append((new xui.UI.ComboInput())
-            .setHost(host,"filter")
-            .setType("getter")
-            .setDock("fill")
-            .setLabelSize(50)
-            .setLabelCaption("Filter")
-            .setShowDirtyMark(false)
-            .beforeComboPop("_filter_beforeComboPop")
-            .onChange("_filter_onchange")
+	            .setHost(host,"filter")
+	            .setType("getter")
+	            .setDock("fill")
+	            .setLabelSize(50)
+	            .setLabelCaption("Filter")
+	            .setShowDirtyMark(false)
+	            .beforeComboPop("_filter_beforeComboPop")
+	            .onChange("_filter_onchange")
     		);
             
             host.mainPanel.append((new xui.UI.Block())
-            .setHost(host,"ctl_block10")
-            .setDock("bottom")
-            .setHeight(40)
+	            .setHost(host,"ctl_block10")
+	            .setDock("bottom")
+	            .setHeight(40)
             );
             host.ctl_block10.append((new xui.UI.SButton())
-            .setHost(host)
-            .setTop(10)
-            .setWidth(80)
-            .setLeft(25)
-            .setCaption("确定")
-            .onClick("_ctl_sbutton2_onclick")
+	            .setHost(host)
+	            .setTop(10)
+	            .setWidth(80)
+	            .setLeft(25)
+	            .setCaption("确定")
+	            .onClick("_ctl_sbutton2_onclick")
             );
             host.ctl_block10.append((new xui.UI.SButton())
-    		.setHost(host)
-    		.setTop(10)
-    		.setWidth(80)
-    		.setRight(25)
-    		.setCaption("关闭")
-    		.onClick("_ctl_sbutton3_onclick")
+	    		.setHost(host)
+	    		.setTop(10)
+	    		.setWidth(80)
+	    		.setRight(25)
+	    		.setCaption("关闭")
+	    		.onClick("_ctl_sbutton3_onclick")
             );
             
             return children;
@@ -128,10 +128,10 @@ Class('App.AdvSelect', 'xui.Com',{
                 		ns.pagebar.setValue("1:"+curPage+":"+( Math.ceil(parseInt(rsp.data.count,10)/5) ),true);
                 	}
                     ns._fillGrid(rsp.data.items);
-                    grid.toggleNode(null,true,true)
-                    if (ns.properties.id){
-                    	grid.setUIValue(ns.properties.id);
-                    	grid.openToNode(ns.properties.id);
+                    grid.toggleNode(null,true,true);
+                    if (ns.properties.value){
+                    	grid.setUIValue(ns.properties.value);
+                    	grid.openToNode(ns.properties.value);
                     }
                 }
             },function(){

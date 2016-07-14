@@ -296,9 +296,9 @@ class Crud_model extends CI_Model {
 	
 		$dbContext->db->from ( "{$table} a" );
 		
-// 		if ($dbContext->group) {
-// 			$dbContext->db->where_in("a.gid", $dbContext->group);
-// 		}
+		if ($dbContext->group) {
+			$dbContext->db->where_in("a.gid", $dbContext->group);
+		}
 		
 		if ($dbContext->user) {
 			$dbContext->db->where("a.uid", $_SESSION['userinfo']['id']);
@@ -684,8 +684,7 @@ class Crud_model extends CI_Model {
 		}
 		
 		foreach ($filters->rules as $r) {
-			if ($r->field == $dbContext->primary
-					|| ($dbContext->crud_field[$r->field]['prop'] & Crud_model::PROP_FIELD_FILTER)) {
+			if ($dbContext->crud_field[$r->field]['prop'] & Crud_model::PROP_FIELD_FILTER) {
 				$this->_parse_rules($dbContext, $filters->groupOp, $r->field, $r->op, $r->data);
 				$is_blank = false;
 			}
@@ -724,6 +723,7 @@ class Crud_model extends CI_Model {
 				2 => 'after',
 				3 => 'both'
 		);
+		
 		$opt = array (
 				"eq" => "=",
 				"ne" => "<>",
@@ -748,21 +748,21 @@ class Crud_model extends CI_Model {
 		switch($op) {
 			case "nn" :
 				$func .= "where";
-				$dbContext->db->$func ( "b.{$field} is not null" );
+				$dbContext->db->$func ( "a.{$field} is not null" );
 				break;
 			case "nu" :
 				$func .= "where";
-				$dbContext->db->$func ( "b.{$field}" );
+				$dbContext->db->$func ( "a.{$field}" );
 				break;
 			case "ni" :
 				$func .= "where_not_in";
 				$array_in = explode(',', $data);
-				$dbContext->db->$func ( "b.{$field}", $array_in );
+				$dbContext->db->$func ( "a.{$field}", $array_in );
 				break;
 			case "in" :
 				$func .= "where_in";
 				$array_in = explode(',', $data);
-				$dbContext->db->$func ( "b.{$field}", $array_in );
+				$dbContext->db->$func ( "a.{$field}", $array_in );
 				break;
 			case "nc" :
 			case "en" :
@@ -780,11 +780,11 @@ class Crud_model extends CI_Model {
 					$side = 1;
 				}
 				$func .= "like";
-				$dbContext->db->$func ( "b.{$field}", $data, $side_array [$side] );
+				$dbContext->db->$func ( "a.{$field}", $data, $side_array [$side] );
 				break;
 			default :
 				$func .= "where";
-				$dbContext->db->$func ( "b.{$field} {$opt[$op]}", $data );
+				$dbContext->db->$func ( "a.{$field} {$opt[$op]}", $data );
 		}
 	}
 	
@@ -954,9 +954,6 @@ class Crud_model extends CI_Model {
 	{
 		$table = $dbContext->name;
 		$dbContextJoin = $this->table($table);
-		$dbContextJoin->db = $this->load->database ('default', true);
-		$dbContextJoin->db->select("b.id");
-		$dbContextJoin->db->from("{$table} b");
 		$ret = (object) array(
 				"count" => 0,
 				"data" => array()
@@ -971,7 +968,7 @@ class Crud_model extends CI_Model {
 			// 			$filters = json_decode($paras->filters);
 			// 			print_r($paras->filters);
 			if (isset($paras->filters->rules) && isset($paras->filters->groupOp)) {
-				$this->parse($dbContextJoin, $paras->filters);
+				$this->parse($dbContext, $paras->filters);
 			}
 		} else {
 			$dbContext->search = false;
@@ -990,14 +987,14 @@ class Crud_model extends CI_Model {
 				$subgroup = 0;
 			}
 			if (!$subgroup) {
-				$dbContextJoin->db->where("b.gid", $gid);
+				$dbContext->db->where("a.gid", $gid);
 			} else {
 				$gids = $this->get_group_ids($gid, true);
-				$dbContextJoin->db->where_in("b.gid", $gids);
+				$dbContext->db->where_in("a.gid", $gids);
 			}
 		}
 		
-		$ret->count = $dbContextJoin->db->count_all_results('', false);
+		$ret->count = $dbContext->db->count_all_results();
 		
 		//paging
 		if (isset($paras->page) && isset($paras->size) ) {
@@ -1005,7 +1002,7 @@ class Crud_model extends CI_Model {
 			$pageRows = (int)$paras->size;
 			if ($pageRows > 0){
 				$start = ($pageIndex - 1) * $pageRows;
-				$dbContextJoin->db->limit($pageRows, $start);
+				$dbContext->db->limit($pageRows, $start);
 			}
 		}
 		
@@ -1015,15 +1012,11 @@ class Crud_model extends CI_Model {
 			$sord = $paras->sord;
 			$sord = ($sord === 'asc')?'asc':'desc';
 			if (isset($dbContext->crud_field[$sort]) && ($dbContext->crud_field[$sort]['prop'] & Crud_model::PROP_FIELD_SORT)) {
-				$dbContextJoin->db->order_by("b.{$sort}", $sord);
-				$dbContext->db->order_by("a.{$sort}", $sord);
-/*
 				if ($dbContext->crud_field[$sort]['type'] == Crud_model::TYPE_SELECT) {
 					$dbContext->db->order_by("{$dbContext->crud_field[$sort]['_caption']}", $sord);
 				} else {
-					$dbContextJoin->db->order_by("b.{$sort}", $sord);
+					$dbContext->db->order_by("a.{$sort}", $sord);
 				}
-*/
 			}
 		}
 		
@@ -1032,10 +1025,9 @@ class Crud_model extends CI_Model {
 		if ($dbContext->pid) {
 			$nodeid = isset($paras->nodeid)?(int)$paras->nodeid:0;
 			if ($dbContext->search == false) {
-				$dbContextJoin->db->where("b.{$dbContext->pid}", $nodeid);
+				$dbContext->db->where("a.{$dbContext->pid}", $nodeid);
 			}
 		}
-		$dbContext->db->join("(".$dbContextJoin->db->get_compiled_select().") c", "`a`.`id`=`c`.`id`");
 		$ret->data = $dbContext->db->get ()->result_array ();
 		$ret->sql = $dbContext->db->get_compiled_select();
 		return $ret;
@@ -1153,9 +1145,6 @@ class Crud_model extends CI_Model {
 			$setting->h = (int)$f['h'];
 			$setting->type = (int)$f['type'];
 			$setting->tree = ($dbContext->pid == $f['name'] || $f['name']=="gid")?true:false;
-			if($setting->tree){
-				$setting->tree_field = $f['join_caption'];
-			}
 			$setting->caption[] = $f['caption'];
 			$setting->search_option = (int)$f['search_option'];
 			$form_class = "";
@@ -1288,7 +1277,7 @@ class Crud_model extends CI_Model {
 		$ret->gridSetting = $grid_info->setting;
 		$ret->gridFormWidth = (int)$dbContext->crud_table['w'];
 		$ret->gridFormHeight = (int)$dbContext->crud_table['h'];
-		$ret->gridTreeMode = ($dbContext->pid != null)?$dbContext->pid:null;
+		$ret->gridTreeMode = ($dbContext->pid != "");
 		$ret->gridToolBarItems = $this->xui_utils->grid_toolbar_items($dbContext);
 		$ret->gridGroup = ($dbContext->group != null)?"gid":null;
 		$ret->gridPrimary = $dbContext->primary;
@@ -1323,25 +1312,13 @@ class Crud_model extends CI_Model {
 		$ret = (object) array(
 				"rows" => array(),
 		);
-		$paras->sub = true;
 		$paras->page = 1;
 		$paras->size = 1;
 		$paras->search = true;
-		$paras->filters = (object) array(
-				"groupOp" => "AND",
-				"rules" => array(
-						(object) array(
-								"data" => $id,
-								"op" => "eq",
-								"field" => "id"
-						)
-				)
-		);
-		
-// 		json_decode("{'groupOp':'AND', 'rules':[{'data':'{$id}' , 'op':'eq', 'field':'id'}]}");
+		$dbContext->db->where("a.id", $id);
 		
 		$data = $this->wrapper_sheet($dbContext, $paras);
-		$ret->sql = $data->sql;
+		
 		if (count($data->data)) {
 			$ret->rows = $this->sheet_to_grid($dbContext, $data->data);
 				

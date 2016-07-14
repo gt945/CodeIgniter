@@ -252,15 +252,18 @@ Class('App.GridFilter', 'xui.Com',{
         },
         _select_beforepopshow:function(profile, popCtl){
         	var ns = this, elem = popCtl.boxing();
-        	AJAX.callService(ns.getProperties("gridName"),"get_select",{field:profile.boxing().getDataField()},function(rsp){
-                if(!elem.isDestroyed()){
-                    profile.boxing().setItems(rsp.data);
-                    elem.setItems(rsp.data).setValue(null,true);
-                }
-            },function(){
-            	elem.setItems(["加载中 ..."],true);
-            },function(){
-            });
+        	if(!elem._isset){
+	        	AJAX.callService(ns.getProperties("gridName"),"get_select",{field:profile.boxing().getDataField()},function(rsp){
+	                if(!elem.isDestroyed()){
+	                    profile.boxing().setItems(rsp.data);
+	                    elem.setItems(rsp.data).setValue(null,true);
+	                    elem._isset=1;
+	                }
+	            },function(){
+	            	elem.setItems(["加载中 ..."],true);
+	            },function(){
+	            });
+        	}
         },
         _select_beforecombopop:function (profile, pos,e ,src){
             var ns=this,ctrl=profile.boxing();

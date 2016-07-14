@@ -17,14 +17,14 @@ Class('App.login', 'xui.Com',{
             var host=this, children=[], append=function(child){children.push(child.get(0));};
             
             append(
-                (new xui.DataBinder())
+            	(new xui.DataBinder())
                 .setHost(host,"databinder")
                 .setName("databinder")
                 .setDataSourceType("remoting")
                 .setQueryMethod("POST")
-                .setQueryURL(SITEURL+'user/login')
                 .setRequestType("HTTP")
                 .setResponseType("JSON")
+                //.setQueryURL(SITEURL+'user/login')
             );
             
             append(

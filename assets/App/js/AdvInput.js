@@ -7,65 +7,72 @@ Class('App.AdvInput', 'xui.Com',{
         iniComponents : function(){
             var host=this, children=[], append=function(child){children.push(child.get(0));};
             
-            append((new xui.UI.Panel())
-            .setHost(host,"mainPanel")
-            .setDock("none")
-            .setLeft(0)
-            .setTop(0)
-            .setWidth(250)
-            .setHeight(300)
-            .setZIndex(1)
-            .setCaption("输入窗口")
-            .setCloseBtn(true)
-            .beforeClose("_mainpanel_beforeclose")
+            append(
+            	(new xui.UI.Panel())
+	            .setHost(host,"mainPanel")
+	            .setDock("none")
+	            .setLeft(0)
+	            .setTop(0)
+	            .setWidth(250)
+	            .setHeight(300)
+	            .setZIndex(1)
+	            .setCaption("输入窗口")
+	            .setCloseBtn(true)
+	            .beforeClose("_mainpanel_beforeclose")
             );
             
-            host.mainPanel.append((new xui.UI.TreeGrid())
-            .setHost(host,"grid")
-            .setSelMode("multibycheckbox")
-            .setRowHandlerWidth(27)
-            .setRowHandler(true)
-            .setTreeMode(false)
+            host.mainPanel.append(
+            	(new xui.UI.TreeGrid())
+	            .setHost(host,"grid")
+	            .setSelMode("multibycheckbox")
+	            .setRowHandlerWidth(27)
+	            .setRowHandler(true)
+	            .setTreeMode(false)
             );
             
-            host.mainPanel.append((new xui.UI.Block())
-            .setHost(host,"ctl_block8")
-            .setDock("top")
-            .setHeight(30)
+            host.mainPanel.append(
+            	(new xui.UI.Block())
+	            .setHost(host,"ctl_block8")
+	            .setDock("top")
+	            .setHeight(30)
             );
             
-            host.ctl_block8.append((new xui.UI.SButton())
-            .setHost(host)
-            .setTop(3)
-            .setWidth(80)
-            .setRight(10)
-            .setImage("@xui_ini.appPath@image/refresh.png")
-            .setCaption("刷新")
-            .onClick("_ctl_sbutton1_onclick")
+            host.ctl_block8.append(
+            	(new xui.UI.SButton())
+	            .setHost(host)
+	            .setTop(3)
+	            .setWidth(80)
+	            .setRight(10)
+	            .setImage("@xui_ini.appPath@image/refresh.png")
+	            .setCaption("刷新")
+	            .onClick("_ctl_sbutton1_onclick")
             );
             
-            host.mainPanel.append((new xui.UI.Block())
-            .setHost(host,"ctl_block9")
-            .setDock("bottom")
-            .setHeight(40)
+            host.mainPanel.append(
+            	(new xui.UI.Block())
+	            .setHost(host,"ctl_block9")
+	            .setDock("bottom")
+	            .setHeight(40)
             );
             
-            host.ctl_block9.append((new xui.UI.SButton())
-            .setHost(host)
-            .setTop(10)
-            .setWidth(80)
-            .setLeft(25)
-            .setCaption("确定")
-            .onClick("_ctl_sbutton2_onclick")
+            host.ctl_block9.append(
+            	(new xui.UI.SButton())
+	            .setHost(host)
+	            .setTop(10)
+	            .setWidth(80)
+	            .setLeft(25)
+	            .setCaption("确定")
+	            .onClick("_ctl_sbutton2_onclick")
             );
             
-            host.ctl_block9.append((new xui.UI.SButton())
-    		.setHost(host)
-    		.setTop(10)
-    		.setWidth(80)
-    		.setRight(25)
-    		.setCaption("关闭")
-    		.onClick("_ctl_sbutton3_onclick")
+            host.ctl_block9.append(
+            	(new xui.UI.SButton())
+	    		.setHost(host)
+	    		.setTop(10)
+	    		.setWidth(80)
+	    		.setRight(25)
+	    		.setCaption("关闭")
+	    		.onClick("_ctl_sbutton3_onclick")
             );
             
             return children;

@@ -1,43 +1,127 @@
 <?php
 defined('BASEPATH') OR exit('No direct script access allowed');
 
-class Test extends CI_Controller {
+class Data extends CI_Controller {
+	
+	function __construct()
+	{
+		parent::__construct();
+		$this->load->model ( 'auth_model' );
+		
+	}
+	
 	
 	public function index()
 	{
-		
+		if (! $this->auth_model->check( true, uri_string() )) {
+			die ();
+		}
 	}
 	
-	public function excel()
+	public function export()
 	{
-		$this->load->library('excel');
-		//activate worksheet number 1
-		$this->excel->setActiveSheetIndex(0);
-		//name the worksheet
-		$this->excel->getActiveSheet()->setTitle('test worksheet');
-		//set cell A1 content with some text
-		$this->excel->getActiveSheet()->setCellValue('A1', 'This is just some text value');
-		//change the font size
-		$this->excel->getActiveSheet()->getStyle('A1')->getFont()->setSize(20);
-		//make the font become bold
-		$this->excel->getActiveSheet()->getStyle('A1')->getFont()->setBold(true);
-		//merge cell A1 until D1
-		$this->excel->getActiveSheet()->mergeCells('A1:D1');
-		//set aligment to center for that merged cell (A1 to D1)
-		$this->excel->getActiveSheet()->getStyle('A1')->getAlignment()->setHorizontal(PHPExcel_Style_Alignment::HORIZONTAL_CENTER);
+		ini_set('max_execution_time', 0);
+// 		ini_set('memory_limit','512M');
 		
-		$filename='just_some_random_name.xls'; //save our workbook as this file name
-		header('Content-Type: application/vnd.ms-excel'); //mime type
-		header('Content-Disposition: attachment;filename="'.$filename.'"'); //tell browser what's the file name
-		header('Cache-Control: max-age=0'); //no cache
+		$this->load->model('crud_model');
+		$table = $this->input->post_get("key");
+		$paras_json = $this->input->post_get("paras");
+		$paras = json_decode($paras_json);
 		
-		//save it to Excel5 format (excel 2003 .XLS file), change this to 'Excel2007' (and adjust the filename extension, also the header mime type)
-		//if you want to save it as .XLSX Excel 2007 format
-		$objWriter = PHPExcel_IOFactory::createWriter($this->excel, 'Excel5');
-		//force user to download the Excel file without writing it to server's HD
-		$objWriter->save('php://output');
+		$setting = $paras->setting;
+		$paras->page = 1;
+		$paras->size = 50000;
+		$fields = array();
+		$sheet = array();
+		
+		$dbContext = $this->crud_model->table($table);
+		if ($dbContext) {
+			if ($this->crud_model->prepare($dbContext)) {
+				$this->load->library('excel');
+				$this->excel->setActiveSheetIndex(0);
+				
+				$row = array();
+				if ($paras->key) {
+					$row[] = $dbContext->crud_field[$dbContext->primary]['caption'];
+				}
+				foreach($setting as $s){
+					if (isset($dbContext->crud_field[$s[0]]) && $dbContext->crud_field[$s[0]]['_role_r']) {
+						$fields[$s[0]] = $s[1]?1:0;
+						if ($s[1]) {
+							$row[] = $dbContext->crud_field[$s[0]]['caption'];
+						}
+					}
+				}
+				$sheet[] = $row;
+				$this->excel->getActiveSheet()->fromArray($sheet, NULL, "A1");
+				$line = 2;
+				$count = 0;
+				$total = 0;
+				
+				while ($count == 0 || $count < $total) {
+					unset($row);
+					unset($sheet);
+					$sheet = array();
+					$row = array();
+					
+					$data = $this->crud_model->wrapper_sheet($dbContext, $paras);
+					$this->crud_model->pop_cache($dbContext);
+					if (!count($data->data)) {
+						break;
+					}
+					$total = $data->count;
+					$paras->page++;
+					foreach($data->data as $d) {
+						if ($paras->key) {
+							$row[] = $d[$dbContext->primary];
+						}
+						foreach($fields as $k=>$f) {
+							if ($f) {
+								if ($paras->raw) {
+									$row[] = $d[$k];
+								} elseif (isset($dbContext->crud_field[$k]['_caption'])) {
+									$this->crud_model->wrapper_caption($dbContext->crud_field[$k], $d);
+									$row[] = $d[$dbContext->crud_field[$k]['_caption']];
+								} else {
+									$row[] = $d[$k];
+								}
+							}
+						}
+						$sheet[] = $row;
+					}
+					
+					$this->excel->getActiveSheet()->fromArray($sheet, NULL, "A{$line}");
+					$count += count($data->data);
+					$line += count($data->data);
+				}
+				
+				
+				
+				
+				$filename='just_some_random_name是.xls'; //save our workbook as this file name
+				header('Content-Type: application/vnd.ms-excel'); //mime type
+				header('Content-Disposition: attachment;filename="'.$filename.'"'); //tell browser what's the file name
+				header('Cache-Control: max-age=0'); //no cache
+				
+				$objWriter = PHPExcel_IOFactory::createWriter($this->excel, 'Excel5');
+				$objWriter->save('php://output');
+			} else {
+				$error = "内部错误";
+			}
+		} else {
+			$error = "数据表错误";
+		}
 	}
 	
+	public function upload()
+	{
+	
+	}
+	
+	public function import()
+	{
+		
+	}
 	public function pdf()
 	{
 		$this->load->library('Pdf');
@@ -112,59 +196,5 @@ EOD;
 		// Close and output PDF document
 		// This method has several options, check the source code documentation for more information.
 		$pdf->Output('example_001.pdf', 'I');
-	}
-	
-	public function prepare()
-	{
-		ini_set('max_execution_time', 0);
-		ini_set('memory_limit','2048M');
-		
-		$this->load->database ();
-		$this->db->select('id');
-		$this->db->from('user_group');
-		$data = $this->db->get()->result_array();
-		foreach($data as $d) {
-			$groups[] = $d['id'];
-		}
-// 		for($i=0;$i<1000;$i++){
-// 			$data = array(
-// 					'value'   => $i,
-// 					'caption'   => "选择{$i}"
-// 			);
-// 			$this->db->insert('test_select', $data);
-// 		}
-// 		for($i=0;$i<10;$i++){
-// 			$data = array(
-// 					'value'   => $i,
-// 					'caption'   => "多选{$i}"
-// 			);
-// 			$this->db->insert('test_multiselect', $data);
-// 		}
-// 		for($i=0;$i<32;$i++){
-// 			$data = array(
-// 					'value'   => 1 << $i,
-// 					'caption'   => "位{$i}"
-// 			);
-// 			$this->db->insert('test_bit', $data);
-// 		}
-		for($i=0;$i<5000000;$i++){
-			$multi=array();
-			for($j=0;$j<10;$j++){
-				if (rand(0,2)==1){
-					$multi[] = $j;
-				}
-			}
-			
-			$data = array(
-					'gid'	=> $groups[rand(0, count($groups)-1)],
-					'select_t'   => rand(0,1000),
-					'bit_t'   => rand(0,1073741824),
-					'multiselect_t' => implode(",", $multi),
-					'time_t' => rand(0,23).":".rand(0,60).":".rand(0,60),
-					'date_t' => rand(2000,2016)."-".rand(1,12)."-".rand(1,31),
-					'datetime_t' => rand(2000,2016)."-".rand(1,12)."-".rand(1,31)." ".rand(0,23).":".rand(0,60).":".rand(0,60),
-			);
-			$this->db->insert('test', $data);
-		}
 	}
 }

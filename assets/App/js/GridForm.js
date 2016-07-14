@@ -6,37 +6,43 @@ Class('App.GridForm', 'xui.Com',{
             .setHost(host,"databinder")
             .setName("databinder")
             .afterUpdateDataFromUI("_databinder_afterupdatedatafromui")
+            .setData()
             );
             append((new xui.UI.Dialog())
-                    .setHost(host,"mainDlg")
-                    .setLeft(25)
-                    .setTop(19)
-                    .setWidth(host._width(host.getProperties("gridFormWidth"))+50)
-                    .setHeight(host._height(host.getProperties("gridFormHeight"))+100)
-                    .setResizer(false)
-                    .setOverflow("hidden")
-                    .setCaption("编辑")
-                    .setImagePos("left top")
-                    .setMinBtn(false)
-                    .setMaxBtn(false)
-                    .onHotKeydown("_maindlg_onhotkeydown")
-                    .beforeClose("_maindlg_beforeclose")
-                    );
+                .setHost(host,"mainDlg")
+                .setLeft(25)
+                .setTop(19)
+                .setWidth(host._width(host.getProperties("gridFormWidth"))+50)
+                .setHeight(host._height(host.getProperties("gridFormHeight"))+100)
+                .setResizer(false)
+                .setOverflow("hidden")
+                .setCaption("编辑")
+                .setImagePos("left top")
+                .setMinBtn(false)
+                .setMaxBtn(false)
+                .onHotKeydown("_maindlg_onhotkeydown")
+                .beforeClose("_maindlg_beforeclose")
+                );
             host.mainDlg.append((new xui.UI.Block())
-                    .setHost(host,"ctl_block")
-                    .setLeft(5)
-                    .setTop(0)
-                    .setWidth(host._width(host.getProperties("gridFormWidth"))+35)
-                    .setHeight(host._height(host.getProperties("gridFormHeight"))+30)
-                    .setOverflow("visible")
-                    .setBorderType("inset")
-                    );
+                .setHost(host,"ctl_block")
+                .setLeft(5)
+                .setTop(0)
+                .setWidth(host._width(host.getProperties("gridFormWidth"))+35)
+                .setHeight(host._height(host.getProperties("gridFormHeight"))+30)
+                .setOverflow("visible")
+                .setBorderType("inset")
+                );
             var setting=host.getProperties("gridSetting")
             var index=1;
+            var data={};
             for(var f in setting){
             	var dataField=f;
             	var ele=_.unserialize(setting[f].form);
-            	
+            	if(f==host.getProperties("gridGroup")&&!_.isSet(host.properties.recordId)){
+            		ele.setProperties('initialValue',host.properties._gid);
+            	}else if(f==host.getProperties("gridTreeMode")){
+            		ele.setProperties('initialValue',host.properties._pid);
+            	}
             	host.ctl_block.append(ele
 					.setHost(host,"form_input"+f)
 					.setDataBinder("databinder")
@@ -48,6 +54,7 @@ Class('App.GridForm', 'xui.Com',{
 					.setTabindex(index++)
 					);
             }
+            host.databinder.setData(data);
             
             host.mainDlg.append((new xui.UI.SButton())
                 .setHost(host,"btnSave")
@@ -90,10 +97,20 @@ Class('App.GridForm', 'xui.Com',{
         events:{"onRender":"_com_onrender"},
         _com_onrender:function (com, threadid){
             var recordId=this.properties.recordId;
-            // clear all UI
-            // for inputs
-            this.databinder.setData().updateDataToUI();
-            // open
+            this.databinder.updateDataToUI();
+            var prfs=this.databinder.get(0)._n;
+            _.arr.each(prfs,function(prf){
+            	if(_.isSet(prf.properties.initialValue)){
+            		var b = prf.boxing();
+            		var v=prf.properties.initialValue;
+            		if(_.isSet(v.value)){
+            			b.setUIValue(v.value);
+            		}
+            		if(_.isSet(v.caption)){
+            			b.setCaption(v.caption);
+            		}
+            	}
+            });
             if(_.isSet(recordId)){
                 this.updateUIfromService(recordId);
             }
@@ -235,13 +252,9 @@ Class('App.GridForm', 'xui.Com',{
             var ns=this, db=ns.databinder;
             // need save?
             if(db.isDirtied() || ns.isGridDirty()){
-                xui.confirm("确认", "数据已修改,是否保存?", function(){
-                    ns.saveUI(function(dlg){
-                        ns.mainDlg.close(false);
-                    });
-                }, function(){
+                xui.confirm("确认", "数据已修改,确定退出?", function(){
                     ns.mainDlg.close(false);
-                });
+                }, null);
                 return false;
             }else{
                 return true;

@@ -122,7 +122,7 @@ class Xui_utils {
 			$items[0]->sub[] = (object) array(
 					"id" => "filter",
 					"image" => "@xui_ini.appPath@image/filter.png",
-					"caption" => "过滤",
+					"caption" => "过滤"
 			);
 		}
 		if ($dbContext->group) {
@@ -138,6 +138,22 @@ class Xui_utils {
 					"image" => "@xui_ini.appPath@image/sub.png",
 					"caption" => "显示子组数据",
 					"type" => "statusButton"
+			);
+		}
+		
+		if ($dbContext->export) {
+			$items[0]->sub[] = (object) array(
+					"id" => "export",
+					"image" => "@xui_ini.appPath@image/export.png",
+					"caption" => "导出"
+			);
+		}
+		
+		if ($dbContext->import) {
+			$items[0]->sub[] = (object) array(
+					"id" => "import",
+					"image" => "@xui_ini.appPath@image/export.png",
+					"caption" => "导入"
 			);
 		}
 		

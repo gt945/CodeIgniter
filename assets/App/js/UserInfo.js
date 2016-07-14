@@ -172,7 +172,7 @@ Class('App.UserInfo', 'xui.Com',{
             //};
         },
         _close_click:function(){
-        	this.destroy();
+        	this.dialog.close();
         },
         _save_onclick:function(){
             var ns = this;
@@ -208,7 +208,8 @@ Class('App.UserInfo', 'xui.Com',{
         			function(rsp){
         				if (rsp.ok){
         					xui.message(rsp.error);
-//        					ns.destroy();
+        					ns.dialog.free();
+        					ns.dialog.close();
         				} else {
         					xui.alert(rsp.error);
         				}
@@ -220,7 +221,9 @@ Class('App.UserInfo', 'xui.Com',{
         				ns.dialog.busy(true);
         			},
         			function(){
-        				ns.dialog.free();
+        				if (!ns.isDestroyed()){
+        					ns.dialog.free();
+        				}
         			}
         	);
         }
