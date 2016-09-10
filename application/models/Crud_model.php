@@ -866,6 +866,14 @@ class Crud_model extends CI_Model {
 		return $result;
 	}
 	
+	public function get_group_tree_code($gid)
+	{
+		$this->db->select('tree_code');
+		$this->db->from('user_group');
+		$this->db->where('id', $gid);
+		$tree_code = $this->db->get()->row('tree_code');
+		return $tree_code;
+	}
 	public function get_tree_data_by_id($dbContext = null, $id = 0, $prepare = false)
 	{
 		return $this->_get_tree_data_by_id($dbContext, $id, $prepare);
@@ -979,7 +987,7 @@ class Crud_model extends CI_Model {
 		
 		//group
 		if ($dbContext->group) {
-			if (isset($paras->gid)){
+			if (isset($paras->gid) && in_array($paras->gid, $dbContextJoin->group)){
 				$gid = (int)$paras->gid;
 			}else{
 				$gid = $_SESSION['userinfo']['gid'];
@@ -992,8 +1000,15 @@ class Crud_model extends CI_Model {
 			if (!$subgroup) {
 				$dbContextJoin->db->where("b.gid", $gid);
 			} else {
-				$gids = $this->get_group_ids($gid, true);
-				$dbContextJoin->db->where_in("b.gid", $gids);
+// 				$gids = $this->get_group_ids($gid, true);
+// 				$dbContextJoin->db->where_in("b.gid", $gids);
+				$tree_code = $this->get_group_tree_code($gid);
+				$this->db->select('1');
+				$this->db->from('user_group');
+				$this->db->like('tree_code', $tree_code, 'after', false);
+				$this->db->where("id=b.gid", null, false);
+				$exist_sql = $this->db->get_compiled_select();
+				$dbContextJoin->db->where("EXISTS({$exist_sql})");
 			}
 		}
 		
@@ -1037,7 +1052,11 @@ class Crud_model extends CI_Model {
 		}
 		$dbContext->db->join("(".$dbContextJoin->db->get_compiled_select().") c", "`a`.`id`=`c`.`id`");
 		$ret->data = $dbContext->db->get ()->result_array ();
-		$ret->sql = $dbContext->db->get_compiled_select();
+		$ret->sql = array(
+				array($dbContext->db->elapsed_time(),$dbContext->db->total_queries(),$dbContext->db->queries),
+				array($dbContextJoin->db->elapsed_time(),$dbContextJoin->db->total_queries(),$dbContextJoin->db->queries),
+				array($this->db->elapsed_time(),$this->db->total_queries(), $this->db->queries)
+		); //$dbContext->db->get_compiled_select();
 		return $ret;
 	}
 	
