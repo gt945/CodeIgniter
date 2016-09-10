@@ -303,7 +303,7 @@ Class('App.GridForm', 'xui.Com',{
                     onSelect:function(value,caption,item){
                     	if(!ctrl.isDestroyed()){
 	                        ctrl.setUIValue(value);
-	                        if(caption){
+	                        if(typeof(caption)==="string"){
 	                        	ctrl.setCaption(caption);
 	                        }
 	                        ctrl.activate();

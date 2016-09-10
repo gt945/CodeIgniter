@@ -182,17 +182,22 @@ Class('App.AdvInput', 'xui.Com',{
         	if(ns.properties.cmd=="bit"){
         		value=0;
         		_.arr.each(ids,function(id){
-        			value+=parseInt(id,10);
-        			captions.push(grid.getCellbyRowCol(id, 'caption').value);
+        			if(id!=""){
+        				value+=parseInt(id,10);
+        				captions.push(grid.getCellbyRowCol(id, 'caption').value);
+        			}
         		});
         		value=parseInt("0"+value,10);
-        		caption=captions.join(',');
         	}else if(ns.properties.cmd=="multi"){
         		value=ids.join(",");
         		_.arr.each(ids,function(id){
         			captions.push(grid.getCellbyRowCol(id, 'caption').value);
         		});
+        	}
+        	if (captions.length){
         		caption=captions.join(',');
+        	}else{
+        		caption=' ';
         	}
         	ns.fireEvent("onSelect",[value,caption]);
         	ns.destroy();
