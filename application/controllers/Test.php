@@ -114,10 +114,17 @@ EOD;
 		$pdf->Output('example_001.pdf', 'I');
 	}
 	
+	public function relates()
+	{
+        if (preg_match ( "/abc.{0,5}[\d]{3,4}/i", "abc00!!!-1234", $matchs )) {
+                echo "OK";
+        }
+	
+	}
 	public function prepare()
 	{
 		ini_set('max_execution_time', 0);
-		ini_set('memory_limit','2048M');
+		ini_set('memory_limit','128M');
 		
 		$this->load->database ();
 		$this->db->select('id');
@@ -147,24 +154,24 @@ EOD;
 // 			);
 // 			$this->db->insert('test_bit', $data);
 // 		}
-		for($i=0;$i<5000000;$i++){
-			$multi=array();
-			for($j=0;$j<10;$j++){
-				if (rand(0,2)==1){
-					$multi[] = $j;
-				}
-			}
-			
-			$data = array(
-					'gid'	=> $groups[rand(0, count($groups)-1)],
-					'select_t'   => rand(0,1000),
-					'bit_t'   => rand(0,1073741824),
-					'multiselect_t' => implode(",", $multi),
-					'time_t' => rand(0,23).":".rand(0,60).":".rand(0,60),
-					'date_t' => rand(2000,2016)."-".rand(1,12)."-".rand(1,31),
-					'datetime_t' => rand(2000,2016)."-".rand(1,12)."-".rand(1,31)." ".rand(0,23).":".rand(0,60).":".rand(0,60),
-			);
-			$this->db->insert('test', $data);
-		}
+// 		for($i=0;$i<50000;$i++){
+// 			$multi=array();
+// 			for($j=0;$j<10;$j++){
+// 				if (rand(0,2)==1){
+// 					$multi[] = $j;
+// 				}
+// 			}
+// 			
+// 			$data = array(
+// 					'gid'	=> $groups[rand(0, count($groups)-1)],
+// 					'select_t'   => rand(0,1000),
+// 					'bit_t'   => rand(0,1073741824),
+// 					'multiselect_t' => implode(",", $multi),
+// 					'time_t' => rand(0,23).":".rand(0,60).":".rand(0,60),
+// 					'date_t' => rand(2000,2016)."-".rand(1,12)."-".rand(1,31),
+// 					'datetime_t' => rand(2000,2016)."-".rand(1,12)."-".rand(1,31)." ".rand(0,23).":".rand(0,60).":".rand(0,60),
+// 			);
+// 			$this->db->insert('test', $data);
+// 		}
 	}
 }

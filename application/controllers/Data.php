@@ -30,7 +30,7 @@ class Data extends CI_Controller {
 		
 		$setting = $paras->setting;
 		$paras->page = 1;
-		$paras->size = 50000;
+		$paras->size = 500;
 		$fields = array();
 		$sheet = array();
 		
@@ -59,10 +59,9 @@ class Data extends CI_Controller {
 				$total = 0;
 				
 				while ($count == 0 || $count < $total) {
-					unset($row);
 					unset($sheet);
 					$sheet = array();
-					$row = array();
+					
 					
 					$data = $this->crud_model->wrapper_sheet($dbContext, $paras);
 					$this->crud_model->pop_cache($dbContext);
@@ -72,6 +71,8 @@ class Data extends CI_Controller {
 					$total = $data->count;
 					$paras->page++;
 					foreach($data->data as $d) {
+                                                unset($row);
+                                                $row = array();
 						if ($paras->key) {
 							$row[] = $d[$dbContext->primary];
 						}

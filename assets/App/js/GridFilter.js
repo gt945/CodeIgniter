@@ -34,9 +34,8 @@ Class('App.GridFilter', 'xui.Com',{
                 .setHost(host,"xui_ui_block3")
                 .setLeft(5)
                 .setTop(0)
-                .setWidth(380)
-                .setHeight(200)
                 .setBorderType("inset")
+                .setDock("fill")
                 .setOverflow("overflow-x:hidden;overflow-y:auto")
                 );
             
@@ -74,29 +73,33 @@ Class('App.GridFilter', 'xui.Com',{
         		.setTips("增加条件")
         		.onClick("_xui_ui_button_add_onclick")
             );
-            
-            host.mainDlg.append((new xui.UI.SButton())
+            host.mainDlg.append((new xui.UI.Block())
+                .setHost(host,"xui_ui_block4")
+                .setHeight(35)
+                .setDock("bottom")
+                );
+            host.xui_ui_block4.append((new xui.UI.SButton())
                 .setHost(host,"xui_ui_button_find")
                 .setLeft(80)
-                .setTop(210)
+                .setTop(5)
                 .setWidth(70)
                 .setCaption("过滤")
                 .onClick("_xui_ui_button_find_onclick")
                 );
             
-            host.mainDlg.append((new xui.UI.SButton())
+            host.xui_ui_block4.append((new xui.UI.SButton())
                 .setHost(host,"xui_ui_button_reset")
                 .setLeft(160)
-                .setTop(210)
+                .setTop(5)
                 .setWidth(70)
                 .setCaption("清空")
                 .onClick("_xui_ui_button_reset_onclick")
                 );
             
-            host.mainDlg.append((new xui.UI.SButton())
+            host.xui_ui_block4.append((new xui.UI.SButton())
                 .setHost(host,"xui_ui_button_cancel")
                 .setLeft(240)
-                .setTop(210)
+                .setTop(5)
                 .setWidth(70)
                 .setCaption("取消")
                 .onClick("_xui_ui_button_cancel_onclick")
@@ -207,6 +210,7 @@ Class('App.GridFilter', 'xui.Com',{
 	        	.setLabelSize(0)
 	        	.setDataField(item.id)
 	        	.setDirtyMark(false)
+                .setReadonly(false)
         	);
         },
         _xui_ui_button_find_onclick:function(profile,e,src){

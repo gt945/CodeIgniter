@@ -18,7 +18,7 @@
 	
 </head>
 <body>
-<div id='loading'>
+<div id='loading' style="top:0;left:0; right:0; bottom:0;position:absolute;margin:auto">
 <img style="top:0;left:0; right:0; bottom:0;position:absolute;margin:auto" src="<?php echo $appPath ?>loading.gif" alt="Loading..." />
 </div>
 <?php echo $css;?>

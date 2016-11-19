@@ -352,7 +352,7 @@ abstract class CI_DB_driver {
 	 *
 	 * @var	string
 	 */
-	protected $_count_string = 'SELECT COUNT(*) AS ';
+	protected $_count_string = 'SELECT SQL_CACHE COUNT(*) AS ';
 
 	// --------------------------------------------------------------------
 

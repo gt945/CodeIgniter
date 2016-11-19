@@ -90,14 +90,15 @@ var LOG = {
 	}
 }
 window.onerror = function(message, url, lineNumber) {
-	LOG.request({
-	    url: SITEURL+'log/index',
-	    method: 'post',
-	    data: {
-	        message: message,
-	        url: url,
-	        lineNumber: lineNumber
-	    }
-	})
-	return true;
-}; 
+ 	LOG.request({
+ 	    url: SITEURL+'log/index',
+ 	    method: 'post',
+ 	    data: {
+ 	        message: message,
+ 	        url: url,
+ 	        lineNumber: lineNumber
+ 	    }
+ 	});
+ 	return true;
+};
+

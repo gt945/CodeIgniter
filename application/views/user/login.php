@@ -3,6 +3,7 @@
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
 <meta name="language" content="zh_CN" />
+<meta name="viewport" content="width=320, initial-scale=1, maximum-scale=1, user-scalable=0"/>
 
 <title><?php echo $title?></title>
 <script>
@@ -17,7 +18,7 @@
 	
 </head>
 <body>
-<div id='loading'>
+<div id='loading' style="top:0;left:0; right:0; bottom:0;position:absolute;margin:auto">
 <img style="top:0;left:0; right:0; bottom:0;position:absolute;margin:auto" src="<?php echo $appPath ?>loading.gif" alt="Loading..." />
 </div>
 <?php echo $css;?>

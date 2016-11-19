@@ -82,7 +82,7 @@ Class('App.TableSetting', 'xui.Com',{
                 .setShowDirtyMark(false)
                 .setLeft(180)
                 .setTop(60)
-                .setSteps(15)
+                .setSteps(18)
                 .setIsRange(false)
                 .setValue("0")
                 .afterUIValueSet("_rows_onchange")
@@ -151,7 +151,7 @@ Class('App.TableSetting', 'xui.Com',{
                 .setLeft(520)
                 .setTop(60)
                 .setWidth(100)
-                .setCaption("增加数据表")
+                .setCaption("增加/更新数据表")
                 .onClick("_addtable_onclick")
             );
             

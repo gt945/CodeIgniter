@@ -145,12 +145,12 @@ Class('App.main', 'xui.Com',{
         },
         _xui_ui_main_tabs_beforepageclose:function (profile,item,src){
             var ns = this, uictrl = profile.boxing();
-            xui.confirm("确认", "确定关闭吗?", function(){
+            //xui.confirm("确认", "确定关闭吗?", function(){
             	uictrl.removeItems(item.id);
-            });
+            //});
             return false;
         }
     }
 });
 
-xui.launch('App.main',function(){xui('loading').remove();},'cn','vista');
+xui.launch('App.main',function(){xui('loading').hide();},'cn','vista');
