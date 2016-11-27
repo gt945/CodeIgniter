@@ -174,4 +174,85 @@ EOD;
 // 			$this->db->insert('test', $data);
 // 		}
 	}
+	
+	public function db()
+	{
+        $this->load->model ( 'db_model' );
+        $this->db_model->table('menu');
+        echo "<pre>";
+        print_r($this->db_model->sheet());
+        echo "</pre>";
+	}
+	
+    public function crud()
+	{
+        $this->load->model ( 'crud2_model' );
+        $this->crud2_model->table('test');
+        $this->crud2_model->prepare();
+        echo "<pre>";
+        print_r($this->crud2_model);
+        //print_r($this->crud2_model->sheet());
+        echo "</pre>";
+	}
+	
+    public function grid()
+	{
+        $this->load->model ( 'grid_model' );
+        $this->grid_model->table('menu');
+        $this->grid_model->prepare();
+        
+        echo "<pre>";
+//        print_r($this->grid_model->save_cache());
+//         print_r($this->grid_model->request_grid());
+//        print_r($this->grid_model);
+        $this->grid_model->stash_cache();
+        print_r($this->grid_model->sheet());
+        $this->grid_model->pop_cache();
+        print_r($this->grid_model->sheet());
+        echo "</pre>";
+	}
+	public function all()
+    {
+        $this->load->model ( 'db_model' );
+        $this->load->model ( 'crud2_model' );
+        $this->load->model ( 'grid_model' );
+        $this->db_model->table('menu');
+        $this->db_model->prepare();
+        $this->crud2_model->table('menu');
+        $this->crud2_model->prepare(false);
+        $this->grid_model->table('menu');
+        $this->grid_model->prepare();
+        echo "<pre>";
+        print_r($this->db_model->sheet());
+        print_r($this->crud2_model->sheet());
+        print_r($this->grid_model->sheet());
+        echo "</pre>";
+    }
+    
+    public function two()
+    {
+        $this->load->model ( 'crud2_model', 'db1' );
+        $this->load->model ( 'crud2_model', 'db2' );
+        $this->db1->table('menu');
+        $this->db2->table('crud_table');
+        $this->db1->prepare();
+        $this->db2->prepare();
+        echo "<pre>";
+        print_r($this->db1->sheet());
+        print_r($this->db2->sheet());
+        echo "</pre>";
+    }
+    
+    public function test2()
+    {
+        $this->load->model ( 'grid_model' );
+        $this->grid_model->table('test');
+        $this->grid_model->prepare();
+        echo "<pre>";
+//         print_r($this->grid_model);
+//         print_r($this->grid_model->get_left_join_for_list('select_t'));
+		print_r($this->grid_model->get_left_join_for_advance_input('select_t'));
+
+        echo "</pre>";
+    }
 }

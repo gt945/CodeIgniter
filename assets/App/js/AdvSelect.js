@@ -117,11 +117,12 @@ Class('App.AdvSelect', 'xui.Com',{
             var ns=this, 
                 grid=ns.grid;
             this._curPage=curPage;
-            AJAX.callService(ns.properties.key,"advance_select",{
+            AJAX.callService('xui/request',ns.properties.key,"advance_select",{
             	field:ns.properties.field,
                 page:curPage,
                 like:ns.like,
-                size:20
+                size:20,
+                relate:ns.properties.relate
             },function(rsp){
                 if(!ns.isDestroyed()){
                 	if (!ns.properties.setting.tree){
@@ -182,7 +183,7 @@ Class('App.AdvSelect', 'xui.Com',{
         	value=grid.getUIValue(true);
         	if(typeof value!="undefined"){
         		var item=grid.getItemByItemId(value);
-        		ns.fireEvent("onSelect",[value,item.caption]);
+        		ns.fireEvent("onSelect",[{value:value,caption:item.caption}]);
         	}
         	ns.destroy();
         },

@@ -8,7 +8,7 @@ Class('App.TableSelect', 'xui.Com',{
             var host=this, children=[], append=function(child){children.push(child.get(0));};
             
             append(
-            	(new xui.UI.Panel())
+                (new xui.UI.Panel())
 	            .setHost(host,"mainPanel")
 	            .setDock("none")
 	            .setLeft(0)
@@ -16,13 +16,13 @@ Class('App.TableSelect', 'xui.Com',{
 	            .setWidth(800)
 	            .setHeight(600)
 	            .setZIndex(1)
-	            .setCaption("输入窗口")
+	            .setCaption("选择窗口")
 	            .setCloseBtn(true)
 	            .beforeClose("_mainpanel_beforeclose")
             );
             
             host.mainPanel.append(
-            	(new xui.UI.TreeGrid())
+                (new xui.UI.TreeGrid())
 	            .setHost(host,"grid")
 	            .setRowHandlerWidth(27)
 	            .setRowHandler(true)
@@ -30,13 +30,14 @@ Class('App.TableSelect', 'xui.Com',{
             );
             
             host.mainPanel.append(
-            	(new xui.UI.Block())
+                (new xui.UI.Block())
 	            .setHost(host,"ctl_block8")
 	            .setDock("top")
 	            .setHeight(30)
             );
 
-            host.ctl_block8.append((new xui.UI.PageBar())
+            host.ctl_block8.append(
+                (new xui.UI.PageBar())
                 .setHost(host,"pagebar")
                 .setTop(3)
                 .setRight(100)
@@ -98,12 +99,10 @@ Class('App.TableSelect', 'xui.Com',{
                 domId=root.getDomId();
             root.getRoot().popToTop(ns.properties.pos);
             root.getRoot().setBlurTrigger(domId, function(){
-                // fire custom event
                 ns.fireEvent("onCancel");
                 ns.destroy(); 
             });
             xui.Event.keyboardHook("esc", false, false, false,function(){
-                // fire custom event
                 ns.fireEvent("onCancel");
                 ns.destroy(); 
             },null,null,domId);
@@ -112,11 +111,10 @@ Class('App.TableSelect', 'xui.Com',{
             return true;
         },
         loadGridData:function(curPage){
-            this._curPage=curPage;
             var ns=this, 
                 grid=ns.grid;
-            
-            AJAX.callService(ns.properties.key,"table_select",{
+            this._curPage=curPage;
+            AJAX.callService('xui/request',ns.properties.key,"table_select",{
             	field:ns.properties.field,
                 page:curPage,
                 size:20
@@ -124,7 +122,8 @@ Class('App.TableSelect', 'xui.Com',{
                 if(!ns.isDestroyed()){
                     ns.pagebar.setValue("1:"+curPage+":"+( Math.ceil(parseInt(rsp.data.count,10)/20) ),true);
                     ns._fillGrid(rsp.data.headers, rsp.data.rows);
-                    grid.setUIValue(ns.properties.value);
+                    // grid.setUIValue(ns.properties.value);
+                    ns.data = rsp.data;
                 }
             },function(){
                 grid.busy("正在处理 ...");
@@ -140,12 +139,20 @@ Class('App.TableSelect', 'xui.Com',{
             this.loadGridData(this._curPage);
         },
         _ctl_sbutton2_onclick:function (profile, e, src, value){
-        	var ns=this,
+        	var ns=this,caption=null,
             	grid=ns.grid;
-        	
-        	var value,caption,captions=[];
-        	var ids=grid.getUIValue(true);
-        	ns.fireEvent("onSelect",[value,caption]);
+        	var index=_.arr.subIndexOf(ns.data.headers,'id',ns.data.caption);
+            var row=grid.getActiveRow();
+            var extra=[];
+            if(index>=0){
+                caption=row.cells[index].value;
+            }
+            _.arr.each(ns.data.map,function(map){
+                index=_.arr.subIndexOf(ns.data.headers, 'id', map.id2);
+                if(index>=0)
+                    extra.push({id:map.id1,cell:row.cells[index]});
+            });
+        	ns.fireEvent("onSelect",[{value:row.id,caption:caption},extra]);
         	ns.destroy();
         },
         _ctl_sbutton3_onclick:function(){

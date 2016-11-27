@@ -111,6 +111,7 @@ Class('App.GridFilter', 'xui.Com',{
         // 可以自定义哪些界面控件将会被加到父容器中
         customAppend : function(parent, subId, left, top){
         	this.mainDlg.showModal(parent, left, top);
+			this._xui_ui_button_add_onclick();
             return true;
         },
         // 加载其他资源可以用本函数
@@ -172,10 +173,10 @@ Class('App.GridFilter', 'xui.Com',{
         	}
         },
         _xui_ui_button_add_onclick:function (profile,e,src){
-            var ns = this, uictrl = profile.boxing();
+            var ns = this;
             var json_code ='new xui.UI.Pane({"key":"xui.UI.Pane","properties":{"dock":"width","width":"auto","height":25,"position":"relative"},"children":[[{"type":"field","key":"xui.UI.ComboInput","properties":{"dirtyMark":false,"left":10,"top":0,"type":"listbox"},"events":{"afterUIValueSet":"_xui_ui_field_onchange"}}],[{"type":"operation","key":"xui.UI.ComboInput","properties":{"dirtyMark":false,"left":135,"top":0,"width":70,"type":"listbox"}}],[{"key":"xui.UI.SButton","properties":{"left":340,"top":0,"width":20,"caption":"-"},"events":{"onClick":"_xui_ui_button_del_onclick"}}]]})';
             var nb=_.unserialize(json_code);
-            _.arr.each(nb.getChildren(null, true), function(o, i) {
+            _.arr.each(nb.getChildren(null, true), function(o) {
             	var ob=o.boxing();
 				ob.setHost(ns);
 				if(o.type=="field"){
@@ -257,7 +258,7 @@ Class('App.GridFilter', 'xui.Com',{
         _select_beforepopshow:function(profile, popCtl){
         	var ns = this, elem = popCtl.boxing();
         	if(!elem._isset){
-	        	AJAX.callService(ns.getProperties("gridName"),"get_select",{field:profile.boxing().getDataField()},function(rsp){
+	        	AJAX.callService('xui/request',ns.properties.gridName,"get_select",{field:profile.boxing().getDataField()},function(rsp){
 	                if(!elem.isDestroyed()){
 	                    profile.boxing().setItems(rsp.data);
 	                    elem.setItems(rsp.data).setValue(null,true);
@@ -271,10 +272,10 @@ Class('App.GridFilter', 'xui.Com',{
         },
         _select_beforecombopop:function (profile, pos,e ,src){
             var ns=this,ctrl=profile.boxing();
-            var setting=ns.getProperties("gridSetting")
+            var setting=ns.properties.gridSetting;
             xui.ComFactory.newCom(ctrl.getProperties("app"), function(){
                 this.setProperties({
-                    key:ns.getProperties("gridName"),
+                    key:ns.properties.gridName,
                     field:ctrl.getDataField(),
                     pos:ctrl.getRoot(),
                     cmd:ctrl.getProperties("cmd"),
@@ -287,13 +288,13 @@ Class('App.GridFilter', 'xui.Com',{
                     		ctrl.activate();
                     	}
                     },
-                    onSelect:function(value,caption,item){
+                    onSelect:function(val){
                     	if(!ctrl.isDestroyed()){
-	                        ctrl.setUIValue(value);
-	                        if(caption){
-	                        	ctrl.setCaption(caption);
-	                        }
-	                        ctrl.activate();
+							ctrl.setUIValue(val.value);
+							if(typeof(val.caption)==="string"){
+								ctrl.setCaption(val.caption);
+							}
+							ctrl.activate();
                     	}
                     }
                 });

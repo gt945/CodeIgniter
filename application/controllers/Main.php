@@ -44,10 +44,11 @@ class Main extends CI_Controller {
 		$data['appPath'] = "{$base_url}assets/";
 		$data['xuiRPC'] = site_url('xui/request');
 		if ( ! $menus = $this->cache->get('menus')) {
-				
+
 			$this->load->model('crud_model');
-			$dbContext = $this->crud_model->table("menu");
-			$menu_array = $this->crud_model->get_tree_data_by_pid($dbContext, 0, true);
+			$this->crud_model->table("menu");
+            $this->crud_model->prepare();
+			$menu_array = $this->crud_model->get_tree_data_by_pid(0, true);
 			$menus = $this->xui_utils->menus($menu_array[0]['children']);
 			$this->cache->save('menus', $menus);
 		}

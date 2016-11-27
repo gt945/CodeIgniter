@@ -120,7 +120,7 @@ Class('App.main', 'xui.Com',{
                     	.setDock("fill")
                     	.append(this)
                     	.show(tabs,id);
-                    },null,{target:item.target});
+                    },null,{target:item.target,id:item.id});
                     tabs.fireItemClickEvent(item.id);
                 }
             } else{

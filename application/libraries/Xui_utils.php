@@ -70,7 +70,7 @@ class Xui_utils {
 		return $this->filter(" new xui.UI.Stacks({$json})");
 	}
 	
-	function grid_toolbar_items($dbContext)
+	function grid_toolbar_items($dbContext, $extra_items = array())
 	{
 // 		$obj = (object) array(
 // 				"alias" => "toolbar",
@@ -122,7 +122,7 @@ class Xui_utils {
 			$items[0]->sub[] = (object) array(
 					"id" => "filter",
 					"image" => "@xui_ini.appPath@image/filter.png",
-					"caption" => "过滤"
+					"caption" => "搜索"
 			);
 		}
 		if ($dbContext->group) {
@@ -156,7 +156,21 @@ class Xui_utils {
 					"caption" => "导入"
 			);
 		}
-		
+		if (count($extra_items) > 0) {
+            $items[1] = (object)array(
+                    "id" => "grp2",
+                    "sub" => array(),
+                    "caption" => "grp2"
+                );
+            foreach($extra_items as $k=>$item){
+                $items[1]->sub[] = (object) array(
+                    "id" => "custom{$k}",
+                    "image" => "@xui_ini.appPath@image/{$item['icon']}",
+                    "caption" => "{$item['name']}",
+                    "app" => "{$item['app']}"
+                );
+            }
+        }
 		$json = json_encode($items);
 		
 		return $this->filter($json);

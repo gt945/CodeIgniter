@@ -165,7 +165,7 @@ Class('App.TableSetting', 'xui.Com',{
         _com_onrender:function (com, threadid){
             var ns=this,
                 ts=ns.table_select;
-            AJAX.callService(null,"tables",null,function(rsp){
+            AJAX.callService('xui/request',null,"tables",null,function(rsp){
                 ns._fillSelect(rsp.data);
             });
         },
@@ -177,7 +177,7 @@ Class('App.TableSetting', 'xui.Com',{
         _table_select_onchange:function (profile, oldValue, newValue, force, tag){
             var ns = this, uictrl = profile.boxing(),
             	item = profile.getItemByItemId(newValue);
-            AJAX.callService(item.name,"fields",{tid:newValue},function(rsp){
+            AJAX.callService('xui/request',item.name,"fields",{tid:newValue},function(rsp){
                 ns.cols.setUIValue(item.w, true);
                 ns.rows.setUIValue(item.h, true);
                 ns._fillList(rsp.data);
@@ -210,7 +210,7 @@ Class('App.TableSetting', 'xui.Com',{
                 ,tid=ts.getUIValue()
                 ,w=ns.cols.getUIValue()
                 ,h=ns.rows.getUIValue();
-            AJAX.callService(null,"setting",{fields:fl.getItems(),tid:tid,table_w:w,table_h:h}, function(rsp){
+            AJAX.callService('xui/request',null,"setting",{fields:fl.getItems(),tid:tid,table_w:w,table_h:h}, function(rsp){
                 if(rsp.data==1) {
                     items=ts.getItems();
                     i=_.arr.subIndexOf(items,"id",tid);
@@ -344,7 +344,7 @@ Class('App.TableSetting', 'xui.Com',{
         _addtable_onclick:function (profile, e, src, value){
             var ns = this, uictrl = profile.boxing();
             var table=ns.tablename.getUIValue();
-            AJAX.callService(null,"add_table",{table:table}, function(rsp){
+            AJAX.callService('xui/request',null,"add_table",{table:table}, function(rsp){
                 if(rsp.data==1) {
                     xui.message("保存成功");
                 } else {

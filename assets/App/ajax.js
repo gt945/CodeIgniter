@@ -1,7 +1,7 @@
 AJAX={
-    serviceURI:SITEURL+'xui/request',
+    serviceURI:SITEURL,
     pageSize:20,
-    callService:function(objectName, action, paras, callback, onStart, onEnd, file){
+    callService:function(rpc, objectName, action, paras, callback, onStart, onEnd, file){
         _.tryF(onStart);
         xui.Thread.observableRun(function(threadid){
             paras=paras||{};
@@ -13,7 +13,7 @@ AJAX={
             if(file){
                 data.file=file;
             }
-            xui.request(AJAX.serviceURI, data, function(rsp){
+            xui.request(AJAX.serviceURI+rpc, data, function(rsp){
                 var obj=rsp,result="ok";
                 if(obj){
                     if(obj.code==200){

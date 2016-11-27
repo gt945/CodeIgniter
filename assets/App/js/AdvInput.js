@@ -77,35 +77,12 @@ Class('App.AdvInput', 'xui.Com',{
             
             return children;
         },
-        _fillGrid:function(cols,setting,rows){
-            var ns=this,grid=ns.grid,caps={},
-                header=[];
-            if(setting){
-                _.each(setting,function(o,i){
-                    if(o.tag){
-                        caps[i]=o.tag;             
-                    }
-                });
-            }
-            var grows=[],grow,cell,obj,index;
-            _.arr.each(cols,function(col){
-                if(setting && setting[col]){
-                    obj=setting[col];
-                    obj.id=col;
-                    header.push(obj);
-                }
-            });
-            
-            _.arr.each(rows,function(row){
-                grow={id:row.id,cells:[]};
-                grow.cells.push({value:row.id});
-                grow.cells.push({value:row.caption});
-                grows.push(grow);
-            });
+        _fillGrid:function(headers,rows){
+            var ns=this,grid=ns.grid;
 
-            grid.setHeader(header);
-            grid.setRows(grows);
-            
+            grid.setHeader(headers);
+            grid.setRows(rows);
+            grid.sortColumn('value',false);
             grid.activate();
         },
         _mainpanel_beforeclose:function (profile){
@@ -133,11 +110,11 @@ Class('App.AdvInput', 'xui.Com',{
             var ns=this, 
                 grid=ns.grid;
             
-            AJAX.callService(ns.properties.key,"advance_input",{
+            AJAX.callService('xui/request',ns.properties.key,"advance_input",{
             	field:ns.properties.field
             },function(rsp){
                 if(!ns.isDestroyed()){
-                    ns._fillGrid(rsp.data.cols,rsp.data.setting, rsp.data.rows);
+                    ns._fillGrid(rsp.data.headers, rsp.data.rows);
                     var value=[];
                     if(ns.properties.cmd=="bit"){
                     	var t=parseInt(ns.properties.value,10);
@@ -198,7 +175,7 @@ Class('App.AdvInput', 'xui.Com',{
         	}else{
         		caption=' ';
         	}
-        	ns.fireEvent("onSelect",[value,caption]);
+        	ns.fireEvent("onSelect",[{value:value,caption:caption}]);
         	ns.destroy();
         },
         _ctl_sbutton3_onclick:function(){

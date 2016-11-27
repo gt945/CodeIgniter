@@ -1,17 +1,17 @@
 Class('App.GridEditor', 'xui.Com',{
 	Instance:{ 
 		properties : {
-				pageSize:20,
-				sidx:"",
-				sord:"",
-				filterForm:null
+			pageSize:20,
+			sidx:"",
+			sord:"",
+			filterForm:null
 		},
 		initialize : function(){
-				var ns=this;
-				ns._search=false;
-				ns._filters={};
-				ns._curPage=1;
-				ns._nodeid=0;
+			var ns=this;
+			ns._search=false;
+			ns._filters={};
+			ns._curPage=1;
+			ns._nodeid=0;
 		},
 		iniComponents : function(){
 			var host=this, children=[], append=function(child){children.push(child.get(0));};
@@ -22,11 +22,13 @@ Class('App.GridEditor', 'xui.Com',{
 				.setColHidable(false)
 				.setValue("")
 				.setNoCtrlKey(false)
+				.setAltRowsBg(true)
 				.afterUIValueSet("_grid_afteruivalueset")
 				.afterRowActive("_grid_afterrowactive")
 				.onDblclickCell("_grid_ondblclickcell")
 				.beforeColSorted("_grid_beforecolsorted")
 				.afterColResized("_grid_aftercolresized")
+				.onResize("_grid_resize")
 			);
 			
 			append((new xui.UI.ToolBar())
@@ -59,10 +61,10 @@ Class('App.GridEditor', 'xui.Com',{
 		_com_onrender:function (com, threadid){
 				var ns=this,
 					grid=ns.grid;
-				AJAX.callService(ns.getProperties("target"),"grid",null,function(rsp){
+				AJAX.callService('xui/request',ns.properties.target,"grid",{mid:ns.properties.id},function(rsp){
 					ns.setProperties(rsp.data);
-					ns.toolbar.setItems(_.unserialize(ns.getProperties("gridToolBarItems")));
-					if(ns.getProperties("gridTreeMode")){
+					ns.toolbar.setItems(_.unserialize(ns.properties.gridToolBarItems));
+					if(ns.properties.gridTreeMode){
 							grid.setTreeMode(true)
 							.setRowHandlerWidth(100)
 							.setSelMode("single")
@@ -72,36 +74,34 @@ Class('App.GridEditor', 'xui.Com',{
 					}else{
 							grid.setTreeMode(false).setRowHandlerWidth(18).setSelMode("multi");
 					}
-					if(ns.getProperties("gridGroup")){
+					if(ns.properties.gridGroup){
 							var item=ns.toolbar.getItemByItemId('group');
 							ns._gid=item.gid;
 							ns._ogid={value:item.gid,caption:item.caption};
 					}
-					ns._fillHeader(ns.getProperties("gridCols"),ns.getProperties("gridSetting"));
+					ns._fillHeader(ns.properties.gridCols,ns.properties.gridSetting);
 					ns.loadGridData(1);
 				},function(){
 				grid.busy("正在处理 ...");
 			},function(result){
-				if (result=='fail'){
-					grid.free();
-				}
+				grid.free();
 			});
 		},
 		_fetch_data:function(callback){
 			var ns=this, grid=ns.grid;
-			var pageSize=ns.getProperties("pageSize");
+			var pageSize=ns.properties.pageSize;
 			var post={
 				nodeid:ns._nodeid,
 				page:ns._curPage,
 				filters:ns._filters,
 				size:pageSize,
-				sidx:ns.getProperties("sidx"),
-				sord:ns.getProperties("sord"),
+				sidx:ns.properties.sidx,
+				sord:ns.properties.sord,
 				search:ns._search,
 				gid:ns._gid,
 				sub:ns._sub
 			};
-			AJAX.callService(ns.getProperties("gridName"),"getlist",post,function(rsp){
+			AJAX.callService('xui/request',ns.properties.gridName,"getlist",post,function(rsp){
 				if(!ns.isDestroyed()){
 					callback(rsp);
 				}
@@ -113,7 +113,7 @@ Class('App.GridEditor', 'xui.Com',{
 		},
 		loadGridData:function(curPage){
 			var ns=this, grid=ns.grid;
-			var pageSize=ns.getProperties("pageSize");
+			var pageSize=ns.properties.pageSize;
 			
 			ns._curPage=curPage;
 			ns._fetch_data(function(rsp){
@@ -190,7 +190,9 @@ Class('App.GridEditor', 'xui.Com',{
 		_grid_beforecolsorted:function(profile,col){
 			var ns=this;
 			if (col && col.sort) {
-				col.sortby=function(){return false};
+				col.sortby=function(){
+					return false
+				};
 				ns.setProperties("sidx",col.id);
 				if (col._order){
 					ns.setProperties("sord","desc");
@@ -211,12 +213,12 @@ Class('App.GridEditor', 'xui.Com',{
 				_pid:ns._opid
 			};
 			_.merge(prop, ns.properties);
-			xui.ComFactory.newCom(ns.getProperties("gridForm"),function(){
+			xui.ComFactory.newCom(ns.properties.gridForm,function(){
 				this.show();
 			},null,prop,{
 				afterCreated:function(data){
 					var rows=ns._buildRows(ns.grid.getHeader(), ns.cols,ns.setting, data.rows);
-                    if(ns.getProperties("gridTreeMode")){
+                    if(ns.properties.gridTreeMode){
                         var row=ns.grid.getRowbyRowId(data.pid);
                         if(row){
                             if(row.sub){
@@ -242,7 +244,7 @@ Class('App.GridEditor', 'xui.Com',{
 				if (ns.properties.filterForm){
 					ns.properties.filterForm.mainDlg.show(null,true);
 				}else{
-					ns.properties.filterForm=xui.ComFactory.newCom(ns.getProperties("gridFilter"),function(){
+					xui.ComFactory.newCom(ns.properties.gridFilter,function(){
 						ns.properties.filterForm=this;
 						this.show();
 					},null,ns.properties,{
@@ -259,20 +261,20 @@ Class('App.GridEditor', 'xui.Com',{
 		},
 		_openExporter:function(){
 			var ns = this;
-			var prop={_filter:ns._filters,_search:ns._search,_sidx:ns.getProperties("sidx"),_sord:ns.getProperties("sord")};
+			var prop={_filter:ns._filters,_search:ns._search,_sidx:ns.properties.sidx,_sord:ns.properties.sord};
 			_.merge(prop,ns.properties);
-			ns.properties.filterForm=xui.ComFactory.newCom(ns.getProperties("gridExporter"),function(){
+			ns.properties.filterForm=xui.ComFactory.newCom(ns.properties.gridExporter,function(){
 				this.show();
 			},null,prop);
 				
 		},
 		_delRecords:function(ids){
 			var ns=this, grid=ns.grid;
-			AJAX.callService(ns.getProperties("gridName"),"delete",{ids:ids},function(rsp){
+			AJAX.callService('xui/request',ns.properties.gridName,"delete",{ids:ids},function(rsp){
 				grid.setActiveRow(null);
 				grid.setUIValue(null,true);
 				xui.message("已删除"+ids.length+"条数据");
-				if(ns.getProperties("gridTreeMode")){
+				if(ns.properties.gridTreeMode){
 					grid.removeRows(ids);
 				}else{
 					ns.loadGridData(ns._curPage);
@@ -314,39 +316,47 @@ Class('App.GridEditor', 'xui.Com',{
 					}
 					break;
 				case "group":
-						var setting=ns.getProperties("gridSetting")
-						xui.ComFactory.newCom('App.AdvSelect', function(){
+					var setting=ns.properties.gridSetting;
+					xui.ComFactory.newCom('App.AdvSelect', function(){
 						this.setProperties({
-							key:ns.getProperties("gridName"),
-							field:ns.getProperties("gridGroup"),
+							key:ns.properties.gridName,
+							field:ns.properties.gridGroup,
 							pos:src,
 							value:ns._gid,
 							setting:setting['gid']
 						});
 						this.setEvents({
-							onSelect:function(value,caption,item){
-								ns.toolbar.updateItem("group",{caption:caption});
-								if (ns._gid!=value){
-									ns._ogid={value:value,caption:caption};
-									ns._gid=value;
+							onSelect:function(val){
+								ns.toolbar.updateItem("group",{caption:val.caption});
+								if (ns._gid!=val.value){
+									ns._ogid={value:val.value,caption:val.caption};
+									ns._gid=val.value;
 									ns.loadGridData(1);
 								}
+
 							}
 						});
-						this.show(); 
+						this.show();
 					});
-						break;
+					break;
 				case "sub":
-						if (item.value){
-							ns._sub=1;
-						}else{
-							ns._sub=0;
-						}
-						ns.loadGridData(1);
-						break;
+					if (item.value){
+						ns._sub=1;
+					}else{
+						ns._sub=0;
+					}
+					ns.loadGridData(1);
+					break;
 				case "export":
-						ns._openExporter();
-						break;
+					ns._openExporter();
+					break;
+				default:
+					if(typeof item.app == 'string'){
+						xui.ComFactory.newCom(item.app, function(){
+							this.show();
+						});
+					}
+					break;
 			}
 		},
 		_grid_afterrowactive:function (profile, row){
@@ -355,9 +365,9 @@ Class('App.GridEditor', 'xui.Com',{
 			if (value) {
 				var values=value.split(';');
 				this.toolbar.updateItem("edit",{disabled:!row||values.length<1});
-				if(ns.getProperties("gridTreeMode")&&row){
-					var setting=ns.getProperties("gridSetting");
-					var name=setting[ns.getProperties("gridTreeMode")].tree_field;
+				if(ns.properties.gridTreeMode&&row){
+					var setting=ns.properties.gridSetting;
+					var name=setting[ns.properties.gridTreeMode].tree_field;
 					ns._opid={
 						value:row.id,
 						caption:row.cells[setting[name].index].value
@@ -386,7 +396,11 @@ Class('App.GridEditor', 'xui.Com',{
 		},
 		_grid_aftercolresized:function(profile,colId,width){
 			var ns = this, uictrl = profile.boxing();
-			AJAX.callService(ns.getProperties("gridName"),"resize",{name:colId,width:width}, null);
+			AJAX.callService('xui/request',ns.properties.gridName,"resize",{name:colId,width:width}, null);
+		},
+		_grid_resize:function(profile,w,h){
+			var ns=this;
+			ns.properties.pageSize=parseInt((h-47)/21,10);
 		}
 	}
 });
