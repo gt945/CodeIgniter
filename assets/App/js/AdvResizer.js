@@ -148,7 +148,7 @@ Class("App.AdvResizer","xui.UI.Resizer",{
             if(target && !target.isEmpty()){
                 profile._target = target;
                 self.rePosSize();
-                rb.css({zIndex:xui.Dom.TOP_ZINDEX, display:'block'});
+                rb.css({zIndex:profile.properties.zIndex, display:'block'});
             }else{
                 profile._target = xui();
                 rb.css({zIndex:0,display:'none'});

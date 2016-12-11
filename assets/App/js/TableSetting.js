@@ -18,7 +18,7 @@ Class('App.TableSetting', 'xui.Com',{
                 .setResizer(false)
                 .setCaption("自定义表单")
                 .setImagePos("left top")
-                .setMovable(false)
+                .setMovable(true)
                 .setMinBtn(false)
                 .setMaxBtn(false)
                 .setCloseBtn(false)
@@ -82,7 +82,7 @@ Class('App.TableSetting', 'xui.Com',{
                 .setShowDirtyMark(false)
                 .setLeft(180)
                 .setTop(60)
-                .setSteps(18)
+                .setSteps(30)
                 .setIsRange(false)
                 .setValue("0")
                 .afterUIValueSet("_rows_onchange")
@@ -155,6 +155,58 @@ Class('App.TableSetting', 'xui.Com',{
                 .onClick("_addtable_onclick")
             );
             
+            append(
+                (new xui.UI.Button())
+                .setHost(host,"addgroup")
+                .setLeft(520)
+                .setTop(90)
+                .setWidth(100)
+                .setCaption("增加分组")
+                .onClick("_addgroup_onclick")
+            );
+
+            append(
+                (new xui.UI.Pane())
+                .setHost(host,"ctl_block67")
+                .setLeft(640)
+                .setTop(30)
+                .setWidth(300)
+                .setHeight(100)
+            );
+
+            host.ctl_block67.append(
+                (new xui.UI.TreeGrid())
+                .setHost(host,"grid")
+                .setShowDirtyMark(false)
+                .setSelMode("single")
+                .setEditable(true)
+                .setRowHandler(false)
+                .setHeader([{
+                    "id" : "name",
+                    "width" : 180,
+                    "type" : "input",
+                    "caption" : "组名称"
+                },{"id" : "x",
+                    "width" : 20,
+                    "caption": "x",
+                    "readonly" : true
+                },{"id" : "y",
+                    "width" : 20,
+                    "caption": "y",
+                    "readonly" : true
+                },{"id" : "w",
+                    "width" : 20,
+                    "caption": "w",
+                    "readonly" : true
+                },{"id" : "h",
+                    "width" : 20,
+                    "caption": "h",
+                    "readonly" : true
+                }])
+                .setTreeMode(false)
+                .afterCellUpdated("_grid_aftercellupdated")
+            );
+            
             return children;
             // ]]Code created by CrossUI RAD Studio
         },
@@ -180,7 +232,8 @@ Class('App.TableSetting', 'xui.Com',{
             AJAX.callService('xui/request',item.name,"fields",{tid:newValue},function(rsp){
                 ns.cols.setUIValue(item.w, true);
                 ns.rows.setUIValue(item.h, true);
-                ns._fillList(rsp.data);
+                ns._fillList(rsp.data.fields);
+                ns._fillGroups(rsp.data.groups);
                 ns._update_layout();
             });
             return true;
@@ -190,6 +243,15 @@ Class('App.TableSetting', 'xui.Com',{
                 fl=ns.field_list;
             fl.setItems(data)
             .setHeight(data.length*21);
+        },
+        _fillGroups:function(data){
+            var ns=this,
+                grid=ns.grid;
+            grid.setRows();
+            _.each(data,function (d,i) {
+                    grid.insertRows({id:i,cells:d});
+                }
+            );
         },
         _adjustFormX:function(x){
             var ns=this;
@@ -206,11 +268,12 @@ Class('App.TableSetting', 'xui.Com',{
         _save_onclick:function (profile, e, value){
             var ns = this, uictrl = profile.boxing()
                 ,fl=ns.field_list
+                ,grid=ns.grid
                 ,ts=ns.table_select
                 ,tid=ts.getUIValue()
                 ,w=ns.cols.getUIValue()
                 ,h=ns.rows.getUIValue();
-            AJAX.callService('xui/request',null,"setting",{fields:fl.getItems(),tid:tid,table_w:w,table_h:h}, function(rsp){
+            AJAX.callService('xui/request',null,"setting",{groups:grid.getRows('min'),fields:fl.getItems(),tid:tid,table_w:w,table_h:h}, function(rsp){
                 if(rsp.data==1) {
                     items=ts.getItems();
                     i=_.arr.subIndexOf(items,"id",tid);
@@ -275,27 +338,38 @@ Class('App.TableSetting', 'xui.Com',{
             r=Math.round((v-15)/30);
             return r<0?0:r;
         },
+        _grid_aftercellupdated:function(profile,cell,options,isHotRow){
+            var ns=this,
+                grid=profile.boxing(),
+                row =grid.getRowbyCell(cell),
+                id = row.id;
+            if(!cell.value){
+                grid.removeRows(id);
+            }
+            ns._update_layout();
+        },
         _update_layout:function(){
-            var ns = this,fl=ns.field_list;
-            items=fl.getItems();
+            var ns = this,fl=ns.field_list,grid=ns.grid;
+            var items=fl.getItems();
+            var groups=grid.getRows();
             ns.block.removeChildren(null,true);
             _.each(items,function(o,i){
-                x=parseInt(o.x,10);
-                y=parseInt(o.y,10);
-                w=parseInt(o.w,10);
-                h=parseInt(o.h,10);
-                prop={
+                var x=parseInt(o.x,10);
+                var y=parseInt(o.y,10);
+                var w=parseInt(o.w,10);
+                var h=parseInt(o.h,10);
+                var prop={
                     ele:o.id,
                     forceMovable:false,
                     minWidth:0,
                     minHeight:0,
                     dragArgs:{
-                        widthIncrement:1,
-                        heightIncrement:1
+                        widthIncrement:15,
+                        heightIncrement:15
                     },
                     zIndex:xui.Dom.TOP_ZINDEX
                 };
-                ele=(new xui.UI.Button())
+                var ele=(new xui.UI.Button())
                     .setHost(ns)
                     .setCaption(o.caption)
                     .setLeft(ns._left(x))
@@ -313,10 +387,10 @@ Class('App.TableSetting', 'xui.Com',{
                             target.each(function(target){
                                 target = xui([target]);
                                 items=fl.getItems();
-                                i=_.arr.subIndexOf(items,"id",resizer.properties.ele);
+                                var i=_.arr.subIndexOf(items,"id",resizer.properties.ele);
                                 var profile = xui.UIProfile.getFromDom(target.get(0).id);
                                 if(size){
-                                    orig_size=profile.getRoot().cssSize();
+                                    var orig_size=profile.getRoot().cssSize();
                                     items[i].w=ns._width_r(size.width+orig_size.width);
                                     items[i].h=ns._height_r(size.height+orig_size.height);
                                     size.width=ns._width(items[i].w);
@@ -325,7 +399,7 @@ Class('App.TableSetting', 'xui.Com',{
                                     xui.UI.$tryResize(profile,size.width,size.height,null,true);
                                 }
                                 if(cssPos){
-                                    orig_pos=profile.getRoot().cssPos();
+                                    var orig_pos=profile.getRoot().cssPos();
                                     items[i].x=ns._left_r(cssPos.left+orig_pos.left);
                                     items[i].y=ns._top_r(cssPos.top+orig_pos.top);
                                     cssPos.left=ns._left(items[i].x);
@@ -340,17 +414,107 @@ Class('App.TableSetting', 'xui.Com',{
                     })
                 );
             });
-        },
-        _addtable_onclick:function (profile, e, src, value){
-            var ns = this, uictrl = profile.boxing();
-            var table=ns.tablename.getUIValue();
-            AJAX.callService('xui/request',null,"add_table",{table:table}, function(rsp){
-                if(rsp.data==1) {
-                    xui.message("保存成功");
-                } else {
-                    xui.alert("保存失败");
-                }
+
+            _.each(groups,function(g,i){
+                var name=g.cells[0].value;
+                var x=parseInt(g.cells[1].value,10);
+                var y=parseInt(g.cells[2].value,10);
+                var w=parseInt(g.cells[3].value,10);
+                var h=parseInt(g.cells[4].value,10);
+                var prop={
+                    ele:g.id,
+                    forceMovable:false,
+                    minWidth:0,
+                    minHeight:0,
+                    dragArgs:{
+                        widthIncrement:1,
+                        heightIncrement:1
+                    },
+                    zIndex:xui.Dom.TOP_ZINDEX - 1
+                };
+                var ele=(new xui.UI.Group())
+                    .setHost(ns)
+                    .setCaption(name)
+                    .setLeft(ns._left(x) - 10)
+                    .setTop(ns._top(y) - 30)
+                    .setWidth(ns._width(w) + 20)
+                    .setHeight(ns._height(h) + 35)
+                    .setToggleBtn(false);
+                ns.block.append(ele);
+
+                ns.block.append((xui.create({key:'App.AdvResizer'}))
+                    .setHost(ns)
+                    .setProperties(prop)
+                    .resetTarget(ele, false)
+                    .onContextmenu(function(){return false;})
+                    .onUpdate(function(resizer, target, size, cssPos){
+                        if(target){
+                            target.each(function(target){
+                                target = xui([target]);
+                                var row=grid.getRowbyRowId(resizer.properties.ele);
+                                var profile = xui.UIProfile.getFromDom(target.get(0).id);
+                                if(size){
+                                    var orig_size=profile.getRoot().cssSize();
+                                    var w=ns._width_r(size.width+orig_size.width - 20) ;
+                                    var h=ns._height_r(size.height+orig_size.height - 35);
+                                    grid.updateCellByRowCol(row.id,'w',w);
+                                    grid.updateCellByRowCol(row.id,'h',h);
+                                    size.width=ns._width(w)+ 20;
+                                    size.height=ns._height(h) + 35;
+                                    profile.getRoot().cssSize(size);
+                                    xui.UI.$tryResize(profile,size.width,size.height,null,true);
+                                }
+                                if(cssPos){
+                                    var orig_pos=profile.getRoot().cssPos();
+                                    var x=ns._left_r(cssPos.left+orig_pos.left);
+                                    var y=ns._top_r(cssPos.top+orig_pos.top + 30);
+                                    grid.updateCellByRowCol(row.id,'x',x);
+                                    grid.updateCellByRowCol(row.id,'y',y);
+                                    cssPos.left=ns._left(x) - 10;
+                                    cssPos.top=ns._top(y)- 30;
+                                    profile.getRoot().cssPos(cssPos);
+                                }
+//
+                            });
+                        }
+                        resizer.boxing().rePosSize();
+                        return false;
+                    })
+
+                );
             });
+
+        },
+        _addtable_onclick:function (profile, e, src, value) {
+            var ns = this, uictrl = profile.boxing();
+            var table = ns.tablename.getUIValue();
+            if (table.length) {
+                AJAX.callService('xui/request', null, "add_table", {table: table}, function (rsp) {
+                    if (rsp.data == 1) {
+                        xui.message("保存成功");
+                    } else {
+                        xui.alert("保存失败");
+                    }
+                });
+            }
+        },
+        _addgroup_onclick:function() {
+            var ns=this,grid=ns.grid;
+            var rows=grid.getRows();
+            grid.insertRows(["Group_"+(rows.length+1),0,1,1,1]);
+            ns._update_layout();
+        },
+        _ctl_group1_ondrop:function(profile, e, node, key, data, item){
+            var target = profile.boxing(),
+                source = data.profile.boxing(),
+                paras = source.getPanelPara(data.domId),
+                children = source.getPanelChildren(data.domId)
+
+            paras.popBtn=paras.popBtn||paras.landBtn;
+            
+            if(target.addPanel(paras, children, item))
+                source.removePanel(data.domId);
+            
         }
     }
 });

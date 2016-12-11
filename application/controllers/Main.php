@@ -47,9 +47,8 @@ class Main extends CI_Controller {
 
 			$this->load->model('crud_model');
 			$this->crud_model->table("menu");
-            $this->crud_model->prepare();
 			$menu_array = $this->crud_model->get_tree_data_by_pid(0, true);
-			$menus = $this->xui_utils->menus($menu_array[0]['children']);
+			$menus = $this->xui_utils->menus($menu_array[0]['children'], $this->auth_model->role());
 			$this->cache->save('menus', $menus);
 		}
 		$data['menus'] = $menus;

@@ -38790,7 +38790,7 @@ Class("xui.UI.TreeGrid",["xui.UI","xui.absValue"],{
         isDirtied:function(){
             var dirty=false;
             _.each(this.get(0).cellMap,function(v){
-                if(v._oValue!==v.value){
+                if(v._oValue!==v.value||v.dirty){
                     dirty=true;
                     return false;
                 }
@@ -39789,7 +39789,7 @@ Class("xui.UI.TreeGrid",["xui.UI","xui.absValue"],{
         getDirtied:function(rowId, colId){
             var map={};
             _.each(this.get(0).cellMap,function(v){
-                if(v._oValue!==v.value &&(rowId?(rowId==v._row.id):1) &&(colId?(colId==v._col.id):1)){
+                if((v._oValue!==v.value||v.dirty)&&(rowId?(rowId==v._row.id):1) &&(colId?(colId==v._col.id):1)){
                     map[v.id]={rowId:v._row.id, colId:v._col.id, value:v.value, _oValue:v._oValue};
                 }
             });

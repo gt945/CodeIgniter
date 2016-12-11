@@ -76,6 +76,7 @@ Class('App.GridFilter', 'xui.Com',{
             host.mainDlg.append((new xui.UI.Block())
                 .setHost(host,"xui_ui_block4")
                 .setHeight(35)
+				.setBorderType("none")
                 .setDock("bottom")
                 );
             host.xui_ui_block4.append((new xui.UI.SButton())
@@ -176,17 +177,23 @@ Class('App.GridFilter', 'xui.Com',{
             var ns = this;
             var json_code ='new xui.UI.Pane({"key":"xui.UI.Pane","properties":{"dock":"width","width":"auto","height":25,"position":"relative"},"children":[[{"type":"field","key":"xui.UI.ComboInput","properties":{"dirtyMark":false,"left":10,"top":0,"type":"listbox"},"events":{"afterUIValueSet":"_xui_ui_field_onchange"}}],[{"type":"operation","key":"xui.UI.ComboInput","properties":{"dirtyMark":false,"left":135,"top":0,"width":70,"type":"listbox"}}],[{"key":"xui.UI.SButton","properties":{"left":340,"top":0,"width":20,"caption":"-"},"events":{"onClick":"_xui_ui_button_del_onclick"}}]]})';
             var nb=_.unserialize(json_code);
+            var add=false;
             _.arr.each(nb.getChildren(null, true), function(o) {
             	var ob=o.boxing();
 				ob.setHost(ns);
 				if(o.type=="field"){
 					var items=ns._get_fields_list(ns.properties.gridSetting);
-					ob.setItems(items);
-					ob.setUIValue(items[0].id);
+					if(items.length){
+                        ob.setItems(items);
+                        ob.setUIValue(items[0].id);
+                        add=true;
+                    }
 				}
 			});
-            this.xui_ui_block3.append(nb);
-            
+            if(add){
+                this.xui_ui_block3.append(nb);
+            }
+
         },
         _xui_ui_button_del_onclick:function(profile,e,src){
         	profile.parent.boxing().removePanel();

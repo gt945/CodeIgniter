@@ -121,11 +121,9 @@ Class('App.QKZX.StockAndOrderInfo', 'xui.Com',{
             var paras={
                 field:ns.properties.field,
                 page:curPage,
-                like:ns.like,
                 size:20,
                 relate:ns.properties.relate
             };
-
 
             AJAX.callService("QKZX/request", id, "get_stock_and_order_info", paras, function(rsp){
                 if(!ns.isDestroyed()){
@@ -137,20 +135,6 @@ Class('App.QKZX.StockAndOrderInfo', 'xui.Com',{
             },function(result){
                 ns.mainPanel.free();
             });
-            // xui.request(SITEURL+"QKZX/get_stock_and_order_info", {
-            //         paras:paras
-            //     }, function(rsp){
-            //         if(!ns.isDestroyed()){
-            //             // if (rsp.code != 200) {
-            //                 ns["pagebar_"+id].setValue("1:"+curPage+":"+( Math.ceil(parseInt(rsp.data.count,10)/20) ),true);
-            //                 ns._fillGrid(id,rsp.data.headers, rsp.data.rows);
-            //             // }
-            //         }
-            //     ns.mainPanel.free();
-            // },function(){
-            //     ns.mainPanel.free();
-            // },null,{method:'post'});
-
         },
         _ctl_sbutton1_onclick:function (profile, e, src, value){
             var id=this.tabs.getValue();

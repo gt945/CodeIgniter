@@ -17,7 +17,7 @@ class Xui_utils {
 		return $json;
 	}
 	
-	public function menus($menus)
+	public function menus($menus, $role)
 	{
 		$obj = (object) array(
 				"alias" => "menus",
@@ -34,6 +34,11 @@ class Xui_utils {
 					"id" => "m{$m['id']}",
 					"caption" => "{$m['name']}"
 			);
+			
+			if (strpos(",{$m['role_r']}," , ",{$role}," ) === false) {
+				continue;
+			}
+			
 			if (!$obj->properties->value) {
 				$obj->properties->value = "m{$m['id']}";
 			}
@@ -52,6 +57,9 @@ class Xui_utils {
 					),
 			);
 			foreach($m['children'] as $c) {
+				if (strpos(",{$c['role_r']}," , ",{$role}," ) === false) {
+					continue;
+				}
 				$item_c = (object) array(
 						"id" => "c{$c['id']}",
 						"caption" => "{$c['name']}",
@@ -157,20 +165,20 @@ class Xui_utils {
 			);
 		}
 		if (count($extra_items) > 0) {
-            $items[1] = (object)array(
-                    "id" => "grp2",
-                    "sub" => array(),
-                    "caption" => "grp2"
-                );
-            foreach($extra_items as $k=>$item){
-                $items[1]->sub[] = (object) array(
-                    "id" => "custom{$k}",
-                    "image" => "@xui_ini.appPath@image/{$item['icon']}",
-                    "caption" => "{$item['name']}",
-                    "app" => "{$item['app']}"
-                );
-            }
-        }
+			$items[1] = (object)array(
+					"id" => "grp2",
+					"sub" => array(),
+					"caption" => "grp2"
+				);
+			foreach($extra_items as $k=>$item){
+				$items[1]->sub[] = (object) array(
+					"id" => "custom{$k}",
+					"image" => "@xui_ini.appPath@image/{$item['icon']}",
+					"caption" => "{$item['name']}",
+					"app" => "{$item['app']}"
+				);
+			}
+		}
 		$json = json_encode($items);
 		
 		return $this->filter($json);

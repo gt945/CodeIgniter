@@ -18,4 +18,10 @@ class Crud_hook {
 		
 	}
 	
+	
+	function calc_order($oper, &$data, $field)
+	{
+	
+	
+	}
 }

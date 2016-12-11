@@ -111,7 +111,8 @@ Class('App.AdvInput', 'xui.Com',{
                 grid=ns.grid;
             
             AJAX.callService('xui/request',ns.properties.key,"advance_input",{
-            	field:ns.properties.field
+            	field:ns.properties.field,
+				relate:ns.properties.relate
             },function(rsp){
                 if(!ns.isDestroyed()){
                     ns._fillGrid(rsp.data.headers, rsp.data.rows);

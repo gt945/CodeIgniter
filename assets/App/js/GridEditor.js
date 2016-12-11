@@ -59,29 +59,29 @@ Class('App.GridEditor', 'xui.Com',{
 		},
 		events:{"onRender":"_com_onrender"},
 		_com_onrender:function (com, threadid){
-				var ns=this,
-					grid=ns.grid;
-				AJAX.callService('xui/request',ns.properties.target,"grid",{mid:ns.properties.id},function(rsp){
-					ns.setProperties(rsp.data);
-					ns.toolbar.setItems(_.unserialize(ns.properties.gridToolBarItems));
-					if(ns.properties.gridTreeMode){
-							grid.setTreeMode(true)
-							.setRowHandlerWidth(100)
-							.setSelMode("single")
-							.onGetContent("_grid_ongetcontent")
-							.setRowNumbered(true);
-							ns.setProperties("pageSize", -1);
-					}else{
-							grid.setTreeMode(false).setRowHandlerWidth(18).setSelMode("multi");
-					}
-					if(ns.properties.gridGroup){
-							var item=ns.toolbar.getItemByItemId('group');
-							ns._gid=item.gid;
-							ns._ogid={value:item.gid,caption:item.caption};
-					}
-					ns._fillHeader(ns.properties.gridCols,ns.properties.gridSetting);
-					ns.loadGridData(1);
-				},function(){
+			var ns=this,
+				grid=ns.grid;
+			AJAX.callService('xui/request',ns.properties.target,"grid",{mid:ns.properties.id},function(rsp){
+				ns.setProperties(rsp.data);
+				ns.toolbar.setItems(_.unserialize(ns.properties.gridToolBarItems));
+				if(ns.properties.gridTreeMode){
+						grid.setTreeMode(true)
+						.setRowHandlerWidth(100)
+						.setSelMode("single")
+						.onGetContent("_grid_ongetcontent")
+						.setRowNumbered(true);
+						ns.properties.pageSize=-1;
+				}else{
+						grid.setTreeMode(false).setRowHandlerWidth(18).setSelMode("multi");
+				}
+				if(ns.properties.gridGroup){
+						var item=ns.toolbar.getItemByItemId('group');
+						ns._gid=item.gid;
+						ns._ogid={value:item.gid,caption:item.caption};
+				}
+				grid.setHeader(ns.properties.gridHeaders);
+				ns.loadGridData(1);
+			},function(){
 				grid.busy("正在处理 ...");
 			},function(result){
 				grid.free();
@@ -128,58 +128,28 @@ Class('App.GridEditor', 'xui.Com',{
 			ns._nodeid=row.id;
 			ns._fetch_data(function(rsp){
 				if(!ns.isDestroyed()){
-					callback(ns._buildRows(ns.header,ns.cols,ns.setting,rsp.data.rows));
+					callback(ns._buildRows(rsp.data.rows));
 				}
 			});
-		},
-		_fillHeader:function(cols,setting) {
-			var ns=this,
-				grid=ns.grid;
-			ns.cols = cols;
-			ns.setting = setting;
-			ns.header = this._buildHeader(cols,setting);
-			grid.setHeader(ns.header);
 		},
 		_fillGrid:function(rows){
 			var ns=this,
 				grid=ns.grid;
-			var grows = this._buildRows(ns.header,ns.cols,ns.setting,rows);
+			var grows = this._buildRows(rows);
 			grid.setActiveRow(null);
 			grid.setUIValue(null,true);
 			grid.setRows(grows);
 		},
-		_buildHeader:function(cols,setting){
-			var ns=this,
-				header=[];
-			
-			var obj;
-			var i=0;
-			_.arr.each(cols,function(col){
-				if(setting[col] && !setting[col].minify){
-					obj=setting[col];
-					obj.id=col;
-					header.push(obj);
-					setting[col].index=i++;
-				}
-			});
-			
-			return header;
-		},
-		_buildRows:function(header,cols,setting,rows){
+		_buildRows:function(rows){
 			var ns=this;
-			var grows=[],grow,cell,index;
 			_.arr.each(rows,function(row){
-				grow={id:row.id,cells:[],sub:false};
-				_.arr.each(header,function(col){
-					index=_.arr.indexOf(cols, col.id);
-					grow.cells.push(row.cells[index]);
+				_.arr.each(ns.properties.gridHeaders,function(h,i){
+                    if(ns.properties.gridSetting[h.id].type=="checkbox"){
+						row.cells[i].value=!!parseInt(row.cells[i].value,10);
+					}
 				});
-				if(typeof row.sub == 'boolean'){
-					grow.sub=row.sub;
-				}
-				grows.push(grow);
 			});
-			return grows;
+			return rows;
 		},
 		_grid_ondblclickcell:function (profile, cell, e, src){
 			var ns = this, 
@@ -191,13 +161,13 @@ Class('App.GridEditor', 'xui.Com',{
 			var ns=this;
 			if (col && col.sort) {
 				col.sortby=function(){
-					return false
+					return 0;
 				};
-				ns.setProperties("sidx",col.id);
+				ns.properties.sidx=col.id;
 				if (col._order){
-					ns.setProperties("sord","desc");
+					ns.properties.sord="desc";
 				}else{
-					ns.setProperties("sord","asc");
+					ns.properties.sord="asc";
 				}
 				ns.loadGridData(ns._curPage);
 				return true;
@@ -217,7 +187,7 @@ Class('App.GridEditor', 'xui.Com',{
 				this.show();
 			},null,prop,{
 				afterCreated:function(data){
-					var rows=ns._buildRows(ns.grid.getHeader(), ns.cols,ns.setting, data.rows);
+					var rows=ns._buildRows(data);
                     if(ns.properties.gridTreeMode){
                         var row=ns.grid.getRowbyRowId(data.pid);
                         if(row){
@@ -230,12 +200,19 @@ Class('App.GridEditor', 'xui.Com',{
                     }
 					ns.grid.insertRows(rows,data.pid,null,false);
 				},
-				afterUpdated:function(rowIds, hash){
+				afterUpdated:function(rowIds, hash, rows){
 					_.each(rowIds,function(rowId){
 						_.each(hash,function(v, k){
 							ns.grid.updateCellByRowCol(rowId, k, (_.isHash(v)?v:{value:v}), false, false);
 						});
 					});
+					if (_.isArr(rows)) {
+                        _.each(rows,function(row){
+                            _.each(row.cells,function(v,k){
+                                ns.grid.updateCellByRowCol(row.id, k, (_.isHash(v)?v:{value:v}), false, false);
+                            });
+                        });
+                    }
 				}
 			});
 		},
@@ -400,7 +377,7 @@ Class('App.GridEditor', 'xui.Com',{
 		},
 		_grid_resize:function(profile,w,h){
 			var ns=this;
-			ns.properties.pageSize=parseInt((h-47)/21,10);
+			ns.properties.pageSize=parseInt((h-27)/21,10);
 		}
 	}
 });

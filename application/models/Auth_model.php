@@ -21,7 +21,7 @@ class Auth_model extends CI_Model {
 	public function __construct()
 	{
 		parent::__construct ();
-		$this->load->helper(array('url'));
+		$this->load->helper(array('url', 'bool'));
 		$this->load->library(array('session'));
 		$this->load->database ();
 		$this->load->driver('cache', array('adapter' => 'file'));
@@ -326,5 +326,16 @@ class Auth_model extends CI_Model {
 		}
 		return $pubKey;
 	}
+	
+    public function check_role($role)
+	{
+		$rid = $_SESSION['userinfo']['rid'];
+		return check_str_bool($role, $rid);
+	}
+	
+	public function role()
+	{
+        return $_SESSION['userinfo']['rid'];
+    }
 	
 }

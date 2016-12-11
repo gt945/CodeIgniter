@@ -1,8 +1,13 @@
 Class('App.TableSelect', 'xui.Com',{
     Instance:{
         autoDestroy : true,
-        properties : {},
+        properties : {
+            filterForm:null
+        },
         initialize : function(){
+            var ns=this;
+            ns._search=false;
+            ns._filters={};
         },
         iniComponents : function(){
             var host=this, children=[], append=function(child){children.push(child.get(0));};
@@ -28,7 +33,7 @@ Class('App.TableSelect', 'xui.Com',{
 	            .setRowHandler(true)
 	            .setTreeMode(false)
             );
-            
+
             host.mainPanel.append(
                 (new xui.UI.Block())
 	            .setHost(host,"ctl_block8")
@@ -36,6 +41,12 @@ Class('App.TableSelect', 'xui.Com',{
 	            .setHeight(30)
             );
 
+            host.ctl_block8.append(
+                (new xui.UI.ToolBar())
+                    .setHost(host,"toolbar")
+                    .setItems([{"id":"grp1", "sub":[{"id":"null","caption":""}], "caption":"grp1"}])
+                    .onClick("_toolbar_onclick")
+            );
             host.ctl_block8.append(
                 (new xui.UI.PageBar())
                 .setHost(host,"pagebar")
@@ -117,13 +128,22 @@ Class('App.TableSelect', 'xui.Com',{
             AJAX.callService('xui/request',ns.properties.key,"table_select",{
             	field:ns.properties.field,
                 page:curPage,
-                size:20
+                size:20,
+                filters:ns._filters,
+                search:ns._search
             },function(rsp){
                 if(!ns.isDestroyed()){
-                    ns.pagebar.setValue("1:"+curPage+":"+( Math.ceil(parseInt(rsp.data.count,10)/20) ),true);
-                    ns._fillGrid(rsp.data.headers, rsp.data.rows);
-                    // grid.setUIValue(ns.properties.value);
-                    ns.data = rsp.data;
+                    if(typeof(rsp.data)=="string"){
+                        xui.message(rsp.data);
+                    }else{
+                        ns.properties.gridFilter=rsp.data.gridFilter;
+                        ns.properties.gridSetting=rsp.data.gridSetting;
+                        ns.toolbar.setItems(_.unserialize(rsp.data.gridToolBarItems));
+                        ns.pagebar.setValue("1:"+curPage+":"+( Math.ceil(parseInt(rsp.data.count,10)/20) ),true);
+                        ns._fillGrid(rsp.data.headers, rsp.data.rows);
+                        // grid.setUIValue(ns.properties.value);
+                        ns.data = rsp.data;
+                    }
                 }
             },function(){
                 grid.busy("正在处理 ...");
@@ -159,6 +179,34 @@ Class('App.TableSelect', 'xui.Com',{
         	var ns=this;
         	ns.fireEvent("onCancel");
             ns.destroy(); 
+        },
+        _toolbar_onclick:function (profile, item, group, e, src){
+            var ns = this,ctrl=profile.boxing();
+            switch(item.id){
+                case "filter":
+                    ns._openFilter();
+                    break;
+            }
+        },
+        _openFilter:function(){
+            var ns = this;
+            if (ns.properties.filterForm){
+                ns.properties.filterForm.mainDlg.show(null,true);
+            }else{
+                xui.ComFactory.newCom(ns.properties.gridFilter,function(){
+                    ns.properties.filterForm=this;
+                    this.show();
+                },null,ns.properties,{
+                    onSelect:function(filters){
+                        ns._filters=filters;
+                        if (filters.rules.length){
+                            ns._search=true;
+                        }
+                        ns.loadGridData(1);
+                    }
+                });
+            }
+
         },
         _pagebar_onclick:function (profile, page){
             this.loadGridData(page);

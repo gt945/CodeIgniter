@@ -17,6 +17,7 @@ class Db_Model extends CI_Model {
 	public function table($name, $select = array())
 	{
         $this->name = $name;
+        $this->primary = 'id';
 //		$this->from("{$name} {$alias}");
 	}
 	
@@ -58,5 +59,22 @@ class Db_Model extends CI_Model {
 		}
 		return $result;
 	}
+
+	public function save($data) {
+	    $ret = array();
+        $this->trans_start ();
+        foreach($data as $d) {
+            if (isset($d[$this->primary])) {
+                $ret[] = $d[$this->primary];
+                $this->db2->where($this->primary, $d[$this->primary]);
+                $this->db2->update ($this->name, $d);
+            } else {
+                $this->db2->insert ($this->name, $d);
+                $ret[] = $this->db2->insert_id ();
+            }
+        }
+        $this->trans_complete ();
+        return $ret;
+    }
 
 }
