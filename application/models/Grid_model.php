@@ -453,7 +453,8 @@ class Grid_model extends Crud_Model {
 			
 			$setting->type = (int)$f['type'];
 			$setting->caption[] = $f['caption'];
-			$header->id = $f['name'];
+            $setting->relate = $f['relate'];
+            $header->id = $f['name'];
             $header->caption = $f['caption'];
             $header->width = $f['width'];
 
@@ -470,7 +471,6 @@ class Grid_model extends Crud_Model {
                 $setting->mask = $f['mask'];
                 $setting->format = $f['format'];
                 $setting->template = $f['template'];
-                $setting->relate = $f['relate'];
                 $setting->currency = $f['currency'];
                 $setting->width = (int)$f['width'];
                 $setting->tree = ($this->pid == $f['name'] || $f['name']=="gid")?true:false;
@@ -488,13 +488,14 @@ class Grid_model extends Crud_Model {
             } else {
                 $header->sort = false;
             }
-            if ($f['prop'] & Crud_model::PROP_FIELD_MINIFY) {
+            if (($f['prop'] & Crud_model::PROP_FIELD_MINIFY)
+                && $mode  == "dialog" ) {
                 $header->hidden = true;
             } else {
                 $header->hidden = false;
             }
 			$header_inline = clone $header;
-            $header_inline->format="[^.*]";
+//            $header_inline->format="[^.*]";
 			switch ($f['type']) {
 				case Crud_model::TYPE_LABEL :
 					$form_class = "xui.UI.ComboInput";
@@ -540,11 +541,13 @@ class Grid_model extends Crud_Model {
 						$form_obj->properties->app = "App.AdvSelect";
 						$form_obj->events->beforeComboPop = "_select_beforecombopop";
                         $header_inline->type="cmdbox";
+                        $header_inline->app="App.AdvSelect";
 					} else if ($f['prop'] & Crud_model::PROP_FIELD_TABLE) {
                         $form_obj->properties->type = "cmdbox";
                         $form_obj->properties->app = "App.TableSelect";
                         $form_obj->events->beforeComboPop = "_select_beforecombopop";
                         $header_inline->type="cmdbox";
+                        $header_inline->app="App.TableSelect";
                     } else{
 						$form_obj->properties->type = "listbox";
 						$form_obj->events->beforePopShow = "_select_beforepopshow";
@@ -558,6 +561,7 @@ class Grid_model extends Crud_Model {
 					$form_obj->properties->cmd = "multi";
 					$form_obj->events->beforeComboPop = "_select_beforecombopop";
                     $header_inline->type="cmdbox";
+                    $header_inline->app="App.AdvInput";
 					break;
 				case Crud_model::TYPE_BOOL :
 					$form_class = "xui.UI.CheckBox";
@@ -584,6 +588,7 @@ class Grid_model extends Crud_Model {
 					$form_obj->properties->app = "App.AdvInput";
 					$form_obj->events->beforeComboPop = "_select_beforecombopop";
                     $header_inline->type="cmdbox";
+                    $header_inline->app="App.AdvInput";
 					break;
                 case Crud_model::TYPE_AUTOCOMPLETE :
                     $form_class = "xui.UI.ComboInput";
@@ -591,6 +596,7 @@ class Grid_model extends Crud_Model {
                     $form_obj->properties->app = "App.AutoComplete";
                     $form_obj->events->beforeComboPop = "_select_beforecombopop";
                     $header_inline->type="helpinput";
+                    $header_inline->app="App.AutoComplete";
                     break;
                 case Crud_model::TYPE_HELPER:
                     $form_class = "xui.UI.ComboInput";
@@ -598,6 +604,7 @@ class Grid_model extends Crud_Model {
                     $form_obj->properties->app = $f['app'];
                     $form_obj->events->beforeComboPop = "_select_beforecombopop";
                     $header_inline->type="helpinput";
+                    $header_inline->app=$f['app'];
                     break;
                 default:
 			}
@@ -649,7 +656,10 @@ class Grid_model extends Crud_Model {
 				"message" => "未知错误"
 		);
 		
-		$this->load->model('crud_hook');
+		$this->load->model('crud_before_edit');
+        $this->load->model('crud_after_edit');
+        $this->load->model('crud_before_del');
+        $this->load->model('crud_after_del');
 		$table = $this->name;
 		switch ($oper) {
         case 'set' :
@@ -753,7 +763,7 @@ class Grid_model extends Crud_Model {
                     $save[] = $data;
                 }
             }
-            if (method_exists($this->crud_hook, $this->crud_table['before_edit'])) {
+            if (method_exists($this->crud_before_edit, $this->crud_table['before_edit'])) {
                 $method = $this->crud_table['before_edit'];
                 if ($oper == 'set') {
                     $this->db2->select("*");
@@ -761,9 +771,9 @@ class Grid_model extends Crud_Model {
                     $this->db2->where_in($this->primary, $ids );
                     $old = $this->db2->sheet();
                 }
-                $this->crud_hook->$method($oper, $this, $save, $old);
-                if ( !$this->crud_hook->result ) {
-                    $ret->message = $this->crud_hook->message;
+                $hook = $this->crud_before_edit->$method($oper, $this, $save, $old);
+                if ( !$hook->result ) {
+                    $ret->message = $hook->message;
                     return $ret;
                 }
             }
@@ -793,9 +803,13 @@ class Grid_model extends Crud_Model {
                 $ret->message = null;
             }
 
-            if (method_exists($this->crud_hook, $this->crud_table['after_edit'])) {
+            if (method_exists($this->crud_after_edit, $this->crud_table['after_edit'])) {
                 $method = $this->crud_table['after_edit'];
-                $this->crud_hook->$method($oper, $this, $save);
+                $hook = $this->crud_after_edit->$method($oper, $this, $save, $ids);
+                if(!$hook->result) {
+                    $ret->message = $hook->message;
+                    return $ret;
+                }
             }
 
             if ($this->crud_table['fields_return'] || $oper=="create") {
@@ -822,9 +836,33 @@ class Grid_model extends Crud_Model {
                     $ret->message = "无法删除";
                     return $ret;
                 }
-                $this->where_in ( 'id', $ids );
-                $this->delete ( $table );
-                $ret->message = null;
+                if (method_exists($this->crud_before_del, $this->crud_table['before_del'])) {
+                    $method = $this->crud_table['before_del'];
+                    $this->db2->select("*");
+                    $this->db2->from($this->name);
+                    $this->db2->where_in($this->primary, $ids );
+                    $old = $this->db2->sheet();
+                    $hook = $this->crud_before_del->$method($oper, $this, $ids, $old);
+                    if ( !$hook->result ) {
+                        $ret->message = $hook->message;
+                        return $ret;
+                    }
+                }
+                if (count($ids)) {
+                    $this->where_in ( 'id', $ids );
+                    $this->delete ( $table );
+                    if (method_exists($this->crud_after_del, $this->crud_table['after_del'])) {
+                        $method = $this->crud_table['after_del'];
+                        $hook = $this->crud_after_del->$method($oper, $this, $ids);
+                        if ( !$hook->result ) {
+                            $ret->message = $hook->message;
+                            return $ret;
+                        }
+                    }
+                    $ret->message = null;
+                } else {
+                    $ret->message = "无法删除";
+                }
             }
             break;
         default :

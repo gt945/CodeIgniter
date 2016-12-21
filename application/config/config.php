@@ -25,7 +25,7 @@ defined('BASEPATH') OR exit('No direct script access allowed');
 */
 //$config['base_url'] = 'https://gt945.vicp.net:10443/superhub/QKZX/';
 //$config['base_url'] = 'https://gt945.mynetgear.com/QKZX/';
-$config['base_url'] = 'http://192.168.1.24/QKZX/';
+$config['base_url'] = 'http://192.168.1.77/QKZX/';
 
 /*
 |--------------------------------------------------------------------------

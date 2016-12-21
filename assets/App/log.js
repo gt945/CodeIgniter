@@ -89,16 +89,20 @@ var LOG = {
 		return api.process(ops);
 	}
 }
+LOG.error=function(message,url,lineNumber){
+	LOG.request({
+		url: SITEURL+'log/index',
+		method: 'post',
+		data: {
+			message: message,
+			url: url,
+			lineNumber: lineNumber
+		}
+	});
+}
 window.onerror = function(message, url, lineNumber) {
- 	LOG.request({
- 	    url: SITEURL+'log/index',
- 	    method: 'post',
- 	    data: {
- 	        message: message,
- 	        url: url,
- 	        lineNumber: lineNumber
- 	    }
- 	});
+	LOG.error(message,url,lineNumber);
  	return true;
 };
+
 

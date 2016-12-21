@@ -45,11 +45,16 @@ Class('App.QKZX.PublishNotifyDetails', 'xui.Com',{
         },
         events:{"onRender":"_com_onrender"},
         _com_onrender:function (com, threadid){
+            var ns=this;
+            ns.fireEvent("onWidgetReady",[ns]);
+        },
+        _load:function(relate){
             var ns=this,grid=ns.grid;
             var post={
                 name:ns.properties.name,
                 ids:ns.properties.recordIds,
-                field:ns.properties.field
+                field:ns.properties.field,
+                relate:relate
             };
             AJAX.callService('xui/request',ns.properties.name,"inline_grid",post,function(rsp){
                 if(!ns.isDestroyed()){
@@ -59,6 +64,9 @@ Class('App.QKZX.PublishNotifyDetails', 'xui.Com',{
                     grid.setActiveRow(null);
                     grid.setUIValue(null,true);
                     grid.setRows(rsp.data.rows);
+                    if(!ns.properties.recordIds.length){
+                        grid.setEditable(false);
+                    }
                 }
 
             },function() {
@@ -100,6 +108,49 @@ Class('App.QKZX.PublishNotifyDetails', 'xui.Com',{
                     }, function () {
                     });
                 }
+            }else if(col.type=="cmdbox"){
+                var setting=ns.properties.gridSetting;
+                xui.ComFactory.newCom(col.app, function(){
+                    this.setProperties({
+                        key:ns.properties.gridName,
+                        field:col.id,
+                        pos:elem.getRoot(),
+                        cmd:elem.getProperties("cmd"),
+                        value:elem.getUIValue(),
+                        setting:col
+                    });
+                    this.setEvents({
+                        onCancel:function(){
+                            if(!elem.isDestroyed()){
+                                elem.activate();
+                            }
+                        },
+                        onSelect:function(val,extra){
+                            if(!elem.isDestroyed()){
+                                elem.setUIValue(val.value);
+                                if(typeof(val.caption)==="string"){
+                                    elem.setCaption(val.caption);
+                                }
+                                elem.activate();
+                                if(extra && _.isArr(extra)){
+                                    _.arr.each(extra,function(exval){
+                                        var setting=ns.properties.gridSetting;
+                                        var ele=db.getUI(exval.id);
+                                        ele.setUIValue(exval.cell.value);
+                                        if(typeof(exval.cell.caption)==="string"){
+                                            ele.setCaption(exval.cell.caption);
+                                        }
+                                    });
+                                }
+                                grid.updateCell(cell.id, {
+                                    value: val.value,
+                                    caption: val.caption
+                                }, false, false);
+                            }
+                        }
+                    });
+                    this.show();
+                });
             }
         },
         _grid_onmousehover: function (profile, row, hover, e, src) {
@@ -128,7 +179,6 @@ Class('App.QKZX.PublishNotifyDetails', 'xui.Com',{
         _grid_oncommand:function (profile,cell,proEditor,src){
             var ns=this,ctrl=proEditor.boxing();
             var setting=ns.properties.gridSetting;
-            debugger;
             xui.ComFactory.newCom(ctrl.getProperties("app"), function(){
                 this.setProperties({
                     key:ns.properties.gridName,
@@ -192,6 +242,9 @@ Class('App.QKZX.PublishNotifyDetails', 'xui.Com',{
                 }, null, null, null, ns.properties.dialog.getRoot().cssRegion())
             }
         },
+        autoComplete:function(db){
+
+        },
         _checkValid:function(){
             var ns=this,grid=ns.grid;
             return grid.checkValid();
@@ -200,9 +253,16 @@ Class('App.QKZX.PublishNotifyDetails', 'xui.Com',{
             var ns=this,grid=ns.grid;
             return grid.isDirtied();
         },
-        _save:function(rsp){
-            var ns=this,grid=ns.grid;
+        _save:function(callback,rsp){
+            var ns=this,grid=ns.grid,error=0;
             if (ns._isDirty()){
+                if (ns.properties.recordIds.length==0){
+                    if(rsp.data.length){
+                        ns.properties.recordIds=[rsp.data[0].id];
+                    }else{
+                        return false;
+                    }
+                }
                 var tmp={},post={
                     ids:ns.properties.recordIds,
                     data:[],
@@ -220,13 +280,25 @@ Class('App.QKZX.PublishNotifyDetails', 'xui.Com',{
                 _.each(tmp,function(d,i){
                     post.data.push({
                         id:[parseInt(i,10)],
-                        fields:d
+                        fields:d,
+                        rowid:i
                     });
                 });
-                debugger;
                 AJAX.callService('xui/request', ns.properties.gridName, "inline_save", post, function (rsp) {
                     if (rsp.data == 1 || typeof(rsp.data) === 'object') {
-                        grid.updateValue();
+                        _.arr.each(rsp.data.rows,function(row){
+                            if(!row.error){
+                                if(row.id){
+                                    grid.updateRow(row.rowid,{id:row.id});
+                                    grid.resetRowValue(row.id);
+                                    grid.updateCellByRowCol(row.id, 0, {dirty:false})
+                                }else{
+                                    grid.resetRowValue(row.rowid);
+                                }
+                            }else{
+                                error=1;
+                            }
+                        });
                     } else {
                         xui.message(rsp);
                     }
@@ -236,7 +308,11 @@ Class('App.QKZX.PublishNotifyDetails', 'xui.Com',{
                 }, function(){
                     if (ns.grid)
                         ns.grid.free();
+                    callback(error);
                 });
+                return 1;
+            }else{
+                return 0;
             }
         }
     }

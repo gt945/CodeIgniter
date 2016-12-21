@@ -229,7 +229,7 @@ Class('App.TableSetting', 'xui.Com',{
         _table_select_onchange:function (profile, oldValue, newValue, force, tag){
             var ns = this, uictrl = profile.boxing(),
             	item = profile.getItemByItemId(newValue);
-            AJAX.callService('xui/request',item.name,"fields",{tid:newValue},function(rsp){
+            AJAX.callService('xui/request',item.id,"fields",{tid:newValue},function(rsp){
                 ns.cols.setUIValue(item.w, true);
                 ns.rows.setUIValue(item.h, true);
                 ns._fillList(rsp.data.fields);

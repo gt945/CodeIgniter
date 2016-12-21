@@ -71,17 +71,25 @@ class Crud_model extends Db_Model {
 	
 	public function table($name, $select = array())
 	{
-		parent::table($name, $select);
+		
 		$crud_field = array();
 		$fields = array();
 		
-		
-		$this->db2->flush_cache();
 		$this->db2->where ( 'name', $name );
 		$this->db2->from ( Crud_model::CRUD_TABLE );
 		$crud_table = $this->db2->row();
-		$this->db2->flush_cache();
+		if (!$crud_table) {
+            $this->db2->where ( 'id', $name );
+            $this->db2->from ( Crud_model::CRUD_TABLE );
+            $crud_table = $this->db2->row();
+		}
+        if (!$crud_table) {
+            $this->db2->where ( 'caption', $name );
+            $this->db2->from ( Crud_model::CRUD_TABLE );
+            $crud_table = $this->db2->row();
+        }
 		if ($crud_table) {
+            parent::table($crud_table['name'], $select);
 			$crud_table['_role_c'] = $this->auth_model->check_role($crud_table['role_c'] );
 			$crud_table['_role_r'] = $this->auth_model->check_role($crud_table['role_r'] );
 			$crud_table['_role_u'] = $this->auth_model->check_role($crud_table['role_u'] );
@@ -92,7 +100,6 @@ class Crud_model extends Db_Model {
 			$this->db2->order_by ( 'seq', 'asc' );
 			$this->db2->from (Crud_model::CRUD_FIELD);
 			$crud_field = $this->db2->sheet();
-			$this->db2->flush_cache();
 			foreach ( $crud_field as $k => $f ) {
 				$f['_role_r'] = $this->auth_model->check_role($f['role_r']);
 				$f['_role_u'] = $this->auth_model->check_role($f['role_u']);

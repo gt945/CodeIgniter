@@ -55,6 +55,13 @@ Class('App.GridEditor', 'xui.Com',{
 				.onClick("_pagebar_onclick")
 			);
 			
+            append((new xui.UI.Block())
+				.setHost(host,"block")
+				.setHeight(200)
+				.setDock("bottom")
+				.setBorderType("none")
+			);
+            
 			return children;
 		},
 		events:{"onRender":"_com_onrender"},
@@ -101,7 +108,7 @@ Class('App.GridEditor', 'xui.Com',{
 				gid:ns._gid,
 				sub:ns._sub
 			};
-			AJAX.callService('xui/request',ns.properties.gridName,"getlist",post,function(rsp){
+			AJAX.callService('xui/request',ns.properties.gridId,"getlist",post,function(rsp){
 				if(!ns.isDestroyed()){
 					callback(rsp);
 				}
@@ -247,7 +254,7 @@ Class('App.GridEditor', 'xui.Com',{
 		},
 		_delRecords:function(ids){
 			var ns=this, grid=ns.grid;
-			AJAX.callService('xui/request',ns.properties.gridName,"delete",{ids:ids},function(rsp){
+			AJAX.callService('xui/request',ns.properties.gridId,"delete",{ids:ids},function(rsp){
 				grid.setActiveRow(null);
 				grid.setUIValue(null,true);
 				xui.message("已删除"+ids.length+"条数据");
@@ -331,7 +338,7 @@ Class('App.GridEditor', 'xui.Com',{
 					if(typeof item.app == 'string'){
 						xui.ComFactory.newCom(item.app, function(){
 							this.show();
-						});
+						}, null, {editor: ns});
 					}
 					break;
 			}
@@ -345,9 +352,10 @@ Class('App.GridEditor', 'xui.Com',{
 				if(ns.properties.gridTreeMode&&row){
 					var setting=ns.properties.gridSetting;
 					var name=setting[ns.properties.gridTreeMode].tree_field;
+                    var cell=ctrl.getCellbyRowCol(row.id, name);
 					ns._opid={
 						value:row.id,
-						caption:row.cells[setting[name].index].value
+						caption:cell.value
 					};
 				}
 			}
@@ -373,7 +381,7 @@ Class('App.GridEditor', 'xui.Com',{
 		},
 		_grid_aftercolresized:function(profile,colId,width){
 			var ns = this, uictrl = profile.boxing();
-			AJAX.callService('xui/request',ns.properties.gridName,"resize",{name:colId,width:width}, null);
+			AJAX.callService('xui/request',ns.properties.gridId,"resize",{name:colId,width:width}, null);
 		},
 		_grid_resize:function(profile,w,h){
 			var ns=this;

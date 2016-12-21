@@ -3,7 +3,8 @@ Class('App.GridForm', 'xui.Com',{
 		initialize : function(){
 			var ns=this;
 			ns._dataFilter=null;
-			ns._inline_grid={};
+			ns._widgets={};
+			ns._waitWidget=0;
 		},
 		iniComponents : function(){
 			var host=this, children=[], append=function(child){children.push(child.get(0));};
@@ -38,9 +39,9 @@ Class('App.GridForm', 'xui.Com',{
 				.setDock("fill")
 				.setOverflow("overflow-x:hidden;overflow-y:auto")
 				);
-			var setting=host.getProperties("gridSetting");
-			var recordIds=host.getProperties("recordIds");
-			var groups=host.getProperties("gridFormGroups");
+			var setting=host.properties.gridSetting;
+			var recordIds=host.properties.recordIds;
+			var groups=host.properties.gridFormGroups;
 			_.each(groups,function (g) {
 				var ele=(new xui.UI.Group())
 					.setHost(host)
@@ -114,15 +115,15 @@ Class('App.GridForm', 'xui.Com',{
 					host.ctl_block.append(pane
 						.setHost(host,"form_pane_"+index)
 						.setLeft(host._left(setting[f].x))
-						.setTop(host._top(setting[f].y))
+						.setTop(host._top(setting[f].y)-5)
 						.setWidth(host._width(setting[f].w))
-						.setHeight(host._height(setting[f].h)-5)
+						.setHeight(host._height(setting[f].h)+5)
 					);
 					if(recordIds.length>1) {
 						pane.setDisabled(true);
 					} else {
 						xui.ComFactory.newCom(setting[f].app,function(){
-							host._inline_grid['inline_grid_'+this.properties.index]=this;
+							host._widgets['widgets_'+this.properties.index]=this;
 							this.show(null,this.properties.pane);
 						},null,{
 							name:host.properties.gridName,
@@ -131,8 +132,13 @@ Class('App.GridForm', 'xui.Com',{
 							pane:pane,
 							dialog:host.mainDlg,
 							recordIds:recordIds,
-							index:index
-						},null);
+							index:index,
+							setting:setting[f]
+						},{
+							onWidgetReady:function(ele){
+								_.tryF(ele._load,null,ele);
+							}
+						});
 					}
 				}
 				index++;
@@ -183,7 +189,6 @@ Class('App.GridForm', 'xui.Com',{
 					ns._dataFilter=this;
 					callback();
 				},null,null,null);
-
 			}
 
 		},
@@ -205,6 +210,7 @@ Class('App.GridForm', 'xui.Com',{
 		},
 		events:{"onRender":"_com_onrender"},
 		_com_onrender:function (com, threadid){
+			var ns=this;
 			var recordIds=this.properties.recordIds;
 			this.databinder.updateDataToUI();
 			var prfs=this.databinder.get(0)._n;
@@ -230,8 +236,8 @@ Class('App.GridForm', 'xui.Com',{
 		},
 		isGridDirty:function(){
 			var ns=this,dirty=false;
-			_.each(ns._inline_grid,function(ele){
-				if(ele._isDirty()){
+			_.each(ns._widgets,function(ele){
+				if(_.tryF(ele._isDirty,null,ele,false)){
 					dirty=true;
 					return false;
 				}
@@ -239,15 +245,23 @@ Class('App.GridForm', 'xui.Com',{
 			return dirty||(!!this.__dirty);
 		},
 		_ctl_sbutton14_onclick:function (profile,e,src,value){
+			var ns=this;
 			this.saveUI(function(o,s){
-				if (s==1){
+				ns._waitWidget--;
+				if (s==1&&ns._waitWidget<0){
 					o.close(false);
 				}
 			});
 		},
 		saveUI:function(callback){
 			var ns=this, db=ns.databinder;
-			
+			ns._waitWidget=0;
+			var saveDone=function(error){
+				if(!error){
+					ns._waitWidget--;
+					callback(ns.mainDlg, 1);
+				}
+			}
 			if(db.isDirtied() || ns.isGridDirty()){
 				
 				if(!ns._checkValid()){
@@ -283,10 +297,10 @@ Class('App.GridForm', 'xui.Com',{
 					if(hash && !_.isEmpty(hash)) {
 						rqsD.fields = hash;
 
-						AJAX.callService('xui/request', ns.properties.gridName, "set", rqsD, function (rsp) {
+						AJAX.callService('xui/request', ns.properties.gridId, "set", rqsD, function (rsp) {
 							if (rsp.data == 1 || typeof(rsp.data) === 'object') {
-								_.each(ns._inline_grid,function(ele){
-									ele._save(rsp);
+								_.each(ns._widgets,function(ele){
+									ns._waitWidget+=_.tryF(ele._save,[saveDone,rsp],ele,0);
 								});
 								xui.message("保存成功!");
 								ns.fireEvent("afterUpdated", [recordIds, hashPair, rsp.data], ns);
@@ -304,34 +318,39 @@ Class('App.GridForm', 'xui.Com',{
 								ns.mainDlg.free();
 						});
 					} else {
-						_.each(ns._inline_grid,function(ele){
-							ele._save();
+						_.each(ns._widgets,function(ele){
+							ns._waitWidget+=_.tryF(ele._save,[saveDone,null],ele,0);
 						});
+						if (callback) callback(ns.mainDlg, 1);
 					}
 					
 				}else{
-					AJAX.callService('xui/request',ns.properties.gridName,"create",{
-						fields:hash
-					},function(rsp){
-						if(rsp.data){
-							_.each(ns._inline_grid,function(ele){
-								ele._save(rsp);
-							});
-							xui.message("保存成功!");
-							db.updateValue();
-							
-							ns.fireEvent("afterCreated", [rsp.data], ns);
-							ns.setDirty(false);
-							if(callback)callback(ns.mainDlg,1);
-						}else{
-							xui.message(rsp);
-						}
-					},function(){
-						ns.mainDlg.busy("正在处理 ...");
-					},function(){
-						if(ns.mainDlg)
-							ns.mainDlg.free();
-					});
+					if (hash && !_.isEmpty(hash)) {
+						AJAX.callService('xui/request',ns.properties.gridId,"create",{
+							fields:hash
+						},function(rsp){
+							if(rsp.data){
+								_.each(ns._widgets,function(ele){
+									ns._waitWidget+=_.tryF(ele._save,[saveDone,rsp],ele,0);
+								});
+								xui.message("保存成功!");
+								db.updateValue();
+								
+								ns.fireEvent("afterCreated", [rsp.data], ns);
+								ns.setDirty(false);
+								if(callback)callback(ns.mainDlg,1);
+							}else{
+								xui.message(rsp);
+							}
+						},function(){
+							ns.mainDlg.busy("正在处理 ...");
+						},function(){
+							if(ns.mainDlg)
+								ns.mainDlg.free();
+						});
+					}else{
+						xui.message("未修改");
+					}
 				}
 
 
@@ -341,8 +360,8 @@ Class('App.GridForm', 'xui.Com',{
 
 		},
 		updateUIfromService:function(recordId){
-			var ns=this,data=ns.databinder.getData();
-			AJAX.callService('xui/request',ns.properties.gridName,"get",{id:recordId},function(rsp){
+			var ns=this,db=ns.databinder,data=db.getData();
+			AJAX.callService('xui/request',ns.properties.gridId,"get",{id:recordId},function(rsp){
 				var cells=rsp.data.rows[0].cells,
 					settings=ns.properties.gridSetting;
 				var i=0;
@@ -355,8 +374,11 @@ Class('App.GridForm', 'xui.Com',{
 						i++;
 					}
 				});
-				ns.databinder.setData(data).updateDataToUI();
-				
+				db.setData(data).updateDataToUI();
+				_.each(ns._widgets,function(ele){
+					var relate=ns._get_relate(ele.properties.setting.relate);
+					_.tryF(ele._update,[relate,db],ele);
+				});
 				_.asyRun(function(){
 					ns.btnClose.activate();
 				});
@@ -382,6 +404,10 @@ Class('App.GridForm', 'xui.Com',{
 			if(this._dataFilter&&!force){
 				this._dataFilter.autoComplete(db);
 			}
+			_.each(ns._widgets,function(ele){
+				var relate=ns._get_relate(ele.properties.setting.relate);
+				_.tryF(ele._update,[relate,db],ele);
+			});
 		},
 		_ctl_sbutton486_onclick:function (profile, e, src, value){
 			this.mainDlg.close(true);
@@ -394,6 +420,9 @@ Class('App.GridForm', 'xui.Com',{
 				}, null);
 				return false;
 			}else{
+				_.each(ns._widgets,function(ele){
+					_.tryF(ele.destory,[null],ele);
+				});
 				return true;
 			}
 		},
@@ -402,29 +431,31 @@ Class('App.GridForm', 'xui.Com',{
 // 				this.mainDlg.close(true);
 // 			}
 // 		},
-		_get_relate:function(profile){
+		_get_relate:function(relate){
 			var ns=this,db=ns.databinder;
-			var relate=profile.properties.setting.relate.split(',');
 			var data={};
-			if(_.isArr(relate)&&relate.length){
-				_.arr.each(relate,function(key){
-					var fields=key.split(':');
-					if(fields.length){
-						var values=db.getUIValue();
-						if(values[fields[0]])
-							data[fields[0]]=values[fields[0]];
-					}
+			if(relate){
+				var relate=relate.split(',');
+				if(_.isArr(relate)&&relate.length){
+					_.arr.each(relate,function(key){
+						var fields=key.split(':');
+						if(fields.length){
+							var values=db.getUIValue();
+							if(values[fields[0]])
+								data[fields[0]]=values[fields[0]];
+						}
 
-				});
+					});
+				}
 			}
 			return data;
 		},
 		_select_beforepopshow:function(profile, popCtl){
 			var ns = this, elem = popCtl.boxing();
 			var para = {field:profile.boxing().getDataField()};
-			para['relate']=ns._get_relate(profile);
+			para['relate']=ns._get_relate(profile.properties.setting.relate);
 			if(!elem._isset){
-				AJAX.callService('xui/request',ns.properties.gridName,"get_select",para,
+				AJAX.callService('xui/request',ns.properties.gridId,"get_select",para,
 				function(rsp){
 					if(!elem.isDestroyed()){
 						profile.boxing().setItems(rsp.data);
@@ -450,7 +481,7 @@ Class('App.GridForm', 'xui.Com',{
 					cmd:ctrl.getProperties("cmd"),
 					value:ctrl.getUIValue(),
 					setting:setting[ctrl.getDataField()],
-					relate:ns._get_relate(profile)
+					relate:ns._get_relate(profile.properties.setting.relate)
 				});
 				this.setEvents({
 					onCancel:function(){
@@ -469,10 +500,15 @@ Class('App.GridForm', 'xui.Com',{
 								_.arr.each(extra,function(exval){
 									var setting=ns.properties.gridSetting;
 									var ele=db.getUI(exval.id);
-									ele.setUIValue(exval.cell.value);
-									if(typeof(exval.cell.caption)==="string"){
-										ele.setCaption(exval.cell.caption);
+									if(ele){
+										ele.setUIValue(exval.cell.value);
+										if(typeof(exval.cell.caption)==="string"){
+											ele.setCaption(exval.cell.caption);
+										}
+									}else{
+										LOG.error(exval.id,1,2);
 									}
+
 								});
 							}
 						}
@@ -501,8 +537,8 @@ Class('App.GridForm', 'xui.Com',{
 			if(!db.checkValid()){
 				return false;
 			}
-			_.each(ns._inline_grid,function(ele){
-				if(!ele._checkValid()){
+			_.each(ns._widgets,function(ele){
+				if(!_.tryF(ele._checkValid,null,ele,true)){
 					valid=false;
 					return false;
 				}

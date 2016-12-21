@@ -18,6 +18,7 @@ class Db_Model extends CI_Model {
 	{
         $this->name = $name;
         $this->primary = 'id';
+        $this->selected = $select;
 //		$this->from("{$name} {$alias}");
 	}
 	

@@ -1,4 +1,4 @@
-Class('App.QKZX.OrderCounts', 'xui.Com',{
+Class('App.QKZX.ReportCounts', 'xui.Com',{
 	Instance:{
 		autoDestroy : true,
 		properties : {},
@@ -59,6 +59,22 @@ Class('App.QKZX.OrderCounts', 'xui.Com',{
 					.setHeight(40)
 			);
 			host.ctl_block10.append(
+				(new xui.UI.ComboInput())
+					.setHost(host,"total")
+					.setLeft(10)
+					.setTop(10)
+					.setLabelSize(50)
+					.setLabelCaption("合计:")
+					.setType("none")
+					.setReadonly(true)
+					.setShowDirtyMark(false)
+					.setCustomStyle({
+						"LABEL" : {
+							"color" : "#000000"
+						}
+					})
+			);
+			host.ctl_block10.append(
 				(new xui.UI.SButton())
 					.setHost(host)
 					.setTop(10)
@@ -66,22 +82,6 @@ Class('App.QKZX.OrderCounts', 'xui.Com',{
 					.setRight(25)
 					.setCaption("关闭")
 					.onClick("_ctl_sbutton3_onclick")
-			);
-			host.ctl_block10.append(
-                (new xui.UI.ComboInput())
-                .setHost(host,"totalcount")
-                .setLeft(10)
-                .setTop(10)
-                .setLabelSize(50)
-                .setLabelCaption("合计:")
-                .setType("none")
-                .setReadonly(true)
-				.setShowDirtyMark(false)
-                .setCustomStyle({
-                    "LABEL" : {
-                        "color" : "#000000"
-                    }
-                })
 			);
 			return children;
 		},
@@ -112,11 +112,11 @@ Class('App.QKZX.OrderCounts', 'xui.Com',{
 				relate:ns.properties.relate
 			};
 
-			AJAX.callService("QKZX/request", null, "get_orders_counts", paras, function(rsp){
+			AJAX.callService("QKZX/request", null, "get_report_counts", paras, function(rsp){
 				if(!ns.isDestroyed()){
 					ns.pagebar.setValue("1:"+curPage+":"+( Math.ceil(parseInt(rsp.data.count,10)/20) ),true);
 					ns._fillGrid(rsp.data.headers,rsp.data.rows);
-					ns.totalcount.setUIValue(rsp.data.totalcount);
+					ns.total.setUIValue(rsp.data.total);
 				}
 			}, function(){
 				ns.mainPanel.busy();

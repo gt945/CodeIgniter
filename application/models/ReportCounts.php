@@ -59,7 +59,7 @@ class ReportCounts extends CI_Model {
 		if ($this->report) {
 			$this->report['Count'] += $count;
 			$save = array(
-				'Count' => $this->report['Count'];
+				'Count' => $this->report['Count']
 			);
 			$this->db2->where('id', $this->report['id']);
 			$this->db2->update('reportcounts', $save);

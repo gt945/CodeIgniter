@@ -265,7 +265,7 @@ Class('App.GridFilter', 'xui.Com',{
         _select_beforepopshow:function(profile, popCtl){
         	var ns = this, elem = popCtl.boxing();
         	if(!elem._isset){
-	        	AJAX.callService('xui/request',ns.properties.gridName,"get_select",{field:profile.boxing().getDataField()},function(rsp){
+	        	AJAX.callService('xui/request',ns.properties.gridId,"get_select",{field:profile.boxing().getDataField()},function(rsp){
 	                if(!elem.isDestroyed()){
 	                    profile.boxing().setItems(rsp.data);
 	                    elem.setItems(rsp.data).setValue(null,true);
@@ -282,7 +282,7 @@ Class('App.GridFilter', 'xui.Com',{
             var setting=ns.properties.gridSetting;
             xui.ComFactory.newCom(ctrl.getProperties("app"), function(){
                 this.setProperties({
-                    key:ns.properties.gridName,
+                    key:ns.properties.gridId,
                     field:ctrl.getDataField(),
                     pos:ctrl.getRoot(),
                     cmd:ctrl.getProperties("cmd"),
