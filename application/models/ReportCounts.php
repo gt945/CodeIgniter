@@ -8,13 +8,13 @@ class ReportCounts extends CI_Model {
 		$this->jid = -1;
 		$this->year = -1;
 		$this->no = -1;
-			
+        $this->name = 'reportcounts';
 	}
 	
 	public function prepare($jid, $year, $no)
 	{
 		$this->report = null;
-		$this->db2->from('reportcounts');
+		$this->db2->from($this->name);
 		$this->db2->where('JID', $jid);
 		$this->db2->where('Year', $year);
 		$this->db2->where('No', $no);
@@ -62,7 +62,7 @@ class ReportCounts extends CI_Model {
 				'Count' => $this->report['Count']
 			);
 			$this->db2->where('id', $this->report['id']);
-			$this->db2->update('reportcounts', $save);
+			$this->db2->update($this->name, $save);
 		}
 			
 	}

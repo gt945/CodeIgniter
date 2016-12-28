@@ -2,7 +2,10 @@
 defined('BASEPATH') OR exit('No direct script access allowed');
 
 class Xui_utils {
-	
+	function menu_sort($a, $b)
+    {
+        return ((int)$a['seq'] > (int)$b['seq']) ? +1 : -1;
+    }
 	public function filter($json)
 	{
 		$search = array(
@@ -56,6 +59,7 @@ class Xui_utils {
 							"onItemSelected" => "_menus_selected"
 					),
 			);
+            usort($m['children'], array($this, "menu_sort"));
 			foreach($m['children'] as $c) {
 				if (strpos(",{$c['role_r']}," , ",{$role}," ) === false) {
 					continue;

@@ -19,7 +19,7 @@ Class('App.GridFilter', 'xui.Com',{
                 .setHost(host,"mainDlg")
                 .setLeft(240)
                 .setTop(170)
-                .setWidth(400)
+                .setWidth(480)
                 .setHeight(270)
                 .setCaption("过滤")
                 .setResizer(false)
@@ -81,7 +81,7 @@ Class('App.GridFilter', 'xui.Com',{
                 );
             host.xui_ui_block4.append((new xui.UI.SButton())
                 .setHost(host,"xui_ui_button_find")
-                .setLeft(80)
+                .setLeft(480/ 2 - 135)
                 .setTop(5)
                 .setWidth(70)
                 .setCaption("过滤")
@@ -90,7 +90,7 @@ Class('App.GridFilter', 'xui.Com',{
             
             host.xui_ui_block4.append((new xui.UI.SButton())
                 .setHost(host,"xui_ui_button_reset")
-                .setLeft(160)
+                .setLeft(480 / 2 - 35)
                 .setTop(5)
                 .setWidth(70)
                 .setCaption("清空")
@@ -99,7 +99,7 @@ Class('App.GridFilter', 'xui.Com',{
             
             host.xui_ui_block4.append((new xui.UI.SButton())
                 .setHost(host,"xui_ui_button_cancel")
-                .setLeft(240)
+                .setLeft(480 / 2 + 65)
                 .setTop(5)
                 .setWidth(70)
                 .setCaption("取消")
@@ -175,7 +175,7 @@ Class('App.GridFilter', 'xui.Com',{
         },
         _xui_ui_button_add_onclick:function (profile,e,src){
             var ns = this;
-            var json_code ='new xui.UI.Pane({"key":"xui.UI.Pane","properties":{"dock":"width","width":"auto","height":25,"position":"relative"},"children":[[{"type":"field","key":"xui.UI.ComboInput","properties":{"dirtyMark":false,"left":10,"top":0,"type":"listbox"},"events":{"afterUIValueSet":"_xui_ui_field_onchange"}}],[{"type":"operation","key":"xui.UI.ComboInput","properties":{"dirtyMark":false,"left":135,"top":0,"width":70,"type":"listbox"}}],[{"key":"xui.UI.SButton","properties":{"left":340,"top":0,"width":20,"caption":"-"},"events":{"onClick":"_xui_ui_button_del_onclick"}}]]})';
+            var json_code ='new xui.UI.Pane({"key":"xui.UI.Pane","properties":{"dock":"width","width":"auto","height":25,"position":"relative"},"children":[[{"type":"field","key":"xui.UI.ComboInput","properties":{"dirtyMark":false,"left":10,"top":0,"type":"listbox"},"events":{"afterUIValueSet":"_xui_ui_field_onchange"}}],[{"type":"operation","key":"xui.UI.ComboInput","properties":{"dirtyMark":false,"left":135,"top":0,"width":70,"type":"listbox"}}],[{"key":"xui.UI.SButton","properties":{"right":10,"top":0,"width":20,"caption":"-"},"events":{"onClick":"_xui_ui_button_del_onclick"}}]]})';
             var nb=_.unserialize(json_code);
             var add=false;
             _.arr.each(nb.getChildren(null, true), function(o) {
@@ -216,6 +216,7 @@ Class('App.GridFilter', 'xui.Com',{
             pane.append(ele.setHost(ns)
 	        	.setLeft(210)
 	        	.setLabelSize(0)
+				.setWidth(220)
 	        	.setDataField(item.id)
 	        	.setDirtyMark(false)
                 .setReadonly(false)

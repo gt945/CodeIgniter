@@ -1,5 +1,6 @@
 Class('App.GridForm', 'xui.Com',{
 	Instance:{
+		autoDestroy : true,
 		initialize : function(){
 			var ns=this;
 			ns._dataFilter=null;
@@ -31,10 +32,6 @@ Class('App.GridForm', 'xui.Com',{
 				);
 			host.mainDlg.append((new xui.UI.Block())
 				.setHost(host,"ctl_block")
-				.setLeft(5)
-				.setTop(0)
-				.setWidth(host._width(host.getProperties("gridFormWidth"))+35)
-				.setHeight(host._height(host.getProperties("gridFormHeight"))+30)
 				.setBorderType("inset")
 				.setDock("fill")
 				.setOverflow("overflow-x:hidden;overflow-y:auto")
@@ -161,7 +158,7 @@ Class('App.GridForm', 'xui.Com',{
 				.setTabindex(++index)
 				.onClick("_ctl_sbutton14_onclick")
 				);
-				
+
 			host.xui_ui_block4.append((new xui.UI.SButton())
 				.setHost(host,"btnClose")
 				.setLeft((host._width(host.getProperties("gridFormWidth"))+50)/ 2 + 30)
@@ -171,7 +168,7 @@ Class('App.GridForm', 'xui.Com',{
 				.setTabindex(++index)
 				.onClick("_ctl_sbutton486_onclick")
 				);
-					
+
 			return children;
 		},
 		customAppend : function(parent, subId, left, top){
@@ -258,12 +255,11 @@ Class('App.GridForm', 'xui.Com',{
 			ns._waitWidget=0;
 			var saveDone=function(error){
 				if(!error){
-					ns._waitWidget--;
 					callback(ns.mainDlg, 1);
 				}
 			}
 			if(db.isDirtied() || ns.isGridDirty()){
-				
+
 				if(!ns._checkValid()){
 					xui.message("错误发生!");
 					return;
@@ -289,7 +285,7 @@ Class('App.GridForm', 'xui.Com',{
 				//        hash[i]=xui.Date.format(o, "yyyy-mm-dd hh:nn:ss");
 				// 	}
 				// });
-				
+
 				if(recordIds.length>0){
 					var rqsD={
 						id:recordIds
@@ -323,7 +319,7 @@ Class('App.GridForm', 'xui.Com',{
 						});
 						if (callback) callback(ns.mainDlg, 1);
 					}
-					
+
 				}else{
 					if (hash && !_.isEmpty(hash)) {
 						AJAX.callService('xui/request',ns.properties.gridId,"create",{
@@ -335,7 +331,7 @@ Class('App.GridForm', 'xui.Com',{
 								});
 								xui.message("保存成功!");
 								db.updateValue();
-								
+
 								ns.fireEvent("afterCreated", [rsp.data], ns);
 								ns.setDirty(false);
 								if(callback)callback(ns.mainDlg,1);
@@ -382,7 +378,7 @@ Class('App.GridForm', 'xui.Com',{
 				_.asyRun(function(){
 					ns.btnClose.activate();
 				});
-				
+
 			},function(){
 				ns.mainDlg.busy("正在处理 ...");
 			},function(result){
@@ -396,6 +392,7 @@ Class('App.GridForm', 'xui.Com',{
 			// _.each(dataFromUI,function(o,i){
 			// 	if(_.isDate(o)){
 			//        dataFromUI[i]=xui.Date.format(o, "yyyy-mm-dd hh:nn:ss");
+
 			// 	}
 			// });
 		},
@@ -514,7 +511,7 @@ Class('App.GridForm', 'xui.Com',{
 						}
 					}
 				});
-				this.show(); 
+				this.show();
 			});
 			return false;
 		},

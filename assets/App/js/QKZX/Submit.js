@@ -55,12 +55,14 @@ Class('App.QKZX.Submit', 'xui.Com',{
             var ns=this;
             var ids=ns.properties.editor.grid.getUIValue();
             if (ids) {
+                ids=ids.split(';');
                 var paras={
-                    ids:ids.split(';')
+                    ids:ids
                 };
                 AJAX.callService("QKZX/request", null, "publishnotify_submit", paras, function(rsp){
                     if(!ns.isDestroyed()){
                         xui.message("审核成功据");
+                        ns.fireEvent("refreshRows", [ids]);
                         ns.dialog.close();
                     }
                 }, function(){

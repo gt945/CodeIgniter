@@ -234,12 +234,19 @@ class Grid_model extends Crud_Model {
 	public function wrapper_sheet($paras)
 	{
 		$table = $this->name;
-		$db = "db_".__LINE__;
-		$this->load->model('Crud_model', $db);
-		$this->$db->table($table);
-		$this->$db->from("{$table} b");
-		$this->$db->select("b.{$this->primary}");
-		
+
+        if ($this->crud_table['prop'] & Crud_model::PROP_TABLE_VIEW) {
+            $db = "grid_model";
+            $alias = "a";
+        } else {
+            $db = "db_".__LINE__;
+            $this->load->model('Crud_model', $db);
+            $this->$db->table($table);
+            $this->$db->from("{$table} b");
+            $this->$db->select("b.{$this->primary}");
+            $alias = "b";
+        }
+
 		$ret = (object) array(
 			"count" => 0,
 			"data"  => array(),
@@ -253,7 +260,7 @@ class Grid_model extends Crud_Model {
 		if (isset($paras->search) && $paras->search == true) {
 			$this->search = true;
 			if (isset($paras->filters->rules) && isset($paras->filters->groupOp)) {
-				$this->$db->parse($paras->filters);
+				$this->$db->parse($paras->filters, true, $alias);
 			}
 		} else {
 			$this->search = false;
@@ -261,7 +268,7 @@ class Grid_model extends Crud_Model {
 		
 		//group
 		if ($this->group) {
-			if (isset($paras->gid) && in_array($paras->gid, $this->$db->group)){
+			if (isset($paras->gid) && in_array($paras->gid, $this->group)){
 				$gid = (int)$paras->gid;
 			}else{
 				$gid = $_SESSION['userinfo']['gid'];
@@ -276,21 +283,27 @@ class Grid_model extends Crud_Model {
 			} else {
 // 				$gids = $this->get_group_ids($gid, true);
 // 				$this->$db->where_in("b.gid", $gids);
-				
+
 				$tree_code = $this->get_group_tree_code($gid);
 				$this->db2->select('1');
 				$this->db2->from('user_group');
 				$this->db2->like('tree_code', $tree_code, 'after', false);
 				$this->db2->where("id=b.gid", null, false);
-				
+
 				$exist_sql = $this->db2->get_compiled_select();
 				$this->$db->where("EXISTS({$exist_sql})");
 			}
 		}
-		
-		$ret->count = $this->$db->count_all_results('', false);
-		
-		//paging
+
+		if ($this->$db->cached) {
+            $this->$db->stash_cache();
+            $ret->count = $this->$db->count_all_results('', true);
+            $this->$db->pop_cache();
+        } else {
+            $ret->count = $this->$db->count_all_results('', false);
+        }
+
+        //paging
 		if (isset($paras->page) && isset($paras->size) ) {
 			$pageIndex = (int)$paras->page;
 			$pageRows = (int)$paras->size;
@@ -319,13 +332,15 @@ class Grid_model extends Crud_Model {
 		}
 		$this->stash_cache();
 		
-		if ($this->pid) {
+		if ($this->pid && $this->pid !='gid') {
 			$nodeid = isset($paras->nodeid)?(int)$paras->nodeid:0;
 			if ($this->search == false) {
 				$this->$db->where("b.{$this->pid}", $nodeid);
 			}
 		}
-		$this->join("(".$this->$db->get_compiled_select().") c", "`a`.`{$this->primary}`=`c`.`{$this->primary}`");
+		if (!($this->crud_table['prop'] & Crud_model::PROP_TABLE_VIEW)) {
+            $this->join("(".$this->$db->get_compiled_select().") c", "`a`.`{$this->primary}`=`c`.`{$this->primary}`");
+        }
 		$ret->data = $this->sheet();
 		$ret->sql = array(
 				array($this->elapsed_time(),$this->total_queries(),$this->db->queries),
@@ -341,14 +356,16 @@ class Grid_model extends Crud_Model {
         $row = (object)array();
         $tmp = array ();
 
-        if (isset ( $this->primary )) {
+        if (isset ( $this->primary ) && $this->primary) {
             $primary = $d [$this->primary];
         } else if (isset ( $d ['id'] )) {
             $primary = $d ['id'];
+        } else {
+            $primary = null;
         }
         foreach ( $this->crud_field as $k => $f ) {
             $cell = (object)array ();
-            if ( !$f ['_role_r'] || $f['type'] >= Crud_model::TYPE_BUTTON ) {
+            if ( !$f ['_role_r'] || $f['type'] > Crud_model::TYPE_MAX ) {
                 continue;
             }
             if (($f ['prop'] & Crud_model::PROP_FIELD_PRIMARY)
@@ -463,7 +480,7 @@ class Grid_model extends Crud_Model {
             } else {
                 $setting->virtual = false;
             }
-            if ( $f['type'] >= Crud_model::TYPE_BUTTON) {
+            if ( $f['type'] > Crud_model::TYPE_MAX) {
                 $setting->object = true;
             } else {
                 $setting->object = false;
@@ -494,7 +511,9 @@ class Grid_model extends Crud_Model {
             } else {
                 $header->hidden = false;
             }
-			$header_inline = clone $header;
+            $header->editable = false;
+            $header_inline = clone $header;
+            $header_inline->editable = true;
 //            $header_inline->format="[^.*]";
 			switch ($f['type']) {
 				case Crud_model::TYPE_LABEL :
@@ -609,7 +628,14 @@ class Grid_model extends Crud_Model {
                 default:
 			}
 
-            if ($f['type'] < Crud_model::TYPE_BUTTON) {
+            $xui_prop = json_decode($f['xui_prop']);
+            if ($xui_prop) {
+                foreach ($xui_prop as $key => $value) {
+                    $form_obj->properties->$key = $value;
+                    $header_inline->$key = $value;
+                }
+            }
+            if ($f['type'] < Crud_model::TYPE_MAX) {
                 $form_obj->properties->labelSize = 110;
                 $form_obj->properties->labelCaption = "{$f['caption']} ";
                 $form_obj->CS = (object) array(
@@ -635,7 +661,11 @@ class Grid_model extends Crud_Model {
                 if($mode == "dialog") {
                     $setting->form = "new {$form_class}(".json_encode($form_obj).")";
                     $setting->form_properties = $form_obj;
-                    $data->headers[] = $header;
+                    if ($f['prop'] & Crud_model::PROP_FIELD_INLINE) {
+                        $data->headers[] = $header_inline;
+                    } else {
+                        $data->headers[] = $header;
+                    }
                 }else if($mode == "inline") {
                     $data->headers[] = $header_inline;
                 }

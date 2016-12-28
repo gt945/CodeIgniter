@@ -7,13 +7,13 @@ class JournalBaseInfo extends CI_Model {
 	{
 		parent::__construct ();
 		$this->id = -1;
-
+        $this->name = 'journalbaseinfo';
 	}
 	
 	public function prepare($id)
 	{
 		$this->data = null;
-		$this->db2->from('journalbaseinfo');
+		$this->db2->from($this->name);
 		$this->db2->where('id', $id);
 		$this->data = $this->db2->row();
 		if ($this->data) {

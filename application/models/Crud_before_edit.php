@@ -51,10 +51,10 @@ class Crud_before_edit extends Crud_hook {
 	{
 
 		if ($oper == 'create') {
+            $d = $data[0];
 			$this->load->model('JournalStockManage');
-			if ($data['OrderType'] == 1) {														/* 收订 - 预留库存 */
+			if ($d['OrderType'] == 1) {														/* 收订 - 预留库存 */
 			
-				$d = $data[0];
 				/*get customer info*/
 				$this->db2->from('customers');
 				$this->db2->where('id', $d['CID']);
@@ -105,7 +105,6 @@ class Crud_before_edit extends Crud_hook {
 				
 										
 					$this->db2->from('journalbaseinfo');
-					$this->db2->where('id', $data['JID']);
 					$journalbaseinfo = $this->db2->row();
 					
 					
@@ -201,7 +200,6 @@ class Crud_before_edit extends Crud_hook {
 					
 				}
 			} else if ($data['OrderType'] == 2) {												/* 退订*/
-                $d = $data[0];
 				$NoStart = (int)$d['NoStart'];
 				$NoEnd = (int)$d['NoEnd'];
 				unset($data[0]);
@@ -400,4 +398,53 @@ class Crud_before_edit extends Crud_hook {
         return $this->result(true);
     }
 
+    public function paperusedetail_stock_in($oper, $model, &$data, $old)
+    {
+        $this->load->model('PaperStock');
+        if ($oper == 'create') {
+            $d = &$data[0];
+            $d['Type'] = 1;
+            $this->PaperStock->prepare($d['PaperStyleID']);
+            $this->PaperStock->stock_in($d['Counts']);
+
+        }
+        return $this->result(true);
+    }
+    public function paperusedetail_stock_out($oper, $model, &$data, $old)
+    {
+
+        $this->load->model('PaperStock');
+        if ($oper == 'create') {
+            $d = &$data[0];
+            $d['Type'] = 0;
+            $this->PaperStock->prepare($d['PaperStyleID']);
+            $this->PaperStock->stock_out($d['Counts']);
+
+        }
+        return $this->result(true);
+    }
+
+    public function arrivalmanage_edit($oper, $model, &$data, $old)
+    {
+        if ($oper == 'create') {
+            $d = $data[0];
+            $sql = "select sum(jo.orderCount) as counts from qkzx_journalorders jo where jo.jid = ? and year = ? and ? between nostart and noend and ( (jo.isneedDeliver = 1 and jo.saleStyle in (1,5,6,7,8,9) ) or (jo.saleStyle = 2))";
+            $result = $this->db2->query($sql, array($d['JID'], $d['Year'], $d['No']));
+            $counts = $result->row_array();
+            if ($d['Counts'] >= $counts['counts']) {
+                $this->db2->query("set @BatchID ='{$d['BatchID']}'");
+                $this->db2->query("set @JID ={$d['JID']}");
+                $this->db2->query("set @AID = 11");
+                $this->db2->query("set @Year = '{$d['Year']}'");
+                $this->db2->query("set @Volume = ''");
+                $this->db2->query("set @No = {$d['No']}");
+                $this->db2->query("set @Counts ={$d['Counts']}");
+                $this->db2->query("set @Note ='{$d['Note']}'");
+                $this->db2->query("call AddArrivalAndDelivery(@BatchID, @JID, @AID, @Year, @Volume, @No, @Counts, @Note)");
+                //TODO: 检查返回状态
+            }
+
+        }
+        return $this->result(true);
+    }
 }

@@ -55,12 +55,12 @@ Class('App.GridEditor', 'xui.Com',{
 				.onClick("_pagebar_onclick")
 			);
 			
-            append((new xui.UI.Block())
-				.setHost(host,"block")
-				.setHeight(200)
-				.setDock("bottom")
-				.setBorderType("none")
-			);
+            // append((new xui.UI.Block())
+			// 	.setHost(host,"block")
+			// 	.setHeight(200)
+			// 	.setDock("bottom")
+			// 	.setBorderType("none")
+			// );
             
 			return children;
 		},
@@ -190,38 +190,40 @@ Class('App.GridEditor', 'xui.Com',{
 				_pid:ns._opid
 			};
 			_.merge(prop, ns.properties);
-			xui.ComFactory.newCom(ns.properties.gridForm,function(){
-				this.show();
-			},null,prop,{
-				afterCreated:function(data){
-					var rows=ns._buildRows(data);
-                    if(ns.properties.gridTreeMode){
-                        var row=ns.grid.getRowbyRowId(data.pid);
-                        if(row){
-                            if(row.sub){
-                                ns.grid.toggleRow(data.pid,true);
-                            }else{
-                                ns.grid.updateRow(data.pid,{sub:[]});
-                            }
-                        }
-                    }
-					ns.grid.insertRows(rows,data.pid,null,false);
-				},
-				afterUpdated:function(rowIds, hash, rows){
-					_.each(rowIds,function(rowId){
-						_.each(hash,function(v, k){
-							ns.grid.updateCellByRowCol(rowId, k, (_.isHash(v)?v:{value:v}), false, false);
+			if (ns.properties.gridForm) {
+				xui.ComFactory.newCom(ns.properties.gridForm,function(){
+					this.show();
+				},null,prop,{
+					afterCreated:function(data){
+						var rows=ns._buildRows(data);
+						if(ns.properties.gridTreeMode){
+							var row=ns.grid.getRowbyRowId(data.pid);
+							if(row){
+								if(row.sub){
+									ns.grid.toggleRow(data.pid,true);
+								}else{
+									ns.grid.updateRow(data.pid,{sub:[]});
+								}
+							}
+						}
+						ns.grid.insertRows(rows,data.pid,null,false);
+					},
+					afterUpdated:function(rowIds, hash, rows){
+						_.each(rowIds,function(rowId){
+							_.each(hash,function(v, k){
+								ns.grid.updateCellByRowCol(rowId, k, (_.isHash(v)?v:{value:v}), false, false);
+							});
 						});
-					});
-					if (_.isArr(rows)) {
-                        _.each(rows,function(row){
-                            _.each(row.cells,function(v,k){
-                                ns.grid.updateCellByRowCol(row.id, k, (_.isHash(v)?v:{value:v}), false, false);
-                            });
-                        });
-                    }
-				}
-			});
+						if (_.isArr(rows)) {
+							_.each(rows,function(row){
+								_.each(row.cells,function(v,k){
+									ns.grid.updateCellByRowCol(row.id, k, (_.isHash(v)?v:{value:v}), false, false);
+								});
+							});
+						}
+					}
+				});
+			}
 		},
 		_openFilter:function(){
 				var ns = this;
@@ -338,7 +340,14 @@ Class('App.GridEditor', 'xui.Com',{
 					if(typeof item.app == 'string'){
 						xui.ComFactory.newCom(item.app, function(){
 							this.show();
-						}, null, {editor: ns});
+						}, null, {editor: ns},{
+							refreshRow:function(id){
+								ns._refresh_row(id);
+							},
+							refreshGrid:function(){
+								ns.loadGridData(ns._curPage);
+							}
+						});
 					}
 					break;
 			}
@@ -386,6 +395,26 @@ Class('App.GridEditor', 'xui.Com',{
 		_grid_resize:function(profile,w,h){
 			var ns=this;
 			ns.properties.pageSize=parseInt((h-27)/21,10);
+		},
+		_refresh_row:function(id){
+			var ns=this;
+			AJAX.callService('xui/request',ns.properties.gridId,"get",{id:id},function(rsp){
+				var row=rsp.data.rows[0],
+                    settings=ns.properties.gridSetting,
+                    data={};
+				if(row){
+                    var i=0;
+                    _.each(settings, function(s,n){
+                        if(!s.object&&!s.virtual){
+                            data[n]=row.cells[i];
+                            i++;
+                        }
+                    });
+					ns.grid.updateRow(row.id,row);
+				}
+			},function(){
+			},function(){
+			});
 		}
 	}
 });

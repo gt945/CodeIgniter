@@ -60,7 +60,11 @@ class Xui extends MY_Controller {
 		$grid_info = $this->grid_model->grid_info();
 		$ret->gridName = $this->grid_model->name;
 		$ret->gridPrimary = $this->grid_model->primary;
-		$ret->gridForm = "App.GridForm";
+        if ($this->grid_model->crud_table['_role_c'] || $this->grid_model->crud_table['_role_u']) {
+            $ret->gridForm = "App.GridForm";
+        } else {
+            $ret->gridForm = null;
+        }
 		if ($this->grid_model->filter) {
 			$ret->gridFilter = "App.GridFilter";
 		}
@@ -225,7 +229,11 @@ class Xui extends MY_Controller {
 		} else {
 			$message = "无此权限";
 		}
-		return $ret->data;
+		if (isset($ret->data)) {
+            return $ret->data;
+        } else {
+            return $message;
+        }
 //		if ($message) {
 //			return ( object ) array (
 //					"warn" => ( object ) array (

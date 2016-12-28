@@ -1,4 +1,4 @@
-Class('App.TableSelect', 'xui.Com',{
+Class('App.QKZX.PaperStockDetail', 'xui.Com',{
     Instance:{
         autoDestroy : true,
         properties : {
@@ -8,13 +8,14 @@ Class('App.TableSelect', 'xui.Com',{
             var ns=this;
             ns._search=false;
             ns._filters={};
+            ns._defaultrule=null;
         },
         iniComponents : function(){
             var host=this, children=[], append=function(child){children.push(child.get(0));};
             
             append(
-                (new xui.UI.Panel())
-	            .setHost(host,"mainPanel")
+                (new xui.UI.Dialog())
+	            .setHost(host,"mainDlg")
 	            .setDock("none")
 	            .setLeft(0)
 	            .setTop(0)
@@ -23,19 +24,17 @@ Class('App.TableSelect', 'xui.Com',{
 	            .setZIndex(1)
 	            .setCaption("选择窗口")
 	            .setCloseBtn(true)
-	            .beforeClose("_mainpanel_beforeclose")
             );
             
-            host.mainPanel.append(
+            host.mainDlg.append(
                 (new xui.UI.TreeGrid())
 	            .setHost(host,"grid")
 	            .setRowHandlerWidth(27)
 	            .setRowHandler(true)
 	            .setTreeMode(false)
-                    .onDblclickRow("_grid_ondblclickrow")
             );
 
-            host.mainPanel.append(
+            host.mainDlg.append(
                 (new xui.UI.Block())
 	            .setHost(host,"ctl_block8")
 	            .setDock("top")
@@ -68,21 +67,11 @@ Class('App.TableSelect', 'xui.Com',{
 	            .onClick("_ctl_sbutton1_onclick")
             );
             
-            host.mainPanel.append(
+            host.mainDlg.append(
             	(new xui.UI.Block())
 	            .setHost(host,"ctl_block9")
 	            .setDock("bottom")
 	            .setHeight(40)
-            );
-            
-            host.ctl_block9.append(
-            	(new xui.UI.SButton())
-	            .setHost(host)
-	            .setTop(10)
-	            .setWidth(80)
-	            .setLeft(25)
-	            .setCaption("确定")
-	            .onClick("_ctl_sbutton2_onclick")
             );
             
             host.ctl_block9.append(
@@ -97,36 +86,51 @@ Class('App.TableSelect', 'xui.Com',{
             
             return children;
         },
-        _fillGrid:function(headers,rows){
+        events:{"onRender":"_com_onrender", "beforeCreated":"_beforeCreated"},
+        customAppend : function(parent, subId, left, top){
+            this.mainDlg.showModal(parent, left, top);
+            return true;
+        },
+        _com_onrender:function(){
+            var ns=this, grid=ns.grid;
+            var row=ns.properties.editor.grid.getActiveRow();
+            grid.setHeader(ns.properties.gridHeaders);
+            ns.toolbar.setItems(_.unserialize(ns.properties.gridToolBarItems));
+            if (row) {
+                ns._search=true;
+                ns._defaultrule = {"data":row.id, "op":"eq", "field":"PaperStyleID"};
+                ns._filters={
+                    groupOp:"AND",
+                    rules:[
+                        ns._defaultrule
+                    ]
+                };
+            }
+            ns.loadGridData(1);
+        },
+        _beforeCreated:function(com, threadid){
+            var ns=this;
+            xui.Thread.suspend(threadid);
+            var callback=function(/**/){
+                xui.Thread.resume(threadid);
+            };
+            AJAX.callService('xui/request',"纸张出入库记录", "grid", null, function (rsp) {
+                ns.setProperties(rsp.data);
+            }, function(){
+            }, function(){
+                callback();
+            });
+        },
+        _fillGrid:function(rows){
             var ns=this,grid=ns.grid;
-            grid.setHeader(headers);
             grid.setRows(rows);
             grid.activate();
-        },
-        _mainpanel_beforeclose:function (profile){
-            this.fireEvent("onCancel");
-        },
-        customAppend : function(parent, subId, left, top){
-            var ns=this, root=ns.mainPanel,
-                domId=root.getDomId();
-            root.getRoot().popToTop(ns.properties.pos);
-            root.getRoot().setBlurTrigger(domId, function(){
-                ns.fireEvent("onCancel");
-                ns.destroy(); 
-            });
-            xui.Event.keyboardHook("esc", false, false, false,function(){
-                ns.fireEvent("onCancel");
-                ns.destroy(); 
-            },null,null,domId);
-           
-            ns.loadGridData(1);
-            return true;
         },
         loadGridData:function(curPage){
             var ns=this, 
                 grid=ns.grid;
             this._curPage=curPage;
-            AJAX.callService('xui/request',ns.properties.key,"table_select",{
+            AJAX.callService('xui/request',ns.properties.gridId,"getlist",{
             	field:ns.properties.field,
                 page:curPage,
                 size:20,
@@ -137,12 +141,8 @@ Class('App.TableSelect', 'xui.Com',{
                     if(typeof(rsp.data)=="string"){
                         xui.message(rsp.data);
                     }else{
-                        ns.properties.gridFilter=rsp.data.gridFilter;
-                        ns.properties.gridSetting=rsp.data.gridSetting;
-                        ns.toolbar.setItems(_.unserialize(rsp.data.gridToolBarItems));
                         ns.pagebar.setValue("1:"+curPage+":"+( Math.ceil(parseInt(rsp.data.count,10)/20) ),true);
-                        ns._fillGrid(rsp.data.headers, rsp.data.rows);
-                        // grid.setUIValue(ns.properties.value);
+                        ns._fillGrid(rsp.data.rows);
                         ns.data = rsp.data;
                     }
                 }
@@ -158,23 +158,6 @@ Class('App.TableSelect', 'xui.Com',{
         },
         _ctl_sbutton1_onclick:function (profile, e, src, value){
             this.loadGridData(this._curPage);
-        },
-        _ctl_sbutton2_onclick:function (profile, e, src, value){
-        	var ns=this,caption=null,
-            	grid=ns.grid;
-        	var index=_.arr.subIndexOf(ns.data.headers,'id',ns.data.caption);
-            var row=grid.getActiveRow();
-            var extra=[];
-            if(index>=0){
-                caption=row.cells[index].value;
-            }
-            _.arr.each(ns.data.map,function(map){
-                index=_.arr.subIndexOf(ns.data.headers, 'id', map.id2);
-                if(index>=0)
-                    extra.push({id:map.id1,cell:row.cells[index]});
-            });
-        	ns.fireEvent("onSelect",[{value:row.id,caption:caption},extra]);
-        	ns.destroy();
         },
         _ctl_sbutton3_onclick:function(){
         	var ns=this;
@@ -199,8 +182,11 @@ Class('App.TableSelect', 'xui.Com',{
                     this.show();
                 },null,ns.properties,{
                     onSelect:function(filters){
-                        ns._filters=filters;
-                        if (filters.rules.length){
+                        if(filters&&filters.rules.length){
+                            filters.rules.push(ns._defaultrule);
+                        }
+                        ns._filters=filters?filters:ns._filters;
+                        if (ns._filters){
                             ns._search=true;
                         }
                         ns.loadGridData(1);
@@ -211,21 +197,6 @@ Class('App.TableSelect', 'xui.Com',{
         },
         _pagebar_onclick:function (profile, page){
             this.loadGridData(page);
-        },
-        _grid_ondblclickrow:function (profile, row, e, src){
-            var ns=this,caption=null;
-            var index=_.arr.subIndexOf(ns.data.headers,'id',ns.data.caption);
-            var extra=[];
-            if(index>=0){
-                caption=row.cells[index].value;
-            }
-            _.arr.each(ns.data.map,function(map){
-                index=_.arr.subIndexOf(ns.data.headers, 'id', map.id2);
-                if(index>=0)
-                    extra.push({id:map.id1,cell:row.cells[index]});
-            });
-            ns.fireEvent("onSelect",[{value:row.id,caption:caption},extra]);
-            ns.destroy();
         }
     }
 });

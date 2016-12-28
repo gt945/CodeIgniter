@@ -22,6 +22,7 @@ Class('App.AdvSelect', 'xui.Com',{
             
             host.mainPanel.append((new xui.UI.TreeView())
             	.setHost(host,"grid")
+                .onDblclick("_grid_ondblclick")
             );
             
             host.mainPanel.append((new xui.UI.Block())
@@ -194,6 +195,14 @@ Class('App.AdvSelect', 'xui.Com',{
         },
         _pagebar_onclick:function (profile, page){
             this.loadGridData(page);
+        },
+        _grid_ondblclick:function (profile, item, e, src){
+            var ns = this, uictrl = profile.boxing();
+            value=uictrl.getUIValue(true);
+            if(typeof value!="undefined"){
+                ns.fireEvent("onSelect",[{value:value,caption:item.caption}]);
+                ns.destroy();
+            }
         }
     }
 });

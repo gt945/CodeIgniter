@@ -16,7 +16,7 @@ class Crud_model extends Db_Model {
 	const TYPE_BIT          = 10;
 	const TYPE_AUTOCOMPLETE = 11;
 	const TYPE_HELPER       = 12;
-
+	const TYPE_MAX       	= 99;
 	const TYPE_BUTTON       = 100;
 	const TYPE_WIDGET       = 101;
 
@@ -37,9 +37,11 @@ class Crud_model extends Db_Model {
 	const PROP_FIELD_REQUIRED   = 0x0400;
     const PROP_FIELD_VIRTUAL    = 0x0800;
     const PROP_FIELD_STRING     = 0x1000;
+    const PROP_FIELD_INLINE     = 0x2000;
 
 	const PROP_TABLE_EXPORT = 0x0001;
 	const PROP_TABLE_IMPORT = 0x0002;
+    const PROP_TABLE_VIEW   = 0x0004;
 
 	const SEARCH_OPTION_EQ = 0x0001;
 	const SEARCH_OPTION_NE = 0x0002;
@@ -76,26 +78,29 @@ class Crud_model extends Db_Model {
 		$fields = array();
 		
 		$this->db2->where ( 'name', $name );
+		$this->db2->or_where ( 'id', $name );
+		$this->db2->or_where ( 'caption', $name );
+		$this->db2->limit(1);
 		$this->db2->from ( Crud_model::CRUD_TABLE );
 		$crud_table = $this->db2->row();
-		if (!$crud_table) {
-            $this->db2->where ( 'id', $name );
-            $this->db2->from ( Crud_model::CRUD_TABLE );
-            $crud_table = $this->db2->row();
-		}
-        if (!$crud_table) {
-            $this->db2->where ( 'caption', $name );
-            $this->db2->from ( Crud_model::CRUD_TABLE );
-            $crud_table = $this->db2->row();
-        }
 		if ($crud_table) {
             parent::table($crud_table['name'], $select);
-			$crud_table['_role_c'] = $this->auth_model->check_role($crud_table['role_c'] );
-			$crud_table['_role_r'] = $this->auth_model->check_role($crud_table['role_r'] );
-			$crud_table['_role_u'] = $this->auth_model->check_role($crud_table['role_u'] );
-			$crud_table['_role_d'] = $this->auth_model->check_role($crud_table['role_d'] );
+
 			
 
+            if ($crud_table['prop'] & Crud_model::PROP_TABLE_VIEW) {
+                $this->primary = null;
+                $crud_table['_role_c'] = false;
+                $crud_table['_role_r'] = true;
+                $crud_table['_role_u'] = false;
+                $crud_table['_role_d'] = false;
+
+            } else {
+                $crud_table['_role_c'] = $this->auth_model->check_role($crud_table['role_c'] );
+                $crud_table['_role_r'] = $this->auth_model->check_role($crud_table['role_r'] );
+                $crud_table['_role_u'] = $this->auth_model->check_role($crud_table['role_u'] );
+                $crud_table['_role_d'] = $this->auth_model->check_role($crud_table['role_d'] );
+            }
 			$this->db2->where ( 'tid', $crud_table ['id'] );
 			$this->db2->order_by ( 'seq', 'asc' );
 			$this->db2->from (Crud_model::CRUD_FIELD);
@@ -128,7 +133,7 @@ class Crud_model extends Db_Model {
 			}
 			if (isset($crud_field['gid']) && $name !== 'user_group') {	//user group
 					$this->group = $this->get_group_ids($_SESSION['userinfo']['gid'], true);
-//                 $dbContextGroup = $this->table("user_group");
+//                  $dbContextGroup = $this->table("user_group");
 // 					$this->groupTree = $this->get_tree_data_by_id($dbContextGroup, $_SESSION['userinfo']['gid'], true);
 // 					$this->groupTreeOption = $this->get_tree_option($this->groupTree, 'id', 'groupname');
 			} else {
@@ -161,7 +166,7 @@ class Crud_model extends Db_Model {
 		$table = $this->name;
 
 		$this->start_cache();
-		
+        $this->cached = true;
 		$this->from("{$table} a");
 // 		if ($this->group) {
 // 			$this->where_in("a.gid", $this->group);
@@ -173,7 +178,7 @@ class Crud_model extends Db_Model {
 		
 		$i = 1;
 		foreach ( $this->crud_field as &$f ) {
-			if ($f['type'] >= Crud_model::TYPE_BUTTON ||  ($f['prop'] & Crud_model::PROP_FIELD_VIRTUAL) ) {
+			if ($f['type'] > Crud_model::TYPE_MAX ||  ($f['prop'] & Crud_model::PROP_FIELD_VIRTUAL) ) {
 				continue;
 			}
 			$this->select ( "a.{$f['name']}" );
@@ -213,9 +218,7 @@ class Crud_model extends Db_Model {
             return 0;
         }
 		$fields = $this->field_data ( $table );						//get all fields in table
-// 		echo "<pre>";
-// 		print_r($fields);
-// 		echo "</pre>";
+
 		if (count ( $fields ) > 0) {
 			$this->select ( 'id' );
 			$this->where ( 'name', $table );
@@ -325,7 +328,7 @@ class Crud_model extends Db_Model {
 					}
 				}
 				foreach ( $exist_fields as $k => $ef ) {				//delete not exist field
-					if ($ef['type'] >= Crud_model::TYPE_BUTTON || ($ef['prop'] & Crud_model::PROP_FIELD_VIRTUAL)) {
+					if ($ef['type'] > Crud_model::TYPE_MAX || ($ef['prop'] & Crud_model::PROP_FIELD_VIRTUAL)) {
                         continue;
                     }
                     $this->where ( 'id', $ef ['id'] );
@@ -379,153 +382,11 @@ class Crud_model extends Db_Model {
 	
 	public function get_group_tree_code($gid)
 	{
-		
-		
 		$this->db2->select('tree_code');
 		$this->db2->from('user_group');
 		$this->db2->where('id', $gid);
 		$tree_code = $this->db2->cell('tree_code');
 		return $tree_code;
-	}
-
-	public function parse_relate($value, $require, $type = null, $field = null, $table = null, $caption = null, $replace = null)
-	{
-		$rules = array();
-		if($type == null) {
-			$type = "eq";
-		}
-		if($field == null) {
-			$field = $require;
-		}
-		if($type == 'JN') {
-			
-
-			$this->db2->where($field, $value);
-			$this->db2->from($table);
-			$value = $this->db2->cell($caption);
-			$this->where($replace, $value);
-		} else {
-			$this->_parse_rules("AND", $field, $type, $value, "a");
-		}
-	}
-
-	public function parse($filters, $start=true)
-	{
-		$is_blank = true;
-		if ($start) {
-			$this->group_start();
-		}
-		
-		foreach ($filters->rules as $r) {
-			if ( (isset($this->fields[$r->field]))
-				/*&& ($r->field == $this->primary
-					|| ($this->crud_field[$r->field]['prop'] & Crud_model::PROP_FIELD_FILTER)
-				)*/
-			) {
-				$this->_parse_rules($filters->groupOp, $r->field, $r->op, $r->data);
-				$is_blank = false;
-			}
-		}
-		
-		if (isset($filters->groups) && count ($filters->groups) != 0) {
-			$is_blank = false;
-			foreach ($filters->groups as $g) {
-				if ($filters->groupOp === "OR") {
-					$this->or_group_start();
-				} else {
-					$this->group_start();
-				}
-				$this->parse($g, false);
-				$this->group_end();
-			}
-		}
-		if ($is_blank) {
-			$this->where('1 =', 1);
-		}
-		if ($start) {
-			$this->group_end();
-		}
-		
-		
-	}
-	
-	private function _parse_rules($groupOp, $field, $op, $data, $alias = "b")
-	{
-		if ($groupOp === "OR") {
-			$func = "or_";
-		} else {
-			$func = "";
-		}
-		$side_array = array (
-				1 => 'before',
-				2 => 'after',
-				3 => 'both'
-		);
-		$opt = array (
-				"eq" => "=",
-				"ne" => "<>",
-				"lt" => "<",
-				"le" => "<=",
-				"gt" => ">",
-				"ge" => ">=",
-				"cn" => "LIKE",
-				"nc" => "NOT LIKE",
-				"bw" => "LIKE",
-				"bn" => "NOT LIKE",
-				"ew" => "LIKE",
-				"en" => "NOT LIKE",
-				"in" => "IN",
-				"ni" => "NOT IN",
-				"nu" => "IS NULL",
-				"nn" => "IS NOT NULL",
-		);
-		if (!isset($opt[$op])) {
-			die("无效的关系符");
-		}
-		switch($op) {
-			case "nn" :
-				$func .= "where";
-				$this->$func ( "{$alias}.{$field} is not null" );
-				break;
-			case "nu" :
-				$func .= "where";
-				$this->$func ( "{$alias}.{$field}" );
-				break;
-			case "ni" :
-				$func .= "where_not_in";
-				$array_in = explode(',', $data);
-				$this->$func ( "{$alias}.{$field}", $array_in );
-				break;
-			case "in" :
-				$func .= "where_in";
-				$array_in = explode(',', $data);
-				$this->$func ( "{$alias}.{$field}", $array_in );
-				break;
-			case "nc" :
-			case "en" :
-			case "bn" :
-				$func .= "not_";
-			case "cn" :
-				//$func .= "where";
-				//$this->$func ( "match(b.{$field}) against('{$data}' IN BOOLEAN MODE )" );
-				//break;
-			case "ew" :
-			case "bw" :
-				$side = 0;
-				if ($op == 'nc' || $op == 'cn') {
-					$side = 3;
-				} else if ($op == 'bw' || $op == 'bn') {
-					$side = 2;
-				} else if ($op == 'ew' || $op == 'en') {
-					$side = 1;
-				}
-				$func .= "like";
-				$this->$func ( "{$alias}.{$field}", $data, $side_array [$side] );
-				break;
-			default :
-				$func .= "where";
-				$this->$func ( "{$alias}.{$field} {$opt[$op]}", $data );
-		}
 	}
 
 	public function get_tree_data_by_id($id = 0, $prepare = false)
