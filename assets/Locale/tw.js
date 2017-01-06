@@ -1,4 +1,4 @@
-﻿(xui.Locale.tw||(xui.Locale.tw={})).inline={
+(xui.Locale.tw||(xui.Locale.tw={})).inline={
     $_$:1,
     ok:'確定',
     cancel:'取消',
@@ -8,7 +8,9 @@
     yes:'是的',
     no:'不是',
     noFlash:'No Flash PlugIn!',
-    transparent:'透明'
+    transparent:'透明',
+    required:'有必須字段沒有填寫',
+    invalid:'有无效字段'
 };
 xui.Locale.tw.date={
     WEEKS:{

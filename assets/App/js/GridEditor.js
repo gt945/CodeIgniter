@@ -1,4 +1,4 @@
-Class('App.GridEditor', 'xui.Com',{
+Class('App.GridEditor', 'xui.Module',{
 	Instance:{ 
 		properties : {
 			pageSize:20,
@@ -79,7 +79,7 @@ Class('App.GridEditor', 'xui.Com',{
 						.setRowNumbered(true);
 						ns.properties.pageSize=-1;
 				}else{
-						grid.setTreeMode(false).setRowHandlerWidth(18).setSelMode("multi");
+						grid.setTreeMode(false).setRowHandlerWidth(24).setSelMode("multi");
 				}
 				if(ns.properties.gridGroup){
 						var item=ns.toolbar.getItemByItemId('group');
@@ -195,7 +195,7 @@ Class('App.GridEditor', 'xui.Com',{
 			}
 			_.merge(prop, ns.properties);
 			if (ns.properties.gridForm) {
-				xui.ComFactory.newCom(ns.properties.gridForm,function(){
+				xui.ModuleFactory.newCom(ns.properties.gridForm,function(){
 					this.show();
 				},null,prop,{
 					afterCreated:function(data){
@@ -237,7 +237,7 @@ Class('App.GridEditor', 'xui.Com',{
 				if (ns.properties.filterForm){
 					ns.properties.filterForm.mainDlg.show(null,true);
 				}else{
-					xui.ComFactory.newCom(ns.properties.gridFilter,function(){
+					xui.ModuleFactory.newCom(ns.properties.gridFilter,function(){
 						ns.properties.filterForm=this;
 						this.show();
 					},null,ns.properties,{
@@ -256,7 +256,7 @@ Class('App.GridEditor', 'xui.Com',{
 			var ns = this;
 			var prop={_filter:ns._filters,_search:ns._search,_sidx:ns.properties.sidx,_sord:ns.properties.sord};
 			_.merge(prop,ns.properties);
-			ns.properties.filterForm=xui.ComFactory.newCom(ns.properties.gridExporter,function(){
+			ns.properties.filterForm=xui.ModuleFactory.newCom(ns.properties.gridExporter,function(){
 				this.show();
 			},null,prop);
 				
@@ -310,7 +310,7 @@ Class('App.GridEditor', 'xui.Com',{
 					break;
 				case "group":
 					var setting=ns.properties.gridSetting;
-					xui.ComFactory.newCom('App.AdvSelect', function(){
+					xui.ModuleFactory.newCom('App.AdvSelect', function(){
 						this.setProperties({
 							key:ns.properties.gridId,
 							field:ns.properties.gridGroup,
@@ -351,7 +351,7 @@ Class('App.GridEditor', 'xui.Com',{
 							break;
 						case "custom":
 							if(typeof item.app == 'string'){
-								xui.ComFactory.newCom(item.app, function(){
+								xui.ModuleFactory.newCom(item.app, function(){
 									this.show();
 								}, null, {editor: ns},{
 									refreshRow:function(id){

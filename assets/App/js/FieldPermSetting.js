@@ -1,4 +1,4 @@
-Class('App.FieldPermSetting', 'xui.Com',{
+Class('App.FieldPermSetting', 'xui.Module',{
     Instance:{
         autoDestroy : true,
         properties : {},

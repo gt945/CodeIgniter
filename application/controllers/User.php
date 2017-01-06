@@ -104,7 +104,7 @@ class User extends CI_Controller {
 		$data = array ();
 		$data ['error'] = "";
 		$js = array (
-				"assets/js/log.js",
+				"assets/App/log.js",
 				"assets/js/md5.min.js",
 				"assets/js/jsencrypt.min.js",
 				"assets/js/xui-debug.js",

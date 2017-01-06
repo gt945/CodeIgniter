@@ -1,5 +1,5 @@
-// 默认的代码是一个从 xui.Com 派生来的类
-Class('App.main', 'xui.Com',{
+// 默认的代码是一个从 xui.Module 派生来的类
+Class('App.main', 'xui.Module',{
     // 要确保键值对的值不能包含外部引用
     Instance:{
         // 本Com是否随着第一个控件的销毁而销毁
@@ -41,6 +41,10 @@ Class('App.main', 'xui.Com',{
                 .setItems([{
                     "id" : "grp1",
                     "sub" : [{
+                        "id" : "message",
+                        "image" : "@xui_ini.appPath@image/user.png",
+                        "caption" : "发送消息"
+                    },{
                         "id" : "logout",
                         "image" : "@xui_ini.appPath@image/logout.png",
                         "caption" : "退出"
@@ -115,7 +119,7 @@ Class('App.main', 'xui.Com',{
             if(!tabs.getItemByItemId(id)){
                 if(!tabs.isDestroyed()){
                 	tabs.insertItems([{id:id,caption:item.caption,closeBtn:true}], null, false);
-                    xui.ComFactory.newCom(item.app,function(){
+                    xui.ModuleFactory.newCom(item.app,function(){
                     	(new xui.UI.Div())
                     	.setDock("fill")
                     	.append(this)
@@ -137,10 +141,15 @@ Class('App.main', 'xui.Com',{
                  });
             	 break;
              case "userinfo":
-            	 xui.ComFactory.newCom("App.UserInfo",function(){
+            	 xui.ModuleFactory.newCom("App.UserInfo",function(){
             		 this.show();
             	 },null);
             	 break;
+             case "message":
+                 xui.ModuleFactory.newCom("App.Message",function(){
+            		 this.show();
+            	 },null);
+                 break;
              }
         },
         _xui_ui_main_tabs_beforepageclose:function (profile,item,src){

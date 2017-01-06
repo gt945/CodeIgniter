@@ -1,4 +1,4 @@
-Class('App.Validate.Publishrecords', 'xui.Com',{
+Class('App.Validate.Publishrecords', 'xui.Module',{
     Instance:{
         autoDestroy : true,
         iniComponents : function(){

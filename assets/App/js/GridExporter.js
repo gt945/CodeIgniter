@@ -1,5 +1,5 @@
-// 默认的代码是一个从 xui.Com 派生来的类
-Class('App.GridExporter', 'xui.Com',{
+// 默认的代码是一个从 xui.Module 派生来的类
+Class('App.GridExporter', 'xui.Module',{
 	autoDestroy : true,
 	// 要确保键值对的值不能包含外部引用
 	Instance:{

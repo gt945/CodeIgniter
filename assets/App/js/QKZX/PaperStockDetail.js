@@ -1,4 +1,4 @@
-Class('App.QKZX.PaperStockDetail', 'xui.Com',{
+Class('App.QKZX.PaperStockDetail', 'xui.Module',{
     Instance:{
         autoDestroy : true,
         properties : {
@@ -177,7 +177,7 @@ Class('App.QKZX.PaperStockDetail', 'xui.Com',{
             if (ns.properties.filterForm){
                 ns.properties.filterForm.mainDlg.show(null,true);
             }else{
-                xui.ComFactory.newCom(ns.properties.gridFilter,function(){
+                xui.ModuleFactory.newCom(ns.properties.gridFilter,function(){
                     ns.properties.filterForm=this;
                     this.show();
                 },null,ns.properties,{

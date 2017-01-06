@@ -1,4 +1,4 @@
-Class('App.QKZX.PublishNotifyDetails', 'xui.Com',{
+Class('App.QKZX.PublishNotifyDetails', 'xui.Module',{
     Instance:{
         autoDestroy : true,
         properties : {},
@@ -97,7 +97,7 @@ Class('App.QKZX.PublishNotifyDetails', 'xui.Com',{
             var ns=this,ctrl=proEditor.boxing();
             var setting=ns.properties.gridSetting;
             debugger;
-            xui.ComFactory.newCom(ctrl.getProperties("app"), function(){
+            xui.ModuleFactory.newCom(ctrl.getProperties("app"), function(){
                 this.setProperties({
                     key:ns.properties.gridId,
                     field:ctrl.getDataField(),

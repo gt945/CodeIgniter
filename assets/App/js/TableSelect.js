@@ -1,4 +1,4 @@
-Class('App.TableSelect', 'xui.Com',{
+Class('App.TableSelect', 'xui.Module',{
     Instance:{
         autoDestroy : true,
         properties : {
@@ -200,7 +200,7 @@ Class('App.TableSelect', 'xui.Com',{
             if (ns.properties.filterForm){
                 ns.properties.filterForm.mainDlg.show(null,true);
             }else{
-                xui.ComFactory.newCom(ns.properties.gridFilter,function(){
+                xui.ModuleFactory.newCom(ns.properties.gridFilter,function(){
                     ns.properties.filterForm=this;
                     this.show();
                 },null,ns.properties,{

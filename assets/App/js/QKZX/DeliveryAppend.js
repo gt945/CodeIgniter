@@ -1,4 +1,4 @@
-Class('App.QKZX.DeliveryAppend', 'xui.Com',{
+Class('App.QKZX.DeliveryAppend', 'xui.Module',{
 	autoDestroy : true,
 	Instance:{
 		initialize : function(){

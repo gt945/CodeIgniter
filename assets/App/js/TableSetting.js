@@ -1,4 +1,4 @@
-Class('App.TableSetting', 'xui.Com',{
+Class('App.TableSetting', 'xui.Module',{
     Instance:{
         autoDestroy : true,
         properties : {},

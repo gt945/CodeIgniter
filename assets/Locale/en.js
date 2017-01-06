@@ -8,7 +8,9 @@
     yes:'Yes',
     no:'No',
     noFlash:'No Flash PlugIn!',
-    transparent:'transparent'
+    transparent:'transparent',
+    required:'There is required field need to be filled out',
+    invalid:'There is invalid field'
 };
 xui.Locale.en.date={
     WEEKS:{

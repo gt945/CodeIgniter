@@ -1,4 +1,4 @@
-Class('App.GridForm', 'xui.Com',{
+Class('App.GridForm', 'xui.Module',{
 	Instance:{
 		autoDestroy : true,
 		initialize : function(){
@@ -119,7 +119,7 @@ Class('App.GridForm', 'xui.Com',{
 					if(recordIds.length>1) {
 						pane.setDisabled(true);
 					} else {
-						xui.ComFactory.newCom(setting[f].app,function(){
+						xui.ModuleFactory.newCom(setting[f].app,function(){
 							if(!_.isEmpty(this)){
 								host._widgets['widgets_'+this.properties.index]=this;
 								this.show(null,this.properties.pane);
@@ -184,7 +184,7 @@ Class('App.GridForm', 'xui.Com',{
 				var callback=function(/**/){
 					xui.Thread.resume(threadid);
 				};
-				xui.ComFactory.newCom(ns.properties.dataFilter,function(){
+				xui.ModuleFactory.newCom(ns.properties.dataFilter,function(){
 					ns._dataFilter=this;
 					callback();
 				},null,null,null);
@@ -263,7 +263,7 @@ Class('App.GridForm', 'xui.Com',{
 			if(db.isDirtied() || ns.isGridDirty()){
 
 				if(!ns._checkValid()){
-					xui.message("错误发生!");
+					xui.message("输入格式错误!");
 					return;
 				}
 				var recordIds=this.properties.recordIds,
@@ -395,8 +395,8 @@ Class('App.GridForm', 'xui.Com',{
 		},
 		_form_onchange:function(profile, oldValue, newValue, force, tag){
 			var ns=this,db=ns.databinder;
-			if(this._dataFilter&&!force){
-				this._dataFilter.autoComplete(db);
+			if(ns._dataFilter&&!force){
+				_.tryF(ns._dataFilter.autoComplete,[db]);
 			}
 			_.each(ns._widgets,function(ele){
 				var relate=ns._get_relate(ele.properties.setting.relate);
@@ -467,7 +467,7 @@ Class('App.GridForm', 'xui.Com',{
 			var ns=this,ctrl=profile.boxing();
 			var setting=ns.properties.gridSetting;
 			var db=ns.databinder;
-			xui.ComFactory.newCom(ctrl.getProperties("app"), function(){
+			xui.ModuleFactory.newCom(ctrl.getProperties("app"), function(){
 				this.setProperties({
 					key:ns.properties.gridId,
 					field:ctrl.getDataField(),
@@ -537,6 +537,10 @@ Class('App.GridForm', 'xui.Com',{
 					return false;
 				}
 			});
+			if(!_.tryF(ns._dataFilter._checkValid,[db],ele,true)){
+				valid=false;
+				return false;
+			}
 			return valid;
 		}
 

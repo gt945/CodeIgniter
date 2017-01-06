@@ -1,4 +1,4 @@
-Class('App.QKZX.PublishNotifyDetails', 'xui.Com',{
+Class('App.QKZX.PublishNotifyDetails', 'xui.Module',{
     Instance:{
         autoDestroy : true,
         properties : {},
@@ -113,7 +113,7 @@ Class('App.QKZX.PublishNotifyDetails', 'xui.Com',{
                 }
             }else if(col.type=="cmdbox"){
                 var setting=ns.properties.gridSetting;
-                xui.ComFactory.newCom(col.app, function(){
+                xui.ModuleFactory.newCom(col.app, function(){
                     this.setProperties({
                         key:ns.properties.gridId,
                         field:col.id,
@@ -182,7 +182,7 @@ Class('App.QKZX.PublishNotifyDetails', 'xui.Com',{
         _grid_oncommand:function (profile,cell,proEditor,src){
             var ns=this,ctrl=proEditor.boxing();
             var setting=ns.properties.gridSetting;
-            xui.ComFactory.newCom(ctrl.getProperties("app"), function(){
+            xui.ModuleFactory.newCom(ctrl.getProperties("app"), function(){
                 this.setProperties({
                     key:ns.properties.gridId,
                     field:ctrl.getDataField(),

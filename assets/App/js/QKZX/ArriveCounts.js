@@ -1,4 +1,4 @@
-Class('App.QKZX.ArriveCounts', 'xui.Com',{
+Class('App.QKZX.ArriveCounts', 'xui.Module',{
 	Instance:{
 		autoDestroy : true,
 		properties : {},

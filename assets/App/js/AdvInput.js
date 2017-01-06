@@ -1,4 +1,4 @@
-Class('App.AdvInput', 'xui.Com',{
+Class('App.AdvInput', 'xui.Module',{
     Instance:{
         autoDestroy : true,
         properties : {},

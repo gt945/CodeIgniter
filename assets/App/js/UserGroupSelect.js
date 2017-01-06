@@ -1,4 +1,4 @@
-Class('App.AdvSelect', 'xui.Module',{
+Class('App.UserGroupSelect', 'xui.Module',{
     Instance:{
         autoDestroy : true,
         properties : {},
@@ -23,6 +23,8 @@ Class('App.AdvSelect', 'xui.Module',{
             host.mainPanel.append((new xui.UI.TreeView())
             	.setHost(host,"grid")
                 .onDblclick("_grid_ondblclick")
+                .setSelMode("multibycheckbox")
+                .onItemSelected("_grid_onitemselected")
             );
             
             host.mainPanel.append((new xui.UI.Block())
@@ -39,14 +41,6 @@ Class('App.AdvSelect', 'xui.Module',{
 	            .setImage("@xui_ini.appPath@image/refresh.png")
 	            .setCaption("刷新")
 	            .onClick("_ctl_sbutton1_onclick")
-            );
-            
-            host.ctl_block8.append((new xui.UI.PageBar())
-	            .setHost(host,"pagebar")
-	            .setTop(3)
-	            .setRight(100)
-	            .setCaption("页数:")
-	            .onClick("_pagebar_onclick")
             );
             
             host.mainPanel.append((new xui.UI.Block())
@@ -126,14 +120,10 @@ Class('App.AdvSelect', 'xui.Module',{
                 relate:ns.properties.relate
             },function(rsp){
                 if(!ns.isDestroyed()){
-                	if (!ns.properties.setting.tree){
-                		ns.pagebar.setValue("1:"+curPage+":"+( Math.ceil(parseInt(rsp.data.count,10)/20) ),true);
-                	}
                     ns._fillGrid(rsp.data.items);
                     grid.toggleNode(null,true,true);
                     if (ns.properties.value){
                     	grid.setUIValue(ns.properties.value);
-                    	grid.openToNode(ns.properties.value);
                     }
                 }
             },function(){
@@ -144,7 +134,7 @@ Class('App.AdvSelect', 'xui.Module',{
                     if(!ns.isDestroyed())
                         ns.destroy(); 
                 }
-            });   
+            });
         },
         _filter_beforeComboPop:function(profile, pos){
         	var ns=this,ctrl=profile.boxing();
@@ -153,14 +143,9 @@ Class('App.AdvSelect', 'xui.Module',{
         _filter_onchange:function(profile, oldValue, newValue, force, tag){
         	var ns=this,ctrl=profile.boxing(),grid=ns.grid;
             if(newValue!=oldValue) {
-                if (ns.properties.setting.tree) {
-                    var items = grid.getItems();
-                    ns._filter(grid, items, (new RegExp(ctrl.getUIValue())));
-                    grid.toggleNode(null, true, true);
-                } else {
-                    ns.like = ctrl.getUIValue();
-                    ns.loadGridData(1);
-                }
+                var items = grid.getItems();
+                ns._filter(grid, items, (new RegExp(ctrl.getUIValue())));
+                grid.toggleNode(null, true, true);
             }
         },
         _filter:function(grid,items,reg){
@@ -182,21 +167,21 @@ Class('App.AdvSelect', 'xui.Module',{
         },
         _ctl_sbutton2_onclick:function (profile, e, src, value){
         	var ns=this,
-            	grid=ns.grid;
+            	grid=ns.grid, caption=[];
         	value=grid.getUIValue(true);
-        	if(typeof value!="undefined"){
-        		var item=grid.getItemByItemId(value);
-        		ns.fireEvent("onSelect",[{value:value,caption:item.caption}]);
-        	}
+            if (_.isArr(value)){
+                 _.arr.each(value,function(v){
+                    var item=grid.getItemByItemId(v);
+                    caption.push(item.caption);
+                });
+                ns.fireEvent("onSelect",[{value:value.join(';'),caption:caption.join(';')}]);
+            }
         	ns.destroy();
         },
         _ctl_sbutton3_onclick:function(){
         	var ns=this;
         	ns.fireEvent("onCancel");
             ns.destroy(); 
-        },
-        _pagebar_onclick:function (profile, page){
-            this.loadGridData(page);
         },
         _grid_ondblclick:function (profile, item, e, src){
             var ns = this, uictrl = profile.boxing();
@@ -205,6 +190,11 @@ Class('App.AdvSelect', 'xui.Module',{
                 ns.fireEvent("onSelect",[{value:value,caption:item.caption}]);
                 ns.destroy();
             }
+        },
+        _grid_onitemselected:function (profile,item,e,src,type){
+            var ns = this, uictrl = profile.boxing();
+            var items=uictrl.getSubIdByItemId(item.id);
+            debugger;
         }
     }
 });

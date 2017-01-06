@@ -1,4 +1,4 @@
-Class('App.Validate.Publishnotify', 'xui.Com',{
+Class('App.Validate.Publishnotify', 'xui.Module',{
     Instance:{
         autoDestroy : true,
         iniComponents : function(){

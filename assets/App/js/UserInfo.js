@@ -1,5 +1,5 @@
-// 默认的代码是一个从 xui.Com 派生来的类
-Class('App.UserInfo', 'xui.Com',{
+// 默认的代码是一个从 xui.Module 派生来的类
+Class('App.UserInfo', 'xui.Module',{
 	autoDestroy : true,
 	// 要确保键值对的值不能包含外部引用
     Instance:{
@@ -21,13 +21,18 @@ Class('App.UserInfo', 'xui.Com',{
                 (new xui.DataBinder())
                 .setHost(host,"databinder")
                 .setName("databinder")
-                .setDataSourceType("remoting")
+            );
+
+            append(
+                (new xui.APICaller())
+                .setHost(host,"apicaller")
+                .setName("apicaller")
                 .setQueryMethod("POST")
-                .setQueryURL(SITEURL+'user/updateinfo')
-                .setRequestType("HTTP")
+                .setRequestType("FORM")
                 .setResponseType("JSON")
-                );
-            
+                .setQueryURL(SITEURL+'user/updateinfo')
+            );
+
             append(
                 (new xui.UI.Dialog())
                 .setHost(host,"dialog")
@@ -52,10 +57,15 @@ Class('App.UserInfo', 'xui.Com',{
                 .setTop(30)
                 .setWidth(200)
                 .setLabelSize(80)
-                .setLabelCaption("密　码　")
+                .setLabelCaption("当前密码")
                 .setType("password")
-                .setTips("当前密码,必须填写")
+                .setTips("当前使用的密码,必须填写")
                 .setCaption("")
+                .setCustomStyle({
+                    "LABEL" : {
+                        "text-align" : "center"
+                    }
+                })
                 );
             
             host.dialog.append(
@@ -68,10 +78,15 @@ Class('App.UserInfo', 'xui.Com',{
                 .setTop(70)
                 .setWidth(200)
                 .setLabelSize(80)
-                .setLabelCaption("新密码　")
+                .setLabelCaption("新密码")
                 .setType("password")
                 .setTips("设置新密码,不修改请留空")
                 .setCaption("")
+                .setCustomStyle({
+                    "LABEL" : {
+                        "text-align" : "center"
+                    }
+                })
                 );
             
             host.dialog.append(
@@ -88,6 +103,11 @@ Class('App.UserInfo', 'xui.Com',{
                 .setType("password")
                 .setTips("设置新密码,不修改请留空")
                 .setCaption("")
+                .setCustomStyle({
+                    "LABEL" : {
+                        "text-align" : "center"
+                    }
+                })
                 );
             
             host.dialog.append(
@@ -100,9 +120,14 @@ Class('App.UserInfo', 'xui.Com',{
                 .setTop(150)
                 .setWidth(200)
                 .setLabelSize(80)
-                .setLabelCaption("姓名　")
+                .setLabelCaption("姓名")
                 .setType("input")
                 .setCaption("")
+                .setCustomStyle({
+                    "LABEL" : {
+                        "text-align" : "center"
+                    }
+                })
                 );
             
             host.dialog.append(
@@ -115,9 +140,14 @@ Class('App.UserInfo', 'xui.Com',{
                 .setTop(190)
                 .setWidth(200)
                 .setLabelSize(80)
-                .setLabelCaption("联系方式　")
+                .setLabelCaption("联系方式")
                 .setType("input")
                 .setCaption("")
+                .setCustomStyle({
+                    "LABEL" : {
+                        "text-align" : "center"
+                    }
+                })
                 );
             
             host.dialog.append(
@@ -176,10 +206,11 @@ Class('App.UserInfo', 'xui.Com',{
         },
         _save_onclick:function(){
             var ns = this;
-            var db = ns.databinder.updateDataFromUI(true);
-            var ps=db.getData("password").value;
-            var ps1=db.getData("password1").value;
-            var ps2=db.getData("password2").value;
+            var db = ns.databinder;
+            db.updateDataFromUI(true);
+            var ps=db.getData("password");
+            var ps1=db.getData("password1");
+            var ps2=db.getData("password2");
             var vp="";
             if(ps.length==0){
             	xui.alert("请输入密码");
@@ -198,13 +229,13 @@ Class('App.UserInfo', 'xui.Com',{
             }
             var ve=ns.encrypt.encrypt(md5(ps));
             var args={
-             		name:db.getData("name").value,
+             		name:db.getData("name"),
             		password:ve,
             		newpassword:vp,
-            		contact:db.getData("contact").value
+            		contact:db.getData("contact")
     	    };
-            ns.databinder.setQueryArgs(args);
-        	ns.databinder.invoke(
+            ns.apicaller.setQueryArgs(args);
+        	ns.apicaller.invoke(
         			function(rsp){
         				if (rsp.ok){
         					xui.message(rsp.error);

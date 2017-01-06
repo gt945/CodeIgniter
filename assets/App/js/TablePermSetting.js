@@ -1,4 +1,4 @@
-Class('App.TablePermSetting', 'xui.Com',{
+Class('App.TablePermSetting', 'xui.Module',{
     Instance:{
         autoDestroy : true,
         properties : {},

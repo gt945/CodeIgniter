@@ -1,14 +1,16 @@
 (xui.Locale.cn||(xui.Locale.cn={})).inline={
     $_$:1,
-    ok:'确 定',
-    cancel:'取 消',
+    ok:'确定',
+    cancel:'取消',
     set:'设置',
     today:'今天',
     now:'现在',
     yes:'是',
     no:'否',
     noFlash:'需要Flash!',
-    transparent:'透明'
+    transparent:'透明',
+    required:'有必须字段没有填写',
+    invalid:'有无效字段'
 };
 xui.Locale.cn.date={
     WEEKS:{

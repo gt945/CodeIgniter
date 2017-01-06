@@ -271,4 +271,9 @@ EOD;
 //        print_r((floatval($s1) + floatval($s2)));
         echo  sprintf('%.0f', microtime(true)  * 1000);
     }
+
+    public function test5()
+    {
+        $this->load->view('test');
+    }
 }

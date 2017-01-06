@@ -1,4 +1,4 @@
-Class('App.QKZX.NewPlan', 'xui.Com',{
+Class('App.QKZX.NewPlan', 'xui.Module',{
     Instance:{
         autoDestroy : true,
         properties : {},

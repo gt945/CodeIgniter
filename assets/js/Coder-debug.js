@@ -178,6 +178,8 @@ Class("xui.Coder", null,{
       here, "ab" will be first matched and be protected to replace by express "a"
       */
         replace:function(str, reg, replace, ignore_case){
+            if(!str)return "";
+
             var i, len,_t, m,n, flag, a1 = [], a2 = [],
                 me=arguments.callee,
                 reg1=me.reg1 || (me.reg1=/\\./g),
@@ -262,6 +264,8 @@ Class("xui.Coder", null,{
 
                 //ignore input and img
                 arr.push([/<!\[CDATA\[(([^\]])|(\][^\]])|(\]\][^>]))*\]\]>/, function(a,i){return space[deep]+a[i]+'\n'}]);
+                arr.push([/<br\s*>/, function(a,i){return space[deep]+a[i]+'\n'}]);
+                arr.push([/<hr\s*>/, function(a,i){return space[deep]+a[i]+'\n'}]);
                 arr.push([/<input[^>]+>/, function(a,i){return space[deep]+a[i]+'\n'}]);
                 arr.push([/<img[^>]+>/, function(a,i){return space[deep]+a[i]+'\n'}]);
                 arr.push([/<[\w]+[^>]*\/>/, function(a,i){return space[deep]+a[i]+'\n'}]);
@@ -320,8 +324,8 @@ Class("xui.Coder", null,{
                         [/[\x02\;]/.source, function(a,i){return a[i]+'\n'+space[deep]}],
                         [/(\,)([\x03\x04\w_\-]+\:)/.source, function(a,i){return a[i+1]+'\n'+space[deep]+a[i+2]}],
                         [/\x01/.source, function(a,i){return '\n'+space[deep]+a[i]}],
-                        [/[\}]\s*[\,]*/.source, function(a,i){return '\n'+space[--deep]+a[i]}],
-                        [/[\}]\s*[\;]*/.source, function(a,i){return '\n'+space[--deep]+a[i]+'\n'+space[deep]}]
+                        [/[\}]\s*[\,]*/.source, function(a,i){return '\n'+space[--deep]+a[i]+'\n'+space[deep] }],
+                        [/[\}]\s*[\;]*/.source, function(a,i){return '\n'+space[--deep]+a[i]+'\n'+space[deep] }]
                     ];
                     if(type!='css'){
                         arr.push([/for\s*\([\w ]+\sin\s/.source, "$0"],

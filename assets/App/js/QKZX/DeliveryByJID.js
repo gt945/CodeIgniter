@@ -1,4 +1,4 @@
-Class('App.QKZX.DeliveryByJID', 'xui.Com',{
+Class('App.QKZX.DeliveryByJID', 'xui.Module',{
 	autoDestroy : true,
 	Instance:{
 		initialize : function(){

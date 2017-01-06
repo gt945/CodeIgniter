@@ -1,4 +1,4 @@
-Class('App.QKZX.PaperStockOut', 'xui.Com',{
+Class('App.QKZX.PaperStockOut', 'xui.Module',{
     autoDestroy : true,
     Instance:{
         initialize : function(){
@@ -342,7 +342,7 @@ Class('App.QKZX.PaperStockOut', 'xui.Com',{
             var ns=this,ctrl=profile.boxing();
             var setting=ns.properties.gridSetting;
             var db=ns.databinder;
-            xui.ComFactory.newCom(ctrl.getProperties("app"), function(){
+            xui.ModuleFactory.newCom(ctrl.getProperties("app"), function(){
                 this.setProperties({
                     key:ns.properties.gridId,
                     field:ctrl.getDataField(),

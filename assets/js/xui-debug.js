@@ -1,36 +1,46 @@
-/*
-CrossUI(xui) 1.3
-Copyright(c) 2014- CrossUI.com
-Open Source under LGPL 3 (http://www.gnu.org/licenses/lgpl-3.0-standalone.html)
+/*!
+* CrossUI(xui) JavaScript Library v1.4
+* http://crossui.com
+* 
+* Copyright ( 2004 ~ present) CrossUI.com
+* Released under the MIT license
+*
 */
-//speed up references
+// speed up references
 undefined;
-//global: time stamp
+// global 1: tools
 _=function(){return +new Date()};
+// global 2: namespace
 Namespace=function(key){
     var a=key.split('.'),w=window;
     return _.get(w, a) || _.set(w, a, {});
 };
-//global: class
+// global 3: class
 Class=function(key, pkey, obj){
     var _Static, _parent=[], self=Class, w=window, env=self._fun, reg=self._reg, parent0, _this,i,t,_t,_c=self._all,
         _funadj = function(str){return (str+"").replace(/(\s*\/\*[^*]*\*+([^\/][^*]*\*+)*\/)|(\s*\/\/[^\n]*)|(\)[\s\S]*)/g,function(a){return a.charAt(0)!=")"?"":a});}
     obj=obj||{};
     //exists?
     if(!self._ignoreNSCache && (t=_.get(w, key.split('.')))&&typeof(t)=='function'&&t.$xuiclass$)return self._last=t;
+    //clear SC
+    if(t=_.get(w,['xui','$cache','SC']))delete t[key];
 
     //multi parents mode
     pkey = ( !pkey?[]:typeof pkey=='string'?[pkey]:pkey);
     for(i=0; t=pkey[i]; i++)
         if(!(_parent[i]=(_.get(w, t.split('.')) || (xui&&xui.SC&&xui.SC(t)))))
             throw 'errNoParent--'+ t;
-    if(obj.Dependency){
-        if(typeof obj.Dependency == "string")obj.Dependency=[obj.Dependency];
-        for(i=0; t=obj.Dependency[i]; i++)
+    if(obj.Dependencies){
+        if(typeof obj.Dependencies == "string")obj.Dependencies=[obj.Dependencies];
+        for(i=0; t=obj.Dependencies[i]; i++)
             if(!(_.get(w, t.split('.')) || (xui&&xui.SC&&xui.SC(t))))
                 throw 'errNoDependency--'+ t;
     }
     parent0=_parent[0];
+
+    // Give a change to modify the original object
+    var $Start = obj.$Start || (parent0&&parent0.$Start);
+    _.tryF($Start, [], obj);
 
     // collect items
     _Static=obj.Static||{};
@@ -39,10 +49,11 @@ Class=function(key, pkey, obj){
         if(reg[i])t[i]=1;
     for(i in t)
         delete _Static[i];
-
+    
     //before and after will pass to children
     _Static.Before = obj.Before || (parent0&&parent0.Before);
     _Static.After = obj.After || (parent0&&parent0.After);
+    _Static.$Start = $Start;
     _Static.$End = obj.$End || (parent0&&parent0.$End);
     _Static.__gc = obj.__gc || _Static.__gc || (parent0&&parent0.__gc) || function(){Class.__gc(this.$key)};
 
@@ -122,15 +133,19 @@ Class=function(key, pkey, obj){
     _.tryF(_this.$End, [], _this);
 
     _.breakO([obj.Static, obj.Instance, obj],2);
-
-    _c[key]=_c.length;
-    _c.push(key);
+    
+    if(!(key in _c)){
+        _c[key]=_c.length;
+        _c.push(key);
+    }
 
     //return Class
     return self._last=_this;
 };
-//global: xui
+// global 4: xui
 linb=xui=function(nodes,flag){return xui.Dom.pack(nodes, flag)};
+
+
 
 //window.onerror will be redefined in xui.Debugger
 //window.onerror=function(){return true};
@@ -141,7 +156,7 @@ linb=xui=function(nodes,flag){return xui.Dom.pack(nodes, flag)};
   type:'all', 'with', 'without'[default], or function <return true will trigger merge>
   return: merged target
 */
-_.merge=function(target, source, type){
+_.merge=function(target, source, type, force){
     var i,f;
     if(typeof type == "function"){
         f=type;
@@ -149,19 +164,20 @@ _.merge=function(target, source, type){
     }
     switch(type){
         case 'fun':
-            for(i in source)if(true===f(source[i],i))target[i]=source[i];
+            for(i in source)if((force||source.hasOwnProperty(i)) && true===f(source[i],i))target[i]=source[i];
             break;
         case 'all':
-            for(i in source)target[i]=source[i];
+            for(i in source)if((force||source.hasOwnProperty(i)))target[i]=source[i];
             break;
         case 'with':
-            for(i in source)if(i in target)target[i]=source[i];
+            for(i in source)if((force||source.hasOwnProperty(i)) && target.hasOwnProperty(i))target[i]=source[i];
             break;
         default:
-            for(i in source)if(!(i in target))target[i]=source[i];
+            for(i in source)if((force||source.hasOwnProperty(i)) && !target.hasOwnProperty(i))target[i]=source[i];
     }
     return target;
 };
+
 new function(){
     var lastTime=0,vendors=['ms','moz','webkit','o'],w=window,i=0,l=vendors.length,tag;
     for(;i<l && !w.requestAnimationFrame && (tag=vendors[i++]);) {
@@ -171,7 +187,7 @@ new function(){
     if (!w.requestAnimationFrame)
         w.requestAnimationFrame=function(callback,element){
             var currTime=(new Date()).getTime(),
-                timeToCall=Math.max(0, 16-(currTime-lastTime)),
+                timeToCall=Math.max(0,   1000 / 60 - (currTime-lastTime)),
                 id=setTimeout(function(){callback(currTime + timeToCall)}, timeToCall);
             lastTime=currTime+timeToCall;
             return id;
@@ -179,9 +195,13 @@ new function(){
     if (!w.cancelAnimationFrame)
         w.cancelAnimationFrame = function(id){clearTimeout(id)};
 };
+
 _.merge(_,{
+    rand:function(){
+        return parseInt(_()*Math.random(),10).toString(36);
+    },
     setTimeout:function(callback,delay){
-        return (delay||0)>16?(setTimeout(callback,delay)*-1):requestAnimationFrame(callback);
+        return (delay||0)> 1000 / 60?(setTimeout(callback,delay)*-1):requestAnimationFrame(callback);
     },
     clearTimeout:function(id){
         if(id>=0)cancelAnimationFrame(id);
@@ -192,9 +212,14 @@ _.merge(_,{
         var me=this,
             d=document,
             h=d.getElementsByTagName("head")[0] || d.documentElement,
-            s=d.createElement("script");
+            s=d.createElement("script"),n;
         s.type = "text/javascript";
-        if(id)s.id=id;
+        if(id){
+            if((n=d.getElementById(id))&&n.parentNode==h){
+                h.removeChild(n);
+            }
+            s.id=id;
+        }
         if(xui.browser.ie)
             s.text=script;
         else
@@ -202,7 +227,10 @@ _.merge(_,{
         h.appendChild(s);
         s.disalbed=true;
         s.disabled=false;
-        if(!id)h.removeChild(s);
+        if(!id){
+            h.removeChild(s);
+        }
+        return s;
     },
     /*
     get something from deep hash
@@ -314,7 +342,7 @@ _.merge(_,{
             cache[k] = _.setTimeout(function(){delete cache[k];fun.apply(scope||null,args||[])},defer||0);
         else delete cache[k];
     },
-    //Dependency: xui.Dom xui.Thread
+    //Dependencies: xui.Dom xui.Thread
     observableRun:function(tasks,onEnd,threadid,busyMsg){
         xui.Thread.observableRun(tasks,onEnd,threadid,busyMsg);
     },
@@ -553,7 +581,7 @@ _.merge(_,{
     isArr:function(target)   {return _._to.call(target)==='[object Array]'},
     isReg:function(target)   {return _._to.call(target)==='[object RegExp]'},
     isStr:function(target)   {return _._to.call(target)==='[object String]'},
-    isArguments:function(target)   {return _._to.call(target)==='[object Arguments]' || _._has.call(target,"callee")},
+    isArguments:function(target)   {return target && (_._to.call(target)==='[object Arguments]' || _._has.call(target,"callee"))},
     isElem:function(target) {return !!(target && target.nodeType === 1)},
     isNaN:function(target) {return typeof target == 'number' && target != +target;},
     //for handling String
@@ -580,13 +608,13 @@ _.merge(_,{
         rtrim:function(str){
             return str?str.replace(/(\s|\uFEFF|\xA0)+$/,''):str;
         },
-/*
+        /*
         blen : function(s){
             var _t=s.match(/[^\x00-\xff]/ig);
             return s.length+(null===_t?0:_t.length);
         },
-*/
-        //Dependency: xui.Dom
+        */
+        //Dependencies: xui.Dom
         toDom:function(str){
             var p=xui.$getGhostDiv(), r=[];
             p.innerHTML=str;
@@ -736,6 +764,7 @@ _.merge(_,{
         }
     }
 });
+
 _.merge(_.fun,{
     body:function(fun){
         var s=""+fun;
@@ -764,7 +793,7 @@ _.merge(Class, {
         fun.$name$=name;
         fun.$original$=original;
         if(type)fun.$type$=type;
-        if(upper)fun.upper=upper;
+        if(upper && fun!==upper)fun.upper=upper;
         return fun;
     },
     _other:["toString", "valueOf"],
@@ -852,9 +881,9 @@ _.merge(Class, {
     destroy:function(key){Class.__gc(key)}
 });
 
-//function dependency: xui.Dom xui.Thread
+//function Dependencies: xui.Dom xui.Thread
 _.merge(xui,{
-    version:1.3,
+    version:1.4,
     $DEFAULTHREF:'javascript:;',
     $IEUNSELECTABLE:function(){return xui.browser.ie?' onselectstart="return false;" ':''},
     SERIALIZEMAXLAYER:99,
@@ -863,12 +892,16 @@ _.merge(xui,{
     $localeKey:'en',
     $localeDomId:'xlid',
     $dateFormat:'',
+    $rand:"_r_",
+    // for show xui.echo
+    debugMode:true,
 
     Locale:{},
     $cache:{
         thread:{},
         SC:{},
         clsByURI:{},
+        fetching:{},
         hookKey:{},
         hookKeyUp:{},
         snipScript:{},
@@ -1059,9 +1092,8 @@ _.merge(xui,{
     //test1: xui.getRes("start.a.b.c $0 $1 ($- $. $$) end-1-2")  => "c 1 2 (- . $) end"
     //tset2: xui.getRes( ["a","b","c $0 $1 ($- $. $$) end"],1,2) => "c 1 2 (- . $) end"
     getRes:function(path){
-        if(!_.isStr(path))return path;
         var arr,conf,tmp,params=arguments,rtn;
-        if(typeof path=='string'){
+        if(_.isStr(path)){
             path=path.replace(/\$([$.-])/g,function(a,b){return xui._escapeMap[b]||a;});
             if(path.charAt(0)=='$')path=path.slice(1);
             if(path.indexOf('-')!=-1){
@@ -1074,8 +1106,10 @@ _.merge(xui,{
             }
             arr=path.split(".");
             arr[arr.length-1]=arr[arr.length-1].replace(/([\x01\x02\x03\x04])/g,function(a){return xui._unescapeMap[a];});
-        }else{
+        }else if(_.isArr(path)){
             arr=path;
+        }else{
+            return path;
         }
         conf=_.get(xui.Locale[xui.$localeKey], arr);
         if((tmp=typeof conf)=='function'){
@@ -1136,22 +1170,51 @@ _.merge(xui,{
                    : obj;
     },
     _getrpc:function(uri,query,options){
-        return (options&&options.proxyType) ? (options.proxyType.toLowerCase()=="sajax"?xui.SAjax:options.proxyType.toLowerCase()=="iajax"?xui.IAjax:xui.Ajax)
-        // include a file => IAjax
-        :(typeof query=='object' && ((function(d){if(!_.isHash(d))return 0; for(var i in d)if(d[i]&&d[i].nodeType==1)return 1})(query))) ? xui.IAjax
-        // post: crossdomain => IAjax, else Ajax
-        : (options&&options.method&&options.method.toLowerCase()=='post') ?  xui.absIO.isCrossDomain(uri) ? xui.IAjax  : xui.Ajax
-        // get : crossdomain => SAjax, else Ajax
-        : xui.absIO.isCrossDomain(uri) ? xui.SAjax : xui.Ajax;
+        var t = (options&&options.proxyType) ? options.proxyType.toLowerCase() : "";
+
+        return (t=="sajax"||t=="jsonp") ? xui.JSONP 
+        : (t=="iajax"||t=="xdmi") ? xui.XDMI 
+        : (t=="ajax") ? xui.Ajax
+        // include a file => XDMI
+        : (typeof query=='object' && ((function(d){if(!_.isHash(d))return 0; for(var i in d)if((d[i] && d[i].nodeType==1 && d[i].nodeName=="INPUT") || (d[i] && d[i].$xuiFileCtrl))return 1})(query))) ? xui.XDMI
+        // post: crossdomain => XDMI, else Ajax
+        : (options&&options.method&&options.method.toLowerCase()=='post') ?  xui.absIO.isCrossDomain(uri) ? xui.XDMI  : xui.Ajax
+        // get : crossdomain => JSONP, else Ajax
+        : xui.absIO.isCrossDomain(uri) ? xui.JSONP : xui.Ajax;
     },
     request:function(uri, query, onSuccess, onFail, threadid, options){
         return xui._getrpc(uri, query, options).apply(null, arguments).start();
     },
+    ajax:function(uri, query, onSuccess, onFail, threadid, options){
+        return xui.Ajax.apply(null, arguments).start();
+    },
+    jsonp:function(uri, query, onSuccess, onFail, threadid, options){
+        return xui.JSONP.apply(null, arguments).start();
+    },
+    xdmi:function(uri, query, onSuccess, onFail, threadid, options){
+        return xui.XDMI.apply(null, arguments).start();
+    },
+    restGet:function(uri, query, onSuccess, onFail, threadid,options){
+        if(!options) options={};options.method="get";
+        return xui.Ajax(uri, query, onSuccess, onFail, threadid, options).start();
+    },
+    restPost:function(uri, query, onSuccess, onFail, threadid,options){
+        if(!options) options={};options.method="post";
+        return xui.Ajax(uri, query, onSuccess, onFail, threadid, options).start();
+    },
+    restPut:function(uri, query, onSuccess, onFail, threadid,options){
+        if(!options) options={};options.method="put";
+        return xui.Ajax(uri, query, onSuccess, onFail, threadid, options).start();
+    },
+    restDelete:function(uri, query, onSuccess, onFail, threadid,options){
+        if(!options) options={};options.method="delete";
+        return xui.Ajax(uri, query, onSuccess, onFail, threadid, options).start();
+    },
     getFileSync:function(uri, rspType, onSuccess, onFail, options){
-        return xui.Ajax(uri,xui.Ajax.uid,onSuccess,onFail, null, _.merge({asy:false, rspType: rspType||"text"},options,'without')).start()||null;
+        return xui.Ajax(uri, xui.$rand+"="+_.rand(),onSuccess,onFail, null, _.merge({asy:false, rspType: rspType||"text"},options,'without')).start()||null;
     },
     getFileAsync:function(uri, rspType, onSuccess, onFail, threadid, options){
-        xui.Ajax(uri,xui.Ajax.uid,onSuccess, onFail,threadid, _.merge({asy:true, rspType: rspType||"text"},options,'without')).start();
+        xui.Ajax(uri,xui.$rand+"="+_.rand(),onSuccess, onFail,threadid, _.merge({asy:true, rspType: rspType||"text"},options,'without')).start();
     },
     include:function(id,path,onSuccess,onFail,sync,options){
         if(id&&xui.SC.get(id))
@@ -1161,11 +1224,11 @@ _.merge(xui,{
             if(!sync){
                 options.rspType='script';
                 options.checkKey=id;
-                xui.SAjax(path,xui.SAjax.uid,onSuccess,onFail,0,options).start()
+                xui.JSONP(path,xui.$rand+"="+_.rand(),onSuccess,onFail,0,options).start()
             }else{
                 options.asy=!sync;
-                xui.Ajax(path,xui.Ajax.uid,function(rsp){
-                    try{_.exec(rsp)}
+                xui.Ajax(path,xui.$rand+"="+_.rand(),function(rsp){
+                    try{_.exec(rsp,id)}
                     catch(e){_.tryF(onFail,[e.name + ": " + e.message])}
                     _.tryF(onSuccess);
                 },onFail,0,options).start();
@@ -1178,50 +1241,146 @@ _.merge(xui,{
             + '&body= ' + encodeURIComponent(xui.adjustRes(body||""))
             + '&cc= ' + (cc||"")
             + '&bcc= ' + (bcc||"");
-        xui.IAjax(url).start();
+        xui.XDMI(url).start();
     },
-    fetchClass:function(uri,onSuccess,onFail,force){
-        var t,c=xui.$cache.clsByURI;
-        if(!force && (t=c[uri]) && t.$xui$)
-            _.tryF(onSuccess,[uri],t);
+    fetchClass:function(uri, onSuccess, onFail, onAlert, force, threadid, options){
+        if(/\//.test(uri) && !/\.js$/i.test(uri))
+            uri=uri+".js";
+        options=options||{};
+        var isPath=/\.js$/i.test(uri), 
+            c=xui.$cache.clsByURI,
+            f=xui.$cache.fetching,
+            cls,t;
+         if(!isPath){
+             // special path( dont use any dynamic
+             if(!options.hasOwnProperty('appPath') && window["/"])options.appPath=window["/"];
+             cls=uri;
+             uri=xui.getPath(uri,'.js','js',options);
+         }
+        if(!force && (isPath?((t=c[uri]) && t.$xui$):(t=xui.SC.get(cls))))
+            _.tryF(onSuccess,[uri,cls],t);
         else{
-            if(xui.absIO.isCrossDomain(uri)){
-                Class._ignoreNSCache=1;Class._last=null;
-                xui.SAjax(uri,xui.SAjax.uid,function(){
-                    if(Class._last)t=c[uri]=Class._last;
-                    Class._ignoreNSCache=Class._last=null;
-                    _.tryF(onSuccess, [uri],t);
-                    var s=xui.getClassName(uri);
-                    if(t&&t.KEY!=s)
-                        _.asyRun(function(){
-                            throw "The last class name in '"+uri+"' should be '"+s+"', but it's '"+t.KEY+"'!";
-                        });
-                },function(){
+            // For fetching one class multiple times
+            if(!f[uri]){
+                f[uri]=[onSuccess=onSuccess?[onSuccess]:[], onFail=onFail?[onFail]:[], onAlert=onAlert?[onAlert]:[],[]];
+                if(xui.absIO.isCrossDomain(uri)){
                     Class._ignoreNSCache=1;Class._last=null;
-                    _.tryF(onFail, _.toArr(arguments));
-                },0,{rspType:'script'}).start();
+                    xui.JSONP(uri,xui.$rand+"="+_.rand(),function(){
+                        if(Class._last)t=c[uri]=Class._last;
+                        Class._ignoreNSCache=Class._last=null;
+                        if(t){for(var i in onSuccess)_.tryF(onSuccess[i], [uri,t.KEY],t);}
+                        else{for(var i in onFail)_.tryF(onFail[i],  _.toArr(arguments));}
+                        var s=xui.getClassName(uri);
+                        if(t&&t.KEY!=s){
+                            var msg="The last class name in '"+uri+"' should be '"+s+"', but it's '"+t.KEY+"'!";
+                            for(var i in onAlert)_.tryF(onAlert[i], [msg, uri, s, t.KEY]);
+                            _.asyRun(function(){
+                                throw msg;
+                            });
+                        }
+                        // for Thread.group in fetchClasses
+                        for(var i in f[uri][3])xui.Thread(f[uri][3][i]).abort();
+                        if(f[uri]){f[uri][0].length=0;f[uri][1].length=0;f[uri][2].length=0;f[uri][3].length=0;f[uri].length=0;delete f[uri];}
+                    },function(){
+                        Class._ignoreNSCache=1;Class._last=null;
+                        for(var i in onFail)_.tryF(onFail[i], _.toArr(arguments));
+                        // for Thread.group in fetchClasses
+                        for(var i in f[uri][3])xui.Thread(f[uri][3][i]).abort();
+                        if(f[uri]){f[uri][0].length=0;f[uri][1].length=0;f[uri][2].length=0;f[uri][3].length=0;f[uri].length=0;delete f[uri];}
+                    },threadid,{rspType:'script'}).start();
+                }else{
+                    xui.Ajax(uri,xui.$rand+"="+_.rand(),function(rsp){
+                        Class._ignoreNSCache=1;Class._last=null;
+                        var scriptnode;
+                        var s=xui.getClassName(uri);
+                        try{scriptnode=_.exec(rsp, s)}
+                        catch(e){for(var i in onFail)_.tryF(onFail[i],[e.name + ": " + e.message]);Class._last=null;}
+                        if(Class._last)t=c[uri]=Class._last;
+                        Class._last=null;
+                        if(t){for(var i in onSuccess)_.tryF(onSuccess[i], [uri,t.KEY],t);}
+                        else{for(var i in onFail)_.tryF(onFail[i],  _.toArr(arguments));}
+                        if(t&&t.KEY!=s){
+                            var msg="The last class name in '"+uri+"' should be '"+s+"', but it's '"+t.KEY+"'!";
+                            for(var i in onAlert)_.tryF(onAlert[i], [msg, uri, s,  t.KEY]);
+                            _.asyRun(function(){
+                                throw msg;
+                            });
+                        }
+                        // for Thread.group in fetchClasses
+                        for(var i in f[uri][3])xui.Thread(f[uri][3][i]).abort();
+                        if(f[uri]){f[uri][0].length=0;f[uri][1].length=0;f[uri][2].length=0;f[uri][3].length=0;f[uri].length=0;delete f[uri];}
+                    },function(){
+                        Class._ignoreNSCache=Class._last=null;
+                        for(var i in onFail)_.tryF(onFail[i], _.toArr(arguments));
+                        // for Thread.group in fetchClasses
+                        for(var i in f[uri][3])xui.Thread(f[uri][3][i]).abort();
+                        if(f[uri]){f[uri][0].length=0;f[uri][1].length=0;f[uri][2].length=0;f[uri][3].length=0;f[uri].length=0;delete f[uri];}
+                    },threadid,{rspType:'text',asy:true}).start();
+                }
             }else{
-                xui.Ajax(uri,xui.Ajax.uid,function(rsp){
-                    Class._ignoreNSCache=Class._last=null;
-                    try{_.exec(rsp,uri)}
-                    catch(e){_.tryF(onFail,[e.name + ": " + e.message]);Class._last=null;}
-                    if(Class._last)t=c[uri]=Class._last;
-                    Class._last=null;
-                    _.tryF(onSuccess, [uri],t);
-                    var s=xui.getClassName(uri);
-                    if(t&&t.KEY!=s)
-                        _.asyRun(function(){
-                            throw "The last class name in '"+uri+"' should be '"+s+"', but it's '"+t.KEY+"'!";
-                        });
-                },function(){
-                    Class._last=null;
-                    _.tryF(onFail, _.toArr(arguments));
-                },0,{rspType:'text',asy:false}).start();
+                if(onSuccess)f[uri][0].push(onSuccess);
+                if(onFail)f[uri][1].push(onFail);
+                if(onAlert)f[uri][2].push(onAlert);
+                if(threadid){
+                    f[uri][3].push(threadid);
+                    xui.Thread(threadid).suspend();
+                }
             }
         }
     },
-    require:function(cls,sync,onSuccess,onFail){
-        xui.include(cls,xui.getPath(cls,".js","js"),onSuccess,onFail,sync);
+    fetchClasses:function(uris, onEnd, onSuccess, onFail, onAlert, force, threadid, options){
+        var hash={}, f=function(uri,i,hash){
+            hash[i]=xui.Thread(null,[function(tid){
+                xui.fetchClass(uri, onSuccess, onFail, onAlert, force, tid, options);
+            }]);
+        };
+        for(var i=0,l=uris.length;i<l;i++)f(uris[i],i,hash);
+        return xui.Thread.group(null, hash, null, function(){
+            xui.Thread(threadid).suspend();
+        }, function(){
+            _.tryF(onEnd,arguments,this);
+            xui.Thread(threadid).resume();
+        }).start();
+    },
+    // Recursive require
+    require:function(clsArr, onEnd, onSuccess, onFail, onAlert,force, threadid, options){
+        if(_.isStr(clsArr))clsArr=[clsArr];
+        var fun=function(paths, tid){
+            xui.fetchClasses(paths,function(){ 
+                var a2=[], t, r;
+                for(var i=0,l=paths.length;i<l;i++){
+                    t=xui.SC.get(paths[i]);
+                    //collect  required class
+                    if(t && (r=t.Required) && r.length){
+                        for(var j=0,m=r.length;j<m;j++){
+                            if(!xui.SC.get(r[j]))a2.push(r[j]);
+                        }
+                    }
+                    // if it's module, collect required class in iniComponents
+                    if(t && t['xui.Module'] && (t=t.prototype&&t.prototype.iniComponents)){
+                        _.fun.body(t).replace(/\bxui.create\s*\(\s*['"]([\w.]+)['"]\s*[,)]/g,function(a,b){
+                            if(!(a=xui.SC.get(b))){
+                                a2.push(b);
+                                a=null;
+                            }
+                           // if(force && a && a['xui.Module']){
+                           //     a2.push(b);
+                           // }
+                        });
+                    }
+                }
+                if(a2.length){
+                    fun(a2, null);
+                }else{
+                    var arr=[];
+                    for(var i=0,l=clsArr.length;i<l;i++){
+                        arr.push(xui.SC.get(clsArr[i]));
+                    }
+                    if(onEnd)onEnd.apply(null,arr);
+                }
+            },onSuccess,onFail,onAlert,force,tid,options);
+        };
+        fun(clsArr, threadid);
     },
     /*
     set application main function
@@ -1232,7 +1391,8 @@ _.merge(xui,{
     */
     _m:[],
     main:function(fun){
-        xui._m.push(fun);
+        if(_.arr.indexOf(xui._m, fun)==-1)
+            xui._m.push(fun);
         // run it now
         if(xui.isDomReady){
             xui._domReadyFuns();
@@ -1248,7 +1408,7 @@ _.merge(xui,{
         xui.getPath('a.b','','appearance') => xui.ini.appPath + /a/appearance/b/"
         xui.getPath('a.b','.gif','appearance') => xui.ini.appPath + /a/appearance/b.gif"
     */
-    getPath : function(key, tag, folder){
+    getPath : function(key, tag, folder,options){
         key=key.split('.');
         if(folder){
             var a=[key[0],folder];
@@ -1260,13 +1420,13 @@ _.merge(xui,{
 
         var pre,ini=xui.ini;
         if(key[0]=='xui'){
-            pre=ini.path;
+            pre=(options&&options.xuiPath)||ini.path;
             key.shift();
             if(key.length==(folder?1:0))key.push('xui');
         }else{
-            pre=ini.appPath;
+            pre=(options&&options.appPath)||ini.appPath;
             if(key.length==((folder?1:0)+1) && tag=='.js')key.push('index');
-            if(ini.verPath) pre += ini.verPath + '/';
+            if((options&&options.verPath)||ini.verPath) pre += ((options&&options.verPath)||ini.verPath) + '/';
             if(ini.ver) pre += ini.ver + '/';
         }
         if(pre.slice(-1)!="/")
@@ -1274,14 +1434,16 @@ _.merge(xui,{
         return pre + key.join('\/') + (tag||'\/');
     },
     getClassName:function(uri){
-        var a=uri.split(/\/js\//g),
-            b,c,n=a.length;
-        if(n>=2){
-            // get the last one: any/js/any/App/js/index.js
-            b=a[n-2].split(/\//g);
-            b=b[b.length-1];
-            a=a[n-1].replace(/\.js$/i,"");
-            return (b+(a?".":"")+a.replace(/\//g,".")).replace(/^([^.]+)\.index$/,'$1');
+        if(uri&&_.isStr(uri)){
+            var a=uri.split(/\/js\//g),
+                b,c,n=a.length;
+            if(n>=2){
+                // get the last one: any/js/any/App/js/index.js
+                b=a[n-2].split(/\//g);
+                b=b[b.length-1];
+                a=a[n-1].replace(/\.js$/i,"");
+                return (b+(a?".":"")+a.replace(/\//g,".")).replace(/^([^.]+)\.index$/,'$1');
+            }
         }
     },
     log:_.fun(),
@@ -1291,7 +1453,15 @@ _.merge(xui,{
     //profile object cache
     _pool:[],
     getObject:function(id){return xui._pool['$'+id]},
-
+    getObjectByAlias:function(alias){
+        var o;
+        for(var i in xui._pool){
+            o=xui._pool[i];
+            if(('alias' in o)&&o.alias===alias){
+                return typeof(o.boxing)=="function"?o.boxing():o;
+            }
+        }
+    },
     _ghostDivId:"xui.ghost::",
     $getGhostDiv:function(){
         var pool=xui.$cache.ghostDiv,
@@ -1304,7 +1474,7 @@ _.merge(xui,{
         }
         return p;
     },
-//for handling dom element
+    //for handling dom element
     $xid:0,
     $registerNode:function(o){
         //get id from cache or id
@@ -1408,7 +1578,7 @@ _.merge(xui,{
     },
 
     //create:function(tag, properties, events, host){
-    create:function(tag){
+    create:function(tag,bak){
         var arr,o,t,me=arguments.callee,r1=me.r1||(me.r1=/</);
         if(typeof tag == 'string'){
             //Any class inherited from xui.absBox
@@ -1419,18 +1589,63 @@ _.merge(xui,{
                     arr[i-1]=arguments[i];
                 o = new (xui.SC(t))(false);
                 if(o._ini)o._ini.apply(o, arr);
+            }else if( ((t=xui.SC.get(tag))&&t["xui.Module"]) || bak =="xui.Module" ){
+                if(t){
+                    o=new t();
+                // use place holder to lazy bind
+                }else{
+                    o = new xui.UI.MoudluePlaceHolder();
+                    xui.require(tag,function(module){
+                         if(module&&module["xui.Module"]){
+                            if(o.get(0).renderId){
+                                var m=new module();
+                                m.create(function(){
+                                    o.replaceWithModule(m);
+                                });
+                            }else{
+                                o.get(0)._module = new module();
+                            }
+                         }
+                     }); 
+                }
             //from HTML string
-            }else if(r1.test(tag))
+            }else if(r1.test(tag)){
                 o = _.str.toDom(tag);
             //from HTML element tagName
-            else{
+            }else{
                 o=document.createElement(tag);
                 o.id = typeof id=='string'?id:_.id();
                 o=xui(o);
             }
         //Any class inherited from xui.absBox
-        }else
-            o = new (xui.SC(tag.key))(tag);
+        }else{
+            if(tag['xui.Module']){
+                if( (t=xui.SC.get(tag.key)) && t["xui.Module"]){
+                    o=new t(tag);
+                // use place holder to lazy bind
+                }else{
+                    o = new xui.UI.MoudluePlaceHolder();
+                    if(tag.host ||  tag.alias)o.setHost(tag.host, tag.alias);
+                    if(t=tag.events)o.setEvents(t);
+                    if(t=tag.properties)o.setProperties(t);
+
+                    if(tag.moduleClass && tag.moduleXid){
+                        o.get(0).moduleClass = tag.moduleClass;
+                        o.get(0).moduleXid = tag.moduleXid;
+                    }
+                    xui.require(tag.key, function(module){
+                        if(module&&module["xui.Module"]){
+                            var m=new module(tag);
+                            m.create(function(){
+                                o.replaceWithModule(m);
+                            });
+                         }
+                     });
+                }
+            }else{
+                o = new (xui.SC(tag.key))(tag);
+            }
+        }
         return o;
     },
     use:function(xid){
@@ -1447,6 +1662,7 @@ new function(){
     //browser sniffer
     var w=window, u=navigator.userAgent.toLowerCase(), d=document, dm=d.documentMode, b=xui.browser={
         kde:/webkit/.test(u),
+        applewebkit:/applewebkit/.test(u),
         opr:/opera/.test(u),
         ie:(/msie/.test(u) && !/opera/.test(u)),
         newie:/trident\/.* rv:([0-9]{1,}[.0-9]{0,})/.test(u),
@@ -1472,6 +1688,21 @@ new function(){
         s=u.split(s)[1].split('.');
         return k + (b.ver=parseFloat((s.length>0 && isFinite(s[1]))?(s[0]+'.'+s[1]):s[0]))
     };
+    
+   // for new device
+    if(w.matchMedia && typeof w.matchMedia=='function'){
+        // detect touch for device
+        b.isTouch = w.matchMedia('(any-pointer: coarse)').matches;
+        b.deviceType = b.isTouch 
+            ? ( 
+                (w.matchMedia('(any-hover: hover)').matches || w.matchMedia('(any-pointer: fine)').matches) 
+                    ? 'hybrid'
+                    : 'touchOnly'
+            ) 
+            : 'mouseOnly';
+    }else{
+        b.deviceType = b.isTouch ? 'touchOnly' : 'mouseOnly';
+    }
 
     xui.$secureUrl=b.isSecure&&b.ie?'javascript:""':'about:blank';
 
@@ -1504,10 +1735,12 @@ new function(){
     }else if(b.kde){
         b[v('kde','webkit/')]=true;
         if(b.isSafari){
-           if(/applewebkit\/4/.test(u))
+           if(/applewebkit\/4]/.test(u))
                 b["safari"+(b.ver=2)]=true;
-           else
+           else if(/version/.test(u))
                 b[v('safari','version/')]=true;
+           else
+                b["safari"]=true;
         }else if(b.isChrome)
             b[v('chrome','chrome/')]=true;
 
@@ -1551,6 +1784,8 @@ new function(){
         appPath:location.href.split('?')[0].replace(/[^\\\/]+$/,''),
         img_bg: ini.path+'bg.gif',
         img_busy: ini.path+'busy.gif',
+        img_icon: ini.path+'icon.png',
+        img_pic: ini.path+'picture.png',
         img_blank:b.ie&&b.ver<=7?(ini.path+'bg.gif'):"data:image/gif;base64,R0lGODlhAQABAID/AMDAwAAAACH5BAEAAAAALAAAAAABAAEAAAICRAEAOw==",
         dummy_tag:'$_dummy_$'
     },'without');
@@ -1563,13 +1798,33 @@ new function(){
     var f = xui._domReadyFuns= function(){
         if(!xui.isDomReady){
             if(d.addEventListener ) {
-          d.removeEventListener("DOMContentLoaded", f, false );
-          w.removeEventListener("load", f, false );
-        } else {
-          d.detachEvent("onreadystatechange", f);
-          w.detachEvent("onload", f);
+              d.removeEventListener("DOMContentLoaded", f, false );
+              w.removeEventListener("load", f, false );
+            } else {
+              d.detachEvent("onreadystatechange", f);
+              w.detachEvent("onload", f);
+            }
+
+            // adjust touchonly again
+            if(xui.browser.deviceType != 'touchOnly' && !xui.Dom.getScrollBarSize()){
+                xui.browser.deviceType = 'touchOnly';
+                if(xui.UI){
+                    var f=function(c){
+                        _.arr.each(c,function(key){
+                            if(key=xui.SC.get(key)){
+                                if(key.$DataModel.overflow){
+                                    key.$DataModel.overflow.ini='auto';
+                                    key.$DataStruct.overflow='auto';
+                                }
+                                if(key.$children && key.$children.length)f(key.$children);
+                            }
+                        });
+                    };
+                    f(xui.UI.$children);
+                }
+            }
         }
-      }
+
         try{
             if(xui.ini.customStyle&&!_.isEmpty(xui.ini.customStyle)){
                 var arr=[],style=xui.ini.customStyle,txt;
@@ -1608,6 +1863,7 @@ new function(){
     // to ensure
     (function(){((!xui.isDomReady)&&((!d.readyState)||/in/.test(d.readyState)))?_.setTimeout(arguments.callee,9):f()})();
 };
+
 // for loction url info
 new function(){
     xui._uriReg=/^([\w.+-]+:)(?:\/\/(?:[^\/?#]*@|)([^\/?#:]*)(?::(\d+)|)|)/;
@@ -1695,7 +1951,7 @@ new function(){
                     return o;
                 },
                 target=conf.target,
-                method=conf.method+"",
+                method=(conf.method+"").split("-")[0],
                 iparams=_.clone(conf.params)||[],
                 conditions=conf.conditions||[],
                 adjust=conf.adjust||null,
@@ -1736,31 +1992,31 @@ new function(){
                                         }
                                         // get root only
                                         xui('body').children().each(function(xid){
-                                            var com=xui.Com.getFromDom(xid);
-                                            if(com && com._showed){
-                                                if(ar.cache)com.hide();else com.destroy();
+                                            var module=xui.Module.getFromDom(xid);
+                                            if(module && module._showed){
+                                                if(ar.cache)module.hide();else module.destroy();
                                             }
                                         });   
-                                        xui.showCom(ar.xuicom);
+                                        xui.showModule(ar.xuimodule);
                                     });
                                 }
                                 
-                                var fi="xuicom="+target;
+                                var fi="xuimodule="+target;
                                 if(iparams[0])fi+="&cache="+(iparams[0]?true:false);
                                 xui.History.setFI(fi);
                                 return;
                             }
-                            // try to get com
+                            // try to get module
                             var cls=_.get(window,target.split(".")),ins;
                             // get first one
                             if(cls)for(var i in cls._pool){ins=cls._pool[i];break;}
 
                             // handle hide / destroy
                             if(method=="show"||method=="pop"){
-                                // special for xui.Com.show
-                                iparams.unshift(function(err,com){
+                                // special for xui.Module.show
+                                iparams.unshift(function(err,module){
                                     if(method=="pop" && !err){
-                                        t=com.getUIComponents(true);
+                                        t=module.getUIComponents(true);
                                         if((t=t.getRoot())&&(t=t.get(0)))
                                             xui(t).pop(iparams[1]||_ns.args[0]);
                                     }
@@ -1770,13 +2026,14 @@ new function(){
                                     if(err)return;
                                     if(_.isFun(t=ins.show))t.apply(ins, iparams);
                                 };
-                                if(!ins)xui.getCom(target,ff);  else ff(null, ins);
+                                if(!ins)xui.getModule(target,ff);  else ff(null, ins);
                             }else{
                                 if(ins && _.isFun(t=_.get(ins,[method])))t.apply(ins,iparams)
                                 return;
                             }
                             break;
                         case 'control':
+                        case 'module':
                             if(method=="pop"){
                                  t=_.get(scope,[target]);
                                  if((t=t.getRoot())&&(t=t.get(0)))
@@ -1837,6 +2094,10 @@ new function(){
                                                 case "stringify":
                                                     iparams[1]=_.stringify(iparams[1]);
                                                 break;
+                                                default:
+                                                    if(typeof(adjust=_.get(adjust))=="function")
+                                                        iparams[1]=adjust(iparams[1]);
+                                                break;
                                             }
                                         }
                                         _.set(_ns, (method+"."+_.str.trim(iparams[0])).split(/\s*\.\s*/), iparams[1]);
@@ -1860,10 +2121,9 @@ new function(){
                                             if(_.isStr(t)&&/[\w\.\s*]+\(\s*\)\s*\}$/.test(t)){
                                                 t=t.split(/\s*\.\s*/);
                                                 m=t.pop().replace(/[()}\s]/g,'');
-                                                t=xui.adjustVar(t.join(".")+"}", _ns);
-                                                if(t && _.isFun(t[m])){
-                                                    doit=1;
-                                                }
+                                                t=t.join(".")+"}";
+                                                t=xui.adjustVar(t, _ns) || xui.adjustVar(t);
+                                                doit=t&&t[m]&&_.isFun(t[m]);
                                             }else if(_.isStr(t=iparams[0])&&_.isFun((n=xui.$cache.callback[t])&&(t=n[0])&&t&&(t[m=n[1]]))){
                                                 doit=1;
                                             }
@@ -1888,8 +2148,222 @@ new function(){
         }*/
     };
 };
-/*xui.Thread
-*  dependency: _ ; Class ; xui
+
+/*serialize/unserialize
+*/
+new function(){
+    var
+    M ={
+        '\b': '\\b',
+        '\t': '\\t',
+        '\n': '\\n',
+        '\f': '\\f',
+        '\r': '\\r',
+        '\"' : '\\"',
+        '\\': '\\\\',
+        '/': '\\/',
+        '\x0B': '\\u000b'
+    },
+    H={'@window':'window','@this':'this'},
+    // A1/A2 for avoiding IE's lastIndex problem
+    A1=/\uffff/.test('\uffff') ? /[\\\"\x00-\x1f\x7f-\uffff]/ : /[\\\"\x00-\x1f\x7f-\xff]/,
+    A2=/\uffff/.test('\uffff') ? /[\\\"\x00-\x1f\x7f-\uffff]/g : /[\\\"\x00-\x1f\x7f-\xff]/g,
+    D=/^(-\d+|\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.(\d{1,3}))?((?:[+-](\d{2})(\d{2}))|Z)?$/,
+    E=function(t,i,a,v,m,n,p){
+        for(i in t)
+            if((a=typeof (v=t[i]))=='string' && (v=D.exec(v))){
+                m=v[8]&&v[8].charAt(0);
+                if(m!='Z')n=(m=='-'?-1:1)*((+v[9]||0)*60)+(+v[10]||0);
+                else n=0;
+                m=new Date(+v[1],+v[2]-1,+v[3],+v[4],+v[5],+v[6],+v[7]||0);
+                n+=m.getTimezoneOffset();
+                if(n)m.setTime(m.getTime()+n*60000);
+                t[i]=m;
+            }else if(a=='object' && t[i] && (_.isObj(t[i]) || _.isArr(t[i]))) E(t[i]);
+        return t;
+    },
+    R=function(n){return n<10?'0'+n:n},
+
+    F='function',
+    N='number',
+    L='boolean',
+    S='string',
+    O='object',
+    T={},
+    MS=function(x,s){return '.'+((s=x[s]())?s<10?'00'+s:s<100?'0'+s:s:'000')},
+    Z=(function(a,b){a=-(new Date).getTimezoneOffset()/60; b=a>0?'+':'-'; a=''+Math.abs(a); return b+(a.length==1?'0':'')+a+'00'})();
+    T['undefined']=function(){return 'null'};
+    T[L]=function(x){return String(x)};
+    T[N]=function(x){return ((x||x===0)&&isFinite(x))?String(x):'null'};
+    T[S]=function(x){
+        return H[x] ||
+            '"' +
+            (
+            A1.test(x)
+            ?
+            x.replace(A2, function(a,b) {
+                if(b=M[a])return b;
+                return '\\u' + ((b=a.charCodeAt())<16?'000':b<256?'00':b<4096?'0':'')+b.toString(16)
+            })
+            :
+            x
+            )
+            + '"'
+    };
+    T[O]=function(x,filter,dateformat,deep,max){
+        var me=arguments.callee, map = me.map || (me.map={prototype:1,constructor:1,toString:1,valueOf:1});
+        deep=deep||1;
+        max=max||0;
+        if(deep>xui.SERIALIZEMAXLAYER||max>xui.SERIALIZEMAXSIZE)return '"too much recursion!"';
+        max++;
+        if (x){
+            var a=[], b=[], f, i, l, v;
+            if(x===window)return "window";
+            if(x===document)return "document";
+            //for ie alien
+            if((typeof x==O || typeof x==F) && !_.isFun(x.constructor))
+                return x.nodeType? "document.getElementById('"+x.id+"')" :"$alien";
+            else if(_.isArr(x)){
+                a[0] = '[';
+                l = x.length;
+                for(i=0;i<l;++i){
+                    if(typeof filter=='function' && false==filter.call(x,x[i],i))continue;
+                    
+                    if(_.isNaN(v=x[i]))b[b.length]="NaN";
+                    else if(_.isNull(v))b[b.length]="null";
+                    else if(!_.isDefined(v))b[b.length]="undefined";
+                    else if(f=T[typeof v]){
+                        if(typeof (v=f(v,filter,dateformat,deep+1,max))==S)
+                            b[b.length]=v;
+                    }
+                }
+                a[2]=']';
+            }else if(_.isDate(x)){
+                if(dateformat=='utc')
+                    return '"'+ x.getUTCFullYear() + '-' +
+                        R(x.getUTCMonth() + 1) + '-' +
+                         R(x.getUTCDate()) + 'T' +
+                         R(x.getUTCHours()) + ':' +
+                         R(x.getUTCMinutes()) + ':' +
+                         R(x.getUTCSeconds()) +
+                         MS(x,'getUTCMilliseconds')+
+                         'Z"';
+                else if(dateformat=='gmt')
+                    return '"'+ x.getFullYear() + '-' +
+                        R(x.getMonth() + 1) + '-' +
+                         R(x.getDate()) + 'T' +
+                         R(x.getHours()) + ':' +
+                         R(x.getMinutes()) + ':' +
+                         R(x.getSeconds()) +
+                         MS(x,'getMilliseconds')+
+                         Z+'"';
+                else
+                    return 'new Date('+[x.getFullYear(),x.getMonth(),x.getDate(),x.getHours(),x.getMinutes(),x.getSeconds(),x.getMilliseconds()].join(',')+')';
+            }else if(_.isReg(x)){
+                return String(x);
+            }else{
+                if(typeof x.serialize == F)
+                    x = x.serialize();
+                if(typeof x==O){
+                    if(x.nodeType){
+                        return "document.getElementById('"+x.id+"')";
+                    }else{
+                        a[0] = '{';
+                        for(i in x){
+                            if(map[i] ||
+                                (filter===true?i.charAt(0)=='_':typeof filter=='function'?false===filter.call(x,x[i],i):0))
+                                continue;
+                            if(_.isNaN(v=x[i]))b[b.length]=T.string(i) + ':' + "NaN";
+                            else if(_.isNull(v))b[b.length]=T.string(i) + ':' + "null";
+                            else if(!_.isDefined(v))b[b.length]=T.string(i) + ':' + "undefined";
+                            else if (f=T[typeof v]){
+                                if (typeof (v=f(v,filter,dateformat,deep+1,max))==S)
+                                    b[b.length] = T.string(i) + ':' + v;
+                            }
+                        }
+                        a[2]='}';
+                    }
+                }else return String(x);
+            }
+            a[1]=b.join(', ');
+            return a[0]+a[1]+a[2];
+        }
+        return 'null'
+    };
+    T[F]=function(x){return x.$path?x.$path:String(x)};
+
+    //serialize object to string (bool/string/number/array/hash/simple function)
+    _.serialize = function (obj,filter,dateformat){
+        return _.isNaN(obj) ? "NaN" : 
+                    _.isNull(obj) ? "null" : 
+                    !_.isDefined(obj) ? "undefined" :
+                    T[typeof obj](obj,filter,dateformat||(xui&&xui.$dateFormat))||'';
+    };
+    _.stringify = function(obj,filter,dateformat){
+        return _.fromUTF8(_.serialize(obj,filter,dateformat));
+    };
+    //unserialize string to object
+    _.unserialize = function(str, dateformat){
+        if(typeof str !="string")return str;
+        if(!str)return false;
+        try{
+            str='({_:'+str+'})';
+            str=eval(str);
+            if(dateformat||(xui&&xui.$dateFormat))E(str);
+            str=str._;
+            return str;
+        }catch(e){
+            return false;
+        }
+    };
+};
+
+/*26 based id, some number id can crash opera9
+*/
+new function(){
+    _.id=function(){
+        var self=this, me=arguments.callee;
+        if(self.constructor!==me || self.a)
+            return (me._ || (me._= new me)).next();
+        self.a=[-1];
+        self.b=[''];
+        self.value='';
+    };
+    _.id.prototype = {
+        constructor:_.id,
+        _chars  :"abcdefghijklmnopqrstuvwxyz".split(''),
+        next : function(i){
+            with(this){
+                i = (i||i===0)?i:b.length-1;
+                var m,k,l;
+                if((m=a[i]) >= 25){
+                    m=0;
+                    if(i===0){
+                        a.splice(0,0,1);
+                        b.splice(0,0,'a');
+                        l=a.length;
+                        for(k=1;k<l;++k){
+                            a[k]=0;
+                            b[k]='0';
+                        }
+                        ++i;
+                    }else
+                      next(i-1);
+                }else ++m;
+                a[i]=m;
+                b[i]=_chars[m];
+                return value = b.join('');
+            }
+        }
+    };
+};
+
+
+// Some basic Classes
+
+/*
+*xui.Thread
+*  Dependencies: _ ; Class ; xui
 parameters:
 id: id of this thread, if input null, thread will create a new id
 tasks: [task,task,task ...] or [{},{},{} ...]
@@ -2156,7 +2630,7 @@ Class('xui.Thread',null,{
         isAlive:function(id){
             return !!xui.$cache.thread[id];
         },
-        //Dependency: xui.Dom
+        //Dependencies: xui.Dom
         observableRun:function(tasks,onEnd,threadid,busyMsg){
             var thread=xui.Thread, dom=xui.Dom;
             if(!_.isArr(tasks))tasks=[tasks];
@@ -2222,15 +2696,14 @@ Class('xui.Thread',null,{
     }
 });
 
-
 /*xui.absIO/ajax
-*  dependency: _ ; Class ; xui ; xui.Thread
+*  Dependencies: _ ; Class ; xui ; xui.Thread
 */
 /*
         get     post    get(cross domain)   post(corss domain)  post file   return big data(corss domain)
 ajax    +       +       -                   -                   -           -
-sajax   +       -       +                   -                   -           *
-iajax   +       +       +                   *                   *           *
+sajax   +       -       +                   -                   -           * JSONP
+iajax   +       +       +                   *                   *           * IDMI
 */
 Class('xui.absIO',null,{
     Constructor:function(uri, query, onSuccess, onFail, threadid, options){
@@ -2266,9 +2739,11 @@ Class('xui.absIO',null,{
             contentType : options.contentType||'',
             Accept : options.Accept||'',
             header : options.header||null,
-            asy : options.asy!==false,
-            method : 'POST'==(options.method||con.method).toUpperCase()?'POST':'GET'
+            asy : options.asy!==false
         },'all');
+        var m=(options.method||con.method).toUpperCase();
+        options.method = 'POST'==m ? 'POST' : 'PUT'==m ? 'PUT' : 'DELETE'==m ? 'DELETE' : 'PATCH'==m ? 'PATCH' : 'GET';
+
         var a='retry,timeout,reqType,rspType,optimized,customQS'.split(',');
         for(var i=0,l=a.length;i<l;i++){
             options[a[i]] = (a[i] in options)?options[a[i]]:con[a[i]];
@@ -2323,6 +2798,7 @@ Class('xui.absIO',null,{
                     self._flag=0
                 }
                 xui.Thread.resume(self.threadid);
+                _.tryF(self.$onEnd,[],self);
                 _.tryF(self.onEnd,[],self);
                 self._clear();
             }
@@ -2330,6 +2806,7 @@ Class('xui.absIO',null,{
         _onStart:function(){
             var self=this;
             xui.Thread.suspend(self.threadid);
+            _.tryF(self.$onStart,[],self);
             _.tryF(self.onStart,[],self);
         },
         _onResponse:function(){
@@ -2387,10 +2864,10 @@ Class('xui.absIO',null,{
         _if:function(doc,id,onLoad){
             var ie8=xui.browser.ie && xui.browser.ver<9,
                 scr=ie8
-                    ? ("<iframe "+(id?("name='"+"xui_IAajax_"+id+"'"):"")+(onLoad?(" onload='xui.IAjax._o(\""+id+"\")'"):"")+">")
+                    ? ("<iframe "+(id?("name='"+"xui_xdmi:"+id+"'"):"")+(onLoad?(" onload='xui.XDMI._o(\""+id+"\")'"):"")+">")
                     : "iframe";
             var n=doc.createElement(scr),w;
-            if(id)n.id=n.name="xui_IAajax_"+id;
+            if(id)n.id=n.name="xui_xdmi:"+id;
             if(!ie8 && onLoad)n.onload=onLoad;
             n.style.display = "none";
             doc.body.appendChild(n);
@@ -2427,6 +2904,7 @@ Class('xui.absIO',null,{
         }
     }
 });
+
 Class('xui.Ajax','xui.absIO',{
     Instance:{
         _XML:null,
@@ -2564,7 +3042,8 @@ Class('xui.Ajax','xui.absIO',{
         $asFunction:1
     }
 });
-Class('xui.SAjax','xui.absIO',{
+// JSONP
+Class('xui.JSONP','xui.absIO',{
     Instance:{
         start:function(){
             var self=this,id,c=self.constructor, t, n, ok=false;
@@ -2596,8 +3075,8 @@ Class('xui.SAjax','xui.absIO',{
                         if(self.rspType=='script'){
                             if(typeof self.checkKey=='string')
                                 _.asyRun(function(){
-                                    _.exec("if(xui.SC.get('"+self.checkKey+"'))xui.SAjax._pool['"+id+"'][0]._onResponse();" +
-                                        "else xui.SAjax._pool['"+id+"'][0]._loaded();");
+                                    _.exec("if(xui.SC.get('"+self.checkKey+"'))xui.JSONP._pool['"+id+"'][0]._onResponse();" +
+                                        "else xui.JSONP._pool['"+id+"'][0]._loaded();");
                                 });
                             else
                                 self._onResponse();
@@ -2682,7 +3161,7 @@ Class('xui.SAjax','xui.absIO',{
             var self=this;
             _.asyRun(function(){
                 if(self.id && self.constructor._pool[self.id])
-                    self._onError(new Error("SAjax return script doesn't match"));
+                    self._onError(new Error("JSONP return script doesn't match"));
             },500);
         }
     },
@@ -2698,26 +3177,27 @@ Class('xui.SAjax','xui.absIO',{
                     o[i]._onResponse();
                 }
             }else
-                self._onError(new Error("SAjax return value formatting error--"+obj));
+                self._onError(new Error("JSONP return value formatting error--"+obj));
         },
         customQS:function(obj){
             var c=this.constructor,  b=c.callback,nr=(this.rspType!='script');
             if(typeof obj=='string')
-                return (obj||"") + (nr?("&" + b + '=xui.SAjax.No._'+this.id):'');
+                return (obj||"") + (nr?("&" + b + '=xui.JSONP.No._'+this.id):'');
             else{
                 if(nr){
-                    obj[b]="xui.SAjax.No._"+this.id;
+                    obj[b]="xui.JSONP.No._"+this.id;
                 }
                 return obj;
             }
         }
     }
 });
-Class('xui.IAjax','xui.absIO',{
+// XDMI : Cross-Domain Messaging with iframes
+Class('xui.XDMI','xui.absIO',{
     Instance:{
         _useForm:true,
         start:function(){
-            var self=this,c=self.constructor, i, id, t, n, k, o, b, form,onload;
+            var self=this,w=window,c=self.constructor, i, id, t, n, k, o, b, form,onload;
             if(false===_.tryF(self.beforeStart,[],self)){
                 self._onEnd();
                 return;
@@ -2732,55 +3212,6 @@ Class('xui.IAjax','xui.absIO',{
             else
                 c._pool[id]=[self];
 
-            //use window.name
-            self._onload = onload = function(id){
-                //in some situation, this function will be triggered twice.
-                if(self.OK)return;
-                //in IE/opera, "setting an image file as dummy" will trigger the second onload event with 'self.node == null'
-                if(!self.node)return;
-                var w=self.node.contentWindow,c=xui.IAjax,o,t;
-                //in opera, "set location" will trigger location=='about:blank' at first
-                if(xui.browser.opr)try{if(w.location=='about:blank')return}catch(e){}
-                self.OK=1;
-                // first round: try to syn domain
-                var flag=0;
-                try{if(w.name===undefined)flag=1}catch(e){flag=1}
-                if(flag){
-                    w.location.replace(c._getDummy()+'#'+xui.ini.dummy_tag);
-                }
-
-                // get data
-                (function(){
-                    // second round: try to get data
-                    var flag=0;
-                    try{if(w.name===undefined)flag=1}catch(e){flag=1}
-                    if(flag){
-                        return _.asyRun(arguments.callee);
-                    }
-
-                    var data;
-                    if(("xui_IAajax_"+self.id)==w.name){
-                        //clear first
-                        self._clear();
-                        self._onError(new Error('IAjax no return value'));
-                        return;
-                    }else{
-                        data=w.name;
-                    }
-
-                    if(data && (o=_.unserialize(data)) && (t=c._pool[self.id]) ){
-                        for(var i=0,l=t.length;i<l;i++){
-                            t[i]._response=o;
-                            t[i]._onResponse();
-                        }
-                    }else{
-                        //clear first
-                        self._clear();
-                        self._onError(new Error("IAjax return value formatting error, or no matched 'id'-- "+data));
-                    }
-                })();
-            };
-
             //create form
             var a=c._if(document,id, onload);
             self.node=a[0];
@@ -2789,17 +3220,102 @@ Class('xui.IAjax','xui.absIO',{
             form = self.form = document.createElement('form');
             form.style.display='none';
 
+            // use postmessage
+            if (w['postMessage']) {
+                self._msgcb=function(e){
+                    if(!self.node)return;
+                    // only take self message
+                    if(e.source!==self.frm){
+                        return;
+                    }
+                    e=e.data;
+                    if(self.rspType=="json"){
+                        e = _.unserialize(e) || e;
+                    }
+                    if(e && (t=c._pool[self.id])){
+                        for(var i=0,l=t.length;i<l;i++){
+                            t[i]._response=e;
+                            t[i]._onResponse();
+                        }
+                    }else{
+                        //clear first
+                        self._clear();
+                        self._onError(new Error("XDMI return value formatting error"));                        
+                    }
+                };
+                 if (w.addEventListener) w.addEventListener('message', self._msgcb, false);
+                 else w.attachEvent('onmessage', self._msgcb);
+            }
+            // use window.name
+            else{
+                self._onload = onload = function(id){
+                    //in some situation, this function will be triggered twice.
+                    if(self.OK)return;
+                    //in IE/opera, "setting an image file as dummy" will trigger the second onload event with 'self.node == null'
+                    if(!self.node)return;
+                    var w=self.node.contentWindow,c=xui.XDMI,o,t;
+                    //in opera, "set location" will trigger location=='about:blank' at first
+                    if(xui.browser.opr)try{if(w.location=='about:blank')return}catch(e){}
+                    self.OK=1;
+                    // first round: try to syn domain
+                    var flag=0;
+                    try{if(w.name===undefined)flag=1}catch(e){flag=1}
+                    if(flag){
+                        w.location.replace(c._getDummy()+'#'+xui.ini.dummy_tag);
+                    }
+
+                    // get data
+                    (function(){
+                        // second round: try to get data
+                        var flag=0;
+                        try{if(w.name===undefined)flag=1}catch(e){flag=1}
+                        if(flag){
+                            return _.asyRun(arguments.callee);
+                        }
+
+                        var data;
+                        if(("xui_xdmi:"+self.id)==w.name){
+                            //clear first
+                            self._clear();
+                            self._onError(new Error('XDMI no return value'));
+                            return;
+                        }else{
+                            data=w.name;
+                        }
+
+                        if(data && (o=_.unserialize(data)) && (t=c._pool[self.id]) ){
+                            for(var i=0,l=t.length;i<l;i++){
+                                t[i]._response=o;
+                                t[i]._onResponse();
+                            }
+                        }else{
+                            //clear first
+                            self._clear();
+                            self._onError(new Error("XDMI return value formatting error, or no matched 'id'-- "+data));
+                        }
+                    })();
+                };
+            }
+
             var uri=self.uri;
             if(self.method!='POST')
                 uri = uri.split("?")[0];
 
             form.action=self.uri;
             form.method=self.method;
-            form.target="xui_IAajax_"+id;
+            form.target="xui_xdmi:"+id;
 
             k=self.query||{};
+            var file,files=[];
             for(i in k){
-                if(k[i] && k[i].nodeType==1){
+                if(k[i] && k[i]['xui.UIProfile'] && k[i].$xuiFileCtrl){
+                    if(file=k[i].boxing().getUploadObj()){
+                        files.push({id:k[i].$xid, file:file});
+                        file.id=file.name=i;
+                        form.appendChild(file);
+                        b=true;
+                    }
+                }else if(k[i] && k[i].nodeType==1){
                     k[i].id=k[i].name=i;
                     form.appendChild(k[i]);
                     b=true;
@@ -2820,19 +3336,35 @@ Class('xui.IAjax','xui.absIO',{
             document.body.appendChild(form);
             //submit
             form.submit();
-
+            
+            if(files.length){
+                _.arr.each(files,function(o,i){
+                    if(i=xui.getObject(o.id)){
+                        if(i['xui.UIProfile'] && i.boxing() && i.boxing().setUploadObj){
+                            i.boxing().setUploadObj(o.file);
+                        }
+                    }
+                });
+            }
+            
             t=form=null;
             //set timeout
             if(self.timeout > 0)
                 self._flag = _.asyRun(function(){if(self && !self._end){self._time()}}, self.timeout);
         },
         _clear:function(){
-            var self=this, n=self.node,f=self.form, c=self.constructor, div=document.createElement('div'),id=self.id,_pool=c._pool;
+            var self=this, n=self.node,f=self.form, c=self.constructor, w=window, div=document.createElement('div'),id=self.id,_pool=c._pool;
             if(_pool[id]){
                 _pool[id].length=0;
                 delete _pool[id];
             }
-            if(xui.browser.gek&&n)try{n.onload=null;var d=n.contentWindow.document;d.write(" ");d.close()}catch(e){}
+            if (n&&w['postMessage']) {
+                 if (w.removeEventListener) w.removeEventListener('message', self._msgcb, false);
+                 else w.detachEvent('onmessage', self._msgcb);
+                 self._msgcb=null;
+            }else{
+                if(xui.browser.gek&&n)try{n.onload=null;var d=n.contentWindow.document;d.write(" ");d.close()}catch(e){}
+            }
             self.form=self.node=self.frm=null;
             if(n)div.appendChild(n.parentNode.removeChild(n));
             if(f)div.appendChild(f.parentNode.removeChild(f));
@@ -2900,18 +3432,26 @@ Class('xui.IAjax','xui.absIO',{
             return '/favicon.ico';
         },
         customQS:function(obj){
-            var s=this,c=s.constructor,t=c.callback;
+            var s=this,c=s.constructor,t=c.callback,w=window;
             obj[t]='window.name';
+            if(window['postMessage'])
+                obj[t]=obj.parentDomain=w.location.origin || (w.location.protocol + "//" + w.location.hostname + (w.location.port ? ':' + w.location.port: ''));
+            else
+                obj[t]='window.name';
             return obj;
         }
     }
 });
-
+new function(){
+    // for compitable
+    xui.SAjax=xui.JSONP;
+    xui.IAjax=xui.XDMI;
+};
 /*xui.SC for straight call
-*  dependency: _ ; Class ; xui ; xui.Thread ; xui.absIO/ajax
+*  Dependencies: _ ; Class ; xui ; xui.Thread ; xui.absIO/ajax
 */
 Class('xui.SC',null,{
-    Constructor:function(path, callback, isAsy, threadid, options){
+    Constructor:function(path, callback, isAsy, threadid, options, force){
         var upper=arguments.callee.upper;
         if(upper)upper.call(this);
         upper=null;
@@ -2922,7 +3462,7 @@ Class('xui.SC',null,{
             options=options||{};
             options.$cb=callback;
             if(isAsy)options.threadid=threadid;
-            r=p[path]=xui.SC._call(path||'', options, isAsy);
+            r=p[path]=xui.SC._call(path||'', options, isAsy, force);
         }
         return r;
     },
@@ -2940,11 +3480,11 @@ Class('xui.SC',null,{
         /* function for "Straight Call"
         *   asy     loadSnips use
         *   true    true    ajax
-        *   true    false   sajax
+        *   true    false   sajax JSONP
         *   false   ture    ajax
         *   false   false   ajax
         */
-        _call : function (s, options, isAsy){
+        _call : function (s, options, isAsy, force){
             isAsy = !!isAsy;
             var i,t,r,o,funs=[],ep=xui.SC.get,ct=xui.$cache.snipScript,
             f= function(text,n,threadid){
@@ -2957,7 +3497,7 @@ Class('xui.SC',null,{
                             (self.$cache || ct)[self.$tag]=text;
                         else
                             //for sy xmlhttp ajax
-                            try{_.exec(text)}catch(e){throw e.name + ": " + e.message+ " " + self.$tag}
+                            try{_.exec(text,s)}catch(e){throw e.name + ": " + e.message+ " " + self.$tag}
                     }
                 }
                 t=Class._last;
@@ -2975,32 +3515,32 @@ Class('xui.SC',null,{
                 _.tryF(self.$cb,[null,null,self.threadid],self);
             };
             //get from object first
-            if(!(r=ep(s))){
+            if(force || !(r=ep(s))){
                 //if script in cache
-                if(t=ct[s]){
+                if(!force && (t=ct[s])){
                     isAsy=false;
                     f.call({$cb: options.$cb},t);
                     //delete it
                     delete ct[s];
                 }
                 //get from object second
-                if(!(r=ep(s))){
-                     //load from sy ajax
-                     o=xui.getPath(s,'.js','js');
+                if(force || !(r=ep(s))){
                      options = options ||{};
+                     //load from sy ajax
+                     o=xui.getPath(s,'.js','js',options);
                      options.$tag = s;
                      Class._ignoreNSCache=1;Class._last=null;
                      var ajax;
                      //asy and not for loadSnips
                      if(isAsy && !options.$p){
                         options.rspType="script";
-                        ajax=xui.SAjax;
+                        ajax=xui.JSONP;
                      }else{
                         options.asy=isAsy;
                         ajax=xui.Ajax;
                     }
                     //get text from sy ajax
-                    ajax(o, {rand:_()}, f, fe, null, options).start();
+                    ajax(o, xui.$rand+"="+_.rand(), f, fe, null, options).start();
                     //for asy once only
                     if(!isAsy)
                         r=ep(s);
@@ -3014,12 +3554,12 @@ Class('xui.SC',null,{
         arr: key array, ['xui.UI.Button','xui.UI.Input']
         callback: fire this function after all js loaded
         */
-        loadSnips:function(pathArr,cache,callback,onEnd,threadid){
+        loadSnips:function(pathArr,cache,callback,onEnd,threadid,options,isAsy){
             if(!pathArr || !pathArr.length){
                 _.tryF(onEnd,[threadid]);
                 return;
             }
-            var bak={}, options={$p:1,$cache:cache||xui.$cache.snipScript};
+            var bak={}, options=_.merge(options||{}, {$p:1,$cache:cache||xui.$cache.snipScript});
             for(var i=0,l=pathArr.length;i<l;i++)
                 bak[pathArr[i]]=1;
 
@@ -3037,7 +3577,7 @@ Class('xui.SC',null,{
             }
             xui.Thread.suspend(threadid);
             for(var i=0,s; s=pathArr[i++];)
-                this._call(s, _.merge({$tag:s},options), true);
+                this._call(s, _.merge({$tag:s},options,isAsy), true);
         },
         runInBG:function(pathArr, callback, onStart, onEnd){
             var i=0,j,t,self=this,fun=function(threadid){
@@ -3054,10 +3594,10 @@ Class('xui.SC',null,{
         execSnips:function(cache){
             var i,h=cache||xui.$cache.snipScript;
             for(i in h)
-                try{_.exec(h[i])}catch(e){throw e}
+                try{_.exec(h[i],i)}catch(e){throw e}
             h={};
         },
-        //asy load multi js file, whatever dependency
+        //asy load multi js file, whatever Dependencies
         /*
         *1.busy UI
         *3.xui.SC.groupCall some js/class
@@ -3066,7 +3606,7 @@ Class('xui.SC',null,{
         *6.execute other ..
         *7.free UI
         */
-        groupCall:function(pathArr, callback, onEnd, threadid){
+        groupCall:function(pathArr, onEnd, callback, threadid,options,isAsy){
             if(pathArr){
                 //clear first
                 var self=this;
@@ -3077,218 +3617,12 @@ Class('xui.SC',null,{
                     _.tryF(onEnd,[threadid]);
                     onEnd=null;
                     xui.Thread.resume(threadid);
-                });
+                },null,options,isAsy);
             }else
                 _.tryF(onEnd,[threadid]);
         }
     }
 });
-
-/*serialize/unserialize
-*/
-new function(){
-    var
-    M ={
-        '\b': '\\b',
-        '\t': '\\t',
-        '\n': '\\n',
-        '\f': '\\f',
-        '\r': '\\r',
-        '\"' : '\\"',
-        '\\': '\\\\',
-        '/': '\\/',
-        '\x0B': '\\u000b'
-    },
-    H={'@window':'window','@this':'this'},
-    // A1/A2 for avoiding IE's lastIndex problem
-    A1=/\uffff/.test('\uffff') ? /[\\\"\x00-\x1f\x7f-\uffff]/ : /[\\\"\x00-\x1f\x7f-\xff]/,
-    A2=/\uffff/.test('\uffff') ? /[\\\"\x00-\x1f\x7f-\uffff]/g : /[\\\"\x00-\x1f\x7f-\xff]/g,
-    D=/^(-\d+|\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.(\d{1,3}))?((?:[+-](\d{2})(\d{2}))|Z)?$/,
-    E=function(t,i,a,v,m,n,p){
-        for(i in t)
-            if((a=typeof (v=t[i]))=='string' && (v=D.exec(v))){
-                m=v[8]&&v[8].charAt(0);
-                if(m!='Z')n=(m=='-'?-1:1)*((+v[9]||0)*60)+(+v[10]||0);
-                else n=0;
-                m=new Date(+v[1],+v[2]-1,+v[3],+v[4],+v[5],+v[6],+v[7]||0);
-                n+=m.getTimezoneOffset();
-                if(n)m.setTime(m.getTime()+n*60000);
-                t[i]=m;
-            }else if(a=='object' && t[i] && (_.isObj(t[i]) || _.isArr(t[i]))) E(t[i]);
-        return t;
-    },
-    R=function(n){return n<10?'0'+n:n},
-
-    F='function',
-    N='number',
-    L='boolean',
-    S='string',
-    O='object',
-    T={},
-    MS=function(x,s){return '.'+((s=x[s]())?s<10?'00'+s:s<100?'0'+s:s:'000')},
-    Z=(function(a,b){a=-(new Date).getTimezoneOffset()/60; b=a>0?'+':'-'; a=''+Math.abs(a); return b+(a.length==1?'0':'')+a+'00'})();
-    T['undefined']=function(){return 'null'};
-    T[L]=function(x){return String(x)};
-    T[N]=function(x){return ((x||x===0)&&isFinite(x))?String(x):'null'};
-    T[S]=function(x){
-        return H[x] ||
-            '"' +
-            (
-            A1.test(x)
-            ?
-            x.replace(A2, function(a,b) {
-                if(b=M[a])return b;
-                return '\\u' + ((b=a.charCodeAt())<16?'000':b<256?'00':b<4096?'0':'')+b.toString(16)
-            })
-            :
-            x
-            )
-            + '"'
-    };
-    T[O]=function(x,filter,dateformat,deep,max){
-        var me=arguments.callee, map = me.map || (me.map={prototype:1,constructor:1,toString:1,valueOf:1});
-        deep=deep||1;
-        max=max||0;
-        if(deep>xui.SERIALIZEMAXLAYER||max>xui.SERIALIZEMAXSIZE)return '"too much recursion!"';
-        max++;
-        if (x){
-            var a=[], b=[], f, i, l, v;
-            if(x===window)return "window";
-            if(x===document)return "document";
-            //for ie alien
-            if((typeof x==O || typeof x==F) && !_.isFun(x.constructor))
-                return x.nodeType? "document.getElementById('"+x.id+"')" :"$alien";
-            else if(_.isArr(x)){
-                a[0] = '[';
-                l = x.length;
-                for(i=0;i<l;++i){
-                    if(typeof filter=='function' && false==filter.call(x,x[i],i))continue;
-                    
-                    if(_.isNaN(v=x[i]))b[b.length]="NaN";
-                    else if(_.isNull(v))b[b.length]="null";
-                    else if(!_.isDefined(v))b[b.length]="undefined";
-                    else if(f=T[typeof v]){
-                        if(typeof (v=f(v,filter,dateformat,deep+1,max))==S)
-                            b[b.length]=v;
-                    }
-                }
-                a[2]=']';
-            }else if(_.isDate(x)){
-                if(dateformat=='utc')
-                    return '"'+ x.getUTCFullYear() + '-' +
-                        R(x.getUTCMonth() + 1) + '-' +
-                         R(x.getUTCDate()) + 'T' +
-                         R(x.getUTCHours()) + ':' +
-                         R(x.getUTCMinutes()) + ':' +
-                         R(x.getUTCSeconds()) +
-                         MS(x,'getUTCMilliseconds')+
-                         'Z"';
-                else if(dateformat=='gmt')
-                    return '"'+ x.getFullYear() + '-' +
-                        R(x.getMonth() + 1) + '-' +
-                         R(x.getDate()) + 'T' +
-                         R(x.getHours()) + ':' +
-                         R(x.getMinutes()) + ':' +
-                         R(x.getSeconds()) +
-                         MS(x,'getMilliseconds')+
-                         Z+'"';
-                else
-                    return 'new Date('+[x.getFullYear(),x.getMonth(),x.getDate(),x.getHours(),x.getMinutes(),x.getSeconds(),x.getMilliseconds()].join(',')+')';
-            }else if(_.isReg(x)){
-                return String(x);
-            }else{
-                if(typeof x.serialize == F)
-                    x = x.serialize();
-                if(typeof x==O){
-                    if(x.nodeType){
-                        return "document.getElementById('"+x.id+"')";
-                    }else{
-                        a[0] = '{';
-                        for(i in x){
-                            if(map[i] ||
-                                (filter===true?i.charAt(0)=='_':typeof filter=='function'?false===filter.call(x,x[i],i):0))
-                                continue;
-                            if(_.isNaN(v=x[i]))b[b.length]=T.string(i) + ':' + "NaN";
-                            else if(_.isNull(v))b[b.length]=T.string(i) + ':' + "null";
-                            else if(!_.isDefined(v))b[b.length]=T.string(i) + ':' + "undefined";
-                            else if (f=T[typeof v]){
-                                if (typeof (v=f(v,filter,dateformat,deep+1,max))==S)
-                                    b[b.length] = T.string(i) + ':' + v;
-                            }
-                        }
-                        a[2]='}';
-                    }
-                }else return String(x);
-            }
-            a[1]=b.join(', ');
-            return a[0]+a[1]+a[2];
-        }
-        return 'null'
-    };
-    T[F]=function(x){return x.$path?x.$path:String(x)};
-
-    //serialize object to string (bool/string/number/array/hash/simple function)
-    _.serialize = function (obj,filter,dateformat){
-        return _.isNaN(obj) ? "NaN" : 
-                    _.isNull(obj) ? "null" : 
-                    !_.isDefined(obj) ? "undefined" :
-                    T[typeof obj](obj,filter,dateformat||(xui&&xui.$dateFormat))||'';
-    };
-    _.stringify = function(obj,filter,dateformat){
-        return _.fromUTF8(_.serialize(obj,filter,dateformat));
-    };
-    //unserialize string to object
-    _.unserialize = function(str, dateformat){
-        if(typeof str !="string")return str;
-        try{
-            str='({_:'+str+'})';
-            str=eval(str);
-            if(dateformat||(xui&&xui.$dateFormat))E(str);
-            str=str._;
-            return str;
-        }catch(e){
-            return false;
-        }
-    };
-};
-
-/*26 based id, some number id can crash opera9
-*/
-_.id=function(){
-    var self=this, me=arguments.callee;
-    if(self.constructor!==me || self.a)
-        return (me._ || (me._= new me)).next();
-    self.a=[-1];
-    self.b=[''];
-    self.value='';
-};
-_.id.prototype = {
-    constructor:_.id,
-    _chars  :"abcdefghijklmnopqrstuvwxyz".split(''),
-    next : function(i){
-        with(this){
-            i = (i||i===0)?i:b.length-1;
-            var m,k,l;
-            if((m=a[i]) >= 25){
-                m=0;
-                if(i===0){
-                    a.splice(0,0,1);
-                    b.splice(0,0,'a');
-                    l=a.length;
-                    for(k=1;k<l;++k){
-                        a[k]=0;
-                        b[k]='0';
-                    }
-                    ++i;
-                }else
-                  next(i-1);
-            }else ++m;
-            a[i]=m;
-            b[i]=_chars[m];
-            return value = b.join('');
-        }
-    }
-};
 
 //xui.absBox
 Class('xui.absBox',null, {
@@ -3297,6 +3631,7 @@ Class('xui.absBox',null, {
         if(upper)upper.call(this);
         upper=null;
         this._nodes=[];
+        this.Class=this.constructor;
     },
     Before:function(key){
         var t=xui.absBox;
@@ -3414,9 +3749,10 @@ Class('xui.absProfile',null,{
             return this.$xid;
         },
         link:function(obj,id,target,index){
-            var self=this,
-                //avoid Number;
-                uid='$'+self.$xid;
+            return xui.absProfile.prototype.$link(this,obj,id,target,index);
+        },
+        $link:function(self,obj,id,target,index){
+            var uid='$'+self.$xid;
 
             target = target||self;
             if(obj[uid])self.unLink(id);
@@ -3431,25 +3767,33 @@ Class('xui.absProfile',null,{
             return self;
         },
         unLink:function(id){
-            var self=this,
-                o,
+             return xui.absProfile.prototype.$unLink(this,id);
+        },
+        $unLink:function(self, id){
+            var o, index,
                 //avoid Number;
                 uid='$'+self.$xid;
             if(!self._links)return;
             if(!(o=self._links[id]))return;
 
             //remove from target
-            if(_.isArr(o))_.arr.removeValue(o,o[uid]);
-            delete o[uid];
+            if(_.isArr(o)){
+                index = _.arr.indexOf(o,o[uid]);
+                if(index!=-1){
+                    _.arr.removeFrom(o, index);
+                }
+            }delete o[uid];
 
             //remove from self
             delete self._links[id];
 
-            return self;
+            return index;
         },
         unLinkAll:function(){
-            var self=this,
-                id='$'+self.$xid,
+            return xui.absProfile.prototype.$unLinkAll(this);
+        },
+        $unLinkAll:function(self){
+            var id='$'+self.$xid,
                 l=self._links,
                 o,i;
             for(i in l){
@@ -3459,6 +3803,32 @@ Class('xui.absProfile',null,{
             }
             self._links={};
             return self;
+        },
+        getModule:function(top){
+            var prf=this, getUpperModule=function(module){
+                    // if it's a inner module
+                    if(module.moduleClass && module.moduleXid){
+                        var pm = xui.SC.get(module.moduleClass);
+                        if(pm && (pm = pm.getInstance(module.moduleXid))){
+                            return getUpperModule(pm);    
+                        }         
+                    }
+                    return module;
+                },t;
+
+            if(prf.moduleClass&&prf.moduleXid){
+                if(t=xui.SC.get(prf.moduleClass)){
+                    if(t=t.getInstance(prf.moduleXid)){
+                        return top?getUpperModule(t):t;
+                    }
+                }
+            }
+        },
+        getParent:function(){
+            return this.parent && this.parent.boxing();
+        },
+        getChildrenId:function(){
+            return this.childrenId;
         }
     },
     Static:{
@@ -3480,7 +3850,8 @@ Class('xui.Profile','xui.absProfile',{
         self.properties=properties?_.copy(properties):(self.properties||{});
         self.events=events?_.copy(events):(self.events||{});
         self.host=host||self.host||self;
-        self.box=box||self.box||self.constructor;
+        self.Class=self.constructor;
+        self.box=box||self.box;
         if(self.events){
             self.setEvents(self.events);
             delete self.events;
@@ -3509,14 +3880,21 @@ Class('xui.Profile','xui.absProfile',{
             }
         },
         getProperties:function(key){
+            if(this._getProperties)this.properties=this._getProperties();
             var prop=this.properties;
             return key?prop[key]:_.copy(prop);
         },
         setProperties:function(key, value){
-            if(_.isHash(key))
+            if(_.isHash(key)){
+                _.merge(key, this.box.$DataStruct, function(o,i){
+                    if(!(i in key)){
+                        key[i] = _.isObj(o)?_.clone(o):o;
+                    }
+                });
                 this.properties=key;
-            else
+            }else
                 this.properties[key]=value;
+            if(this.propSetAction)this.propSetAction(this.properties);
         },
         _applySetAction:function(fun, value){
             return fun.call(this,value);
@@ -3535,7 +3913,7 @@ Class('xui.Profile','xui.absProfile',{
 
             // try to clear parent host
             var o;
-            if(ns.alias && ns.host && (o=ns.host[ns.alias]) && (o=o._nodes) && o.length===1){
+            if(ns.alias && ns.host && (o=ns.host[ns.alias]) && (o=o._nodes) && (o.length===0 || o.length===1 && o[0]==ns)){
                 delete ns.host[ns.alias];
             }
 
@@ -3563,8 +3941,8 @@ Class('xui.Profile','xui.absProfile',{
             var self=this, t;
             //for destroyed UIProfile
             if(!self.box)return null;
-            if(!((t=self._cacheInstance) && t.get(0)==self && t._nodes.length==1))
-                t = self._cacheInstance = self.box.pack([self],false);
+            if(!((t=self.Instace) && t.get(0)==self && t._nodes.length==1))
+                t = self.Instace = self.box.pack([self],false);
             return t;
         },
         serialize:function(rtnString, keepHost){
@@ -3622,7 +4000,7 @@ Class('xui.absObj',"xui.absBox",{
             temp,t,k,u,m,i,j,l,v,n,b;
         self._nameId=0;
         self._namePool={};
-        self._nameTag=self.$nameTag||('ctl_'+(t=self.KEY.split('.'))[t.length-1].toLowerCase());
+        self._nameTag=self.$nameTag||(self.KEY.replace(/\./g,'_').toLowerCase());
         self._cache=[];
         m=me.a1 || (me.a1=_.toArr('$Keys,$DataStruct,$EventHandlers,$DataModel'));
         for(j=0;v=m[j++];){
@@ -3650,6 +4028,13 @@ Class('xui.absObj',"xui.absBox",{
                 }
             if(self[v])
                 temp.push(self[v]);
+            
+            // sort sub node
+            _.arr.stableSort(temp,function(x,y){
+                x=x.$order||0;y=y.$order||0;
+                return x>y?1:x==y?0:-1;
+            });
+
             self['$'+v] = temp;
             delete self[v];
         }
@@ -3657,10 +4042,13 @@ Class('xui.absObj',"xui.absBox",{
     //don't add any other function or member to absObj
     Static:{
         $abstract:true,
-        $specialChars:{_:1,$:1},
-        _objectProp:{tagVar:1,propBinder:1},
+        $specialChars:{_:1, $:1},
+
+        // *** non-abstract child must have this
+        //_objectProp:{tagVar:1,propBinder:1},
         DataModel:{
             tag:'',
+            "name":'',
             desc:'',
             tagVar:{
                 ini:{}
@@ -3682,28 +4070,21 @@ Class('xui.absObj',"xui.absBox",{
                 }
             },
             dataField:{
-                ini:'',
-                set:function(value){
-                    var profile=this,t,
-                        p=profile.properties,
-                        ovalue=p.dataField;
-                    p.dataField=value;
-
-                    if(!p.dataBinder)return;
-                    // set control value 2
-                    var db=xui.DataBinder.getFromName(p.dataBinder);
-                    if(db && (t=db.get(0)) && (t=t.properties.data) && _.isSet(t=t[value]))
-                        //p.value=t;
-                        profile.boxing().setValue(t,true,'datafield');
-                }
+                ini:''
             }
+        },
+        get:function(index){
+          return this.pack([this._cache[index||0]]);
         },
         getAll:function(){
           return this.pack(this._cache);
         },
         pickAlias:function(){
-            var t,p=this._namePool,a=this._nameTag;
-            while(p[t=(a+(++this._nameId))]){}
+            return xui.absObj.$pickAlias(this);
+        },
+        $pickAlias:function(cls){
+            var t,p=cls._namePool,a=cls._nameTag;
+            while(p[t=(a+(++cls._nameId))]){}
             return  t;
         },
         setDataModel:function(hash){
@@ -3754,24 +4135,28 @@ Class('xui.absObj',"xui.absBox",{
                             //if same return
                             if(v.properties[i] === value && !force)return;
 
-                            var ovalue = v.properties[i];
-                            if(v.beforePropertyChanged && false===v.boxing().beforePropertyChanged(v,i,value,ovalue))
+                            if(v.$beforePropSet && false===v.$beforePropSet(i,value,force,tag,tag2)){
                                 return;
-
-                            if(typeof $set=='function'){
-                                $set.call(v,value,force,tag,tag2);
                             }else{
-                                var m = _.get(v.box.$DataModel, [i, 'action']);
-                                v.properties[i] = value;
-                                if(typeof m == 'function' && v._applySetAction(m, value, ovalue, force, tag, tag2) === false)
-                                    v.properties[i] = ovalue;
-                            }
+                                var ovalue = v.properties[i];
+                                if(v.beforePropertyChanged && false===v.boxing().beforePropertyChanged(v,i,value,ovalue))
+                                    return;
 
-                            if(v.afterPropertyChanged)
-                                v.boxing().afterPropertyChanged(v,i,value,ovalue);
+                                if(typeof $set=='function'){
+                                    $set.call(v,value,force,tag,tag2);
+                                }else{
+                                    var m = _.get(v.box.$DataModel, [i, 'action']);
+                                    v.properties[i] = value;
+                                    if(typeof m == 'function' && v._applySetAction(m, value, ovalue, force, tag, tag2) === false)
+                                        v.properties[i] = ovalue;
+                                }
+
+                                if(v.afterPropertyChanged)v.boxing().afterPropertyChanged(v,i,value,ovalue);
+                                if(v.$afterPropertyChanged) _.tryF(v.$afterPropertyChanged,[v,i,value,ovalue],v);
+                            }
                         });
                     },n,self.KEY,null,'instance');
-                    delete o.set;
+                    //delete o.set;
                     if(ps[n]!==m)ps[n].$auto$=1;
                 }else
                     delete ps[n];
@@ -3786,7 +4171,7 @@ Class('xui.absObj',"xui.absBox",{
                         else
                             return this.get(0).properties[i];
                     },n,self.KEY,null,'instance');
-                    delete o.get;
+                    //delete o.get;
                     if(ps[n]!==m)ps[n].$auto$=1;
                 }else
                     delete ps[n];
@@ -3817,51 +4202,54 @@ Class('xui.absObj',"xui.absBox",{
                                 delete v[i];
                             });
                         else{
-                            var args=[], v=this.get(0), t=v[i], host=v.host || v,j,o,r;
-                            if(t && (!_.isArr(t) || t.length)){
-                                if(v.$inDesign)return;
-                                if(arguments[0]!=v)args[0]=v;
-                                for(j=0;j<l;j++)args[args.length]=arguments[j];
-                                v.$lastEvent=i;
-                                if(!_.isArr(t))t=[t];
-                                l=t.length;
-                                if(_.isNumb(j=t[0].event))args[j]=xui.Event.getEventPara(args[j]);
-                                var temp={};
-                                var n=0,fun=function(data){
-                                    // set prompt's global var
-                                    if(_.isStr(this))temp[this+""]=data||"";
-                                    //callback from [n]
-                                    for(j=n;j<l;j++){
-                                        n=j+1;
-                                        o=t[j];
-                                        if(typeof o=='string')o=host[o];
-                                        if(typeof o=='function')r=_.tryF(o, args, host);
-                                        else if(_.isHash(o)){
-                                            if('onOK' in o ||'onKO' in o){
-                                                var resume=function(key,args){
-                                                    if(fun)fun.apply(key,args);
-                                                };
-                                                // onOK
-                                                if('onOK' in o)onOK=(o.params||(o.params=[]))[parseInt(o.onOK,10)||0]=function(){
-                                                   resume("okData",arguments);
-                                                };
-                                                if('onKO' in o)(o.params||(o.params=[]))[parseInt(o.onKO,10)||0]=function(){
-                                                    resume("koData",arguments);
-                                                };
-                                                if(false===(r=xui.pseudocode.exec(o,args,host,temp,resume))){
-                                                    n=temp=fun=null;
-                                                }
-                                                break;
-                                            }else
-                                                if(false===(r=xui.pseudocode.exec(o,args,host,temp))){
-                                                    n=j;break;
-                                                }
+                            var args=[], v=this.get(0);
+                            if(v){
+                                var t=v[i], host=v.host || v,j,o,r;
+                                if(t && (!_.isArr(t) || t.length)){
+                                    if(v.$inDesign)return;
+                                    if(arguments[0]!=v)args[0]=v;
+                                    for(j=0;j<l;j++)args[args.length]=arguments[j];
+                                    v.$lastEvent=i;
+                                    if(!_.isArr(t))t=[t];
+                                    l=t.length;
+                                    if(_.isNumb(j=t[0].event))args[j]=xui.Event.getEventPara(args[j]);
+                                    var temp={};
+                                    var n=0,fun=function(data){
+                                        // set prompt's global var
+                                        if(_.isStr(this))temp[this+""]=data||"";
+                                        //callback from [n]
+                                        for(j=n;j<l;j++){
+                                            n=j+1;
+                                            o=t[j];
+                                            if(typeof o=='string')o=host[o];
+                                            if(typeof o=='function')r=_.tryF(o, args, host);
+                                            else if(_.isHash(o)){
+                                                if('onOK' in o ||'onKO' in o){
+                                                    var resume=function(key,args){
+                                                        if(fun)fun.apply(key,args);
+                                                    };
+                                                    // onOK
+                                                    if('onOK' in o)onOK=(o.params||(o.params=[]))[parseInt(o.onOK,10)||0]=function(){
+                                                       resume("okData",arguments);
+                                                    };
+                                                    if('onKO' in o)(o.params||(o.params=[]))[parseInt(o.onKO,10)||0]=function(){
+                                                        resume("koData",arguments);
+                                                    };
+                                                    if(false===(r=xui.pseudocode.exec(o,args,host,temp,resume))){
+                                                        n=temp=fun=null;
+                                                    }
+                                                    break;
+                                                }else
+                                                    if(false===(r=xui.pseudocode.exec(o,args,host,temp))){
+                                                        n=j;break;
+                                                    }
+                                            }
                                         }
-                                    }
-                                    if(n==j)n=temp=fun=null;
-                                    return r;
-                                };
-                                return fun();
+                                        if(n==j)n=temp=fun=null;
+                                        return r;
+                                    };
+                                    return fun();
+                                }
                             }
                         }
                     };
@@ -3912,30 +4300,6 @@ Class('xui.absObj',"xui.absBox",{
                 a[a.length]=o.serialize(false, keepHost);
             });
             return rtnString===false?a:a.length==1?" new "+a[0].key+"("+_.serialize(a[0])+")":"xui.UI.unserialize("+_.serialize(a)+")";
-        },
-        setAlias:function(str){
-            var self=this,prf=this.get(0),old;
-            if(old=prf.alias){
-                if(prf.host && prf.host!==prf){
-                    try{delete prf.host[old]}catch(e){prf.host[old]=undefined}
-                    if(prf.host._ctrlpool)
-                        delete prf.host._ctrlpool[old];
-                }
-                delete self.constructor._namePool[old];
-            }
-            self.constructor._namePool[prf.alias=str]=1;
-            if(prf.host && prf.host!==prf){
-                prf.host[str]=self;
-                if(prf.host._ctrlpool)
-                    prf.host._ctrlpool[str]=self.get(0);
-            }
-            if(prf.box&&prf.box._syncAlias){
-                prf.box._syncAlias(prf,old,str);
-            }
-            return self;
-        },
-        getAlias:function(){
-            return this.get(0).alias;
         },
         getProperties:function(key){
             var h={},prf=this.get(0),prop=prf.properties,funName;
@@ -3995,11 +4359,41 @@ Class('xui.absObj',"xui.absBox",{
             return value?this.setHost(value, alias):this.getHost();
         },
         setHost:function(host, alias){
-            var self=this;
-            self.get(0).host=host;
-            if(alias)
-                self.setAlias(alias);
+            return this._setHostAlias(host, alias);
+        },
+        _setHostAlias:function(host, alias){
+            var self=this,
+                  prf=this.get(0),
+                  oldAlias=prf.alias;
+            
+            alias=alias||prf.alias;
+
+            if(oldAlias){
+                if(prf.host && prf.host!==prf){
+                    try{delete prf.host[oldAlias]}catch(e){prf.host[oldAlias]=undefined}
+                    if(prf.host._ctrlpool)
+                        delete prf.host._ctrlpool[oldAlias];
+                }
+                delete self.constructor._namePool[oldAlias];
+            }
+            self.constructor._namePool[prf.alias=alias]=1;
+            if(prf.box&&prf.box._syncAlias){
+                prf.box._syncAlias(prf,oldAlias,alias);
+            }
+
+            if(host)prf.host=host;
+            if(prf.host && prf.host!==prf){
+                prf.host[alias]=self;
+                if(prf.host._ctrlpool)
+                    prf.host._ctrlpool[alias]=self.get(0);
+            }
             return self;
+        },
+        setAlias:function(alias){
+            return this._setHostAlias(null, alias);
+        },
+        getAlias:function(){
+            return this.get(0).alias;
         },
         getHost:function(){
             return this.get(0).host;
@@ -4075,7 +4469,7 @@ Class("xui.Timer","xui.absObj",{
             profile.link(c._cache,'self').link(xui._pool,'xui');
 
             self._nodes.push(profile);
-            profile._cacheInstance=self;
+            profile.Instace=self;
             self.n0=profile;
 
             _.asyRun(function(){
@@ -4092,7 +4486,7 @@ Class("xui.Timer","xui.absObj",{
         },
         start:function(){
             return this.each(function(profile){
-                if(!profile.$inDesign)return;
+                if(profile.$inDesign)return;
 
                 var p=profile.properties,box=profile.boxing(),
                 t=xui.Thread.repeat(function(threadId){
@@ -4110,17 +4504,24 @@ Class("xui.Timer","xui.absObj",{
                 if(profile._threadid)xui.Thread(profile._threadid).suspend();
                 profile.onSuspend && box.onSuspend(profile,threadId);
             });
+        },
+        getParent:function(){
+            return this.parent && this.parent.boxing();
+        },
+        getChildrenId:function(){
+            return this.childrenId;
         }
     },
     Static:{
+        _objectProp:{tagVar:1,propBinder:1},
         _beforeSerialized:function(profile){
             var o={};
             _.merge(o, profile, 'all');
             var p = o.properties = _.clone(profile.properties,true);
-            if(p.tagVar && _.isEmpty(p.tagVar))
-                delete p.tagVar;
-            if(p.propBinder && _.isEmpty(p.propBinder))
-                delete p.tagVar;
+            if(profile.box._objectProp){
+                for(var i in profile.box._objectProp)
+                    if((i in p) && p[i] && _.isHash(p[i]) && _.isEmpty(p[i]))delete p[i];
+            }
             return o;
         },
         DataModel:{
@@ -4133,6 +4534,490 @@ Class("xui.Timer","xui.absObj",{
             onSuspend:function(profile, threadId){},
             onEnd:function(profile, threadId){}
         }
+    }
+});Class("xui.APICaller","xui.absObj",{
+    Instance:{
+        _ini:function(properties, events, host){
+            var self=this,
+                c=self.constructor,
+                profile,
+                options,
+                np=c._namePool,
+                alias,temp;
+            if(properties && properties['xui.Profile']){
+                profile=properties;
+                alias = profile.alias || c.pickAlias();
+            }else{
+                if(properties && properties.key && xui.absBox.$type[properties.key]){
+                    options=properties;
+                    properties=null;
+                    alias = options.alias;
+                    alias = (alias&&!np[alias])?alias:c.pickAlias();
+                }else
+                    alias = c.pickAlias();
+                profile=new xui.Profile(host,self.$key,alias,c,properties,events, options);
+            }
+            np[alias]=1;
+            profile._n=profile._n||[];
+
+            for(var i in (temp=c.$DataStruct))
+                if(!(i in profile.properties))
+                    profile.properties[i]=typeof temp[i]=='object'?_.copy(temp[i]):temp[i];
+
+            //set anti-links
+            profile.link(c._cache,'self').link(xui._pool,'xui');
+
+            self._nodes.push(profile);
+            profile.Instace=self;
+            self.n0=profile;
+
+            if(!profile.name)self.setName(alias);
+
+            return self;
+        },
+        destroy:function(){
+            this.each(function(profile){
+                var box=profile.box,name=profile.properties.name;
+                //delete from pool
+                delete box._pool[name];
+                //free profile
+                profile.__gc();
+            });
+        },
+        setHost:function(value, alias){
+            var self=this;
+            if(value && alias)
+                self.setName(alias);
+            return arguments.callee.upper.apply(self,arguments);
+        },
+        invoke:function(onSuccess, onFail, onStart, onEnd, mode, threadid, options){
+            var ns=this,
+                con=ns.constructor,
+                prf=ns.get(0),
+                prop=prf.properties;
+            
+            var responseType=prop.responseType,
+                requestType=prop.requestType,
+                requestId=prop.requestId,
+                queryURL=prop.queryURL,
+                proxyType=prop.proxyType.toLowerCase(),
+                queryUserName=prop.queryUserName,
+                queryPasswrod=prop.queryPasswrod,
+                queryArgs=_.copy(prop.queryArgs),
+                oAuth2Token=prop.oAuth2Token,
+                queryOptions=_.copy(prop.queryOptions),
+                queryHeader=_.copy(prop.queryHeader),
+                requestDataSource=prop.requestDataSource,
+                responseDataTarget=prop.responseDataTarget;
+
+            queryURL = xui.adjustVar(queryURL);
+
+            if(proxyType=="sajax") proxyType="jsonp";
+            else if(proxyType=="iajax") proxyType="xdmi";
+            if(requestType=="FORM"||requestType=="JSON") queryArgs = typeof queryArgs=='string'?_.unserialize(queryArgs):queryArgs;
+            if(!queryArgs)queryArgs={};
+            if(prop.avoidCache){
+                var i=0, rnd="_rand_";
+                while(queryArgs.hasOwnProperty(rnd))rnd="_rand_" + ++i;
+                queryArgs[rnd] = _.rand();
+            }
+            // merge request data
+            if(requestDataSource&&requestDataSource.length){
+                for(var i in requestDataSource){
+                    var o=requestDataSource[i],t;
+                    switch(o.type){
+                        case "databinder":
+                            if(t = xui.DataBinder.getFromName(o.name)){
+                                if(!t.updateDataFromUI()){
+                                    return;
+                                }else{
+                                    if(o.path) _.set(queryArgs, o.path.split('.'),t.getData());
+                                    else _.merge(queryArgs, t.getData(), 'without');
+                                }
+                            }
+                            break;
+                        case "form":
+                            if((t = _.get(prf,["host",o.name])) && t.Class['xui.absContainer'] && t.getRootNode()){
+                                if(!t.checkValid() || !t.checkRequired()){
+                                    return;
+                                }else{
+                                    if(o.path)  _.set(queryArgs, o.path.split('.'), t.getFormValues());
+                                    else _.merge(queryArgs, t.getFormValues(), 'without');
+                                }
+                            }
+                            break;
+                    }
+                }
+            }
+
+
+            // Normally, Gives a change to modify "queryArgs" for XML
+            if(prf.beforeInvoke && false===prf.boxing().beforeInvoke(prf, requestId))
+                return;
+
+            // for auto adjusting options
+            var rMap={header:{}};
+            if(!_.isEmpty(queryHeader)){
+                _.merge(rMap.header, queryHeader);
+            }
+            if(queryOptions.header && !_.isEmpty(queryOptions.header)){
+                _.merge(rMap.header, queryOptions.header);
+                delete queryOptions.header;
+            }
+            if(responseType=='SOAP'||requestType=='SOAP'){
+                // for wsdl
+                if(!con.WDSLCache)con.WDSLCache={};
+                if(!con.WDSLCache[queryURL]){
+                    var wsdl=xui.SOAP.getWsdl(queryURL,function(rspData){
+                       if(prf.afterInvoke)prf.boxing().afterInvoke(prf, rspData, requestId||this.uid);
+                        if(prf.onError)prf.boxing().onError(prf, rspData);
+                        _.tryF(onFail,arguments,this);
+                        _.tryF(onEnd,arguments,this);
+                    });
+                    if(wsdl)
+                        con.WDSLCache[queryURL] = wsdl;
+                    else
+                        // stop the further call
+                        return;
+                }
+            }
+            switch(responseType){
+                case "TEXT":
+                    rMap.rspType="text";
+                case "JSON":
+                    rMap.rspType="json";
+                break;
+                case "XML":
+                    proxyType="ajax";
+                    rMap.rspType="xml";
+                break;
+                case "SOAP":
+                    proxyType="ajax";
+                    rMap.rspType="xml";
+                    var namespace=xui.SOAP.getNameSpace(con.WDSLCache[queryURL]),
+                        action = ((namespace.lastIndexOf("/")!=namespace.length-1)?namespace+"/":namespace)+(queryArgs.methodName||"");
+                    rMap.header["SOAPAction"]=action;
+                break;
+            }
+            switch(requestType){
+                case "FORM":
+                    // ensure object
+                    queryArgs = typeof queryArgs=='string'?_.unserialize(queryArgs):queryArgs;
+                break;
+                case "JSON":
+                    rMap.reqType="json";
+
+                    if(prop.queryMethod=="auto")
+                        rMap.method="POST";
+                    // ensure string
+                    queryArgs = typeof queryArgs=='string'?queryArgs:_.serialize(queryArgs);
+                break;
+                case "XML":
+                    rMap.reqType="xml";
+                    proxyType="ajax";
+                    rMap.method="POST";
+                    if(queryUserName && queryPassword){
+                        rMap.username=queryUserName;
+                        rMap.password=queryPassword;
+                        rMap.header["Authorization"]="Basic "+con._toBase64(queryUserName+":"+queryPassword);
+                    }
+                    // ensure string
+                    queryArgs = typeof queryArgs=='string'?queryArgs:xui.XMLRPC.wrapRequest(queryArgs);
+                break;
+                case "SOAP":
+                    rMap.reqType="xml";
+                    proxyType="ajax";
+                    rMap.method="POST";
+                    if(queryUserName && queryPassword){
+                        rMap.username=queryUserName;
+                        rMap.password=queryPassword;
+                        rMap.header["Authorization"]="Basic "+con._toBase64(queryUserName+":"+queryPassword);
+                    }
+                    // ensure string
+                    queryArgs = typeof queryArgs=='string'?queryArgs:xui.SOAP.wrapRequest(queryArgs, con.WDSLCache[queryURL]);
+                break;
+            }
+            if(oAuth2Token)
+               rMap.header["Authorization"]="Bearer " + oAuth2Token
+
+            // Ajax/JSONP/XDMI
+            if(proxyType!="ajax")
+                rMap.asy=true;
+            if(proxyType=="jsonp")
+                rMap.method="GET";
+  
+            options=options||{};
+            if(!("asy" in options))
+                options.asy=!!prop.queryAsync;
+            if(!("method" in options)&&prop.queryMethod!="auto")
+                options.method=prop.queryMethod;
+            if(!("onEnd" in options))
+                options.onEnd=onEnd;
+            if(!("onStart" in options))
+                options.onStart=onStart;
+
+            _.merge(options, queryOptions);
+
+            _.merge(options, rMap, 'all');
+            options.proxyType=proxyType;
+
+            if(_.isEmpty(options.header)){
+                delete options.header;
+            }
+            // If there's mocker, we need try to adjust queryURL and other args
+            var mocker = xui.APICaller.Mocker;
+            if(mocker){
+                // remvoe header / and tail /
+                var endPoint = queryArgs.replace(mocker.remoteSericeURL, '').replace(/^[/]+/,'').replace(/[/]+$/,'');                
+                if((mocker.blacklist && !mocker.blacklist[endPoint]) || (mocker.whitelist && mocker.whitelist[endPoint])){
+                    queryURL = mocker.mockerURL.replace(/[/]+$/,'') + "/" + endPoint;
+                }
+            }
+            var cookies={},t;
+            if(!_.isEmpty(prop.fakeCookies)){
+                options.$onStart = function(){
+                    _.each(prop.fakeCookies,function(v,k){
+                        if(_.isSet(t=xui.Cookies.get(k))){
+                            cookies[k] = t;
+                            xui.Cookies.remove(k);
+                        }
+                    });
+                    xui.Cookies.set(prop.fakeCookies,1,"/");
+                }
+            }
+            if(!_.isEmpty(prop.fakeCookies)){
+                options.$onEnd = function(){
+                    _.each(prop.fakeCookies,function(v,k){
+                        xui.Cookies.remove(k);
+                    });
+                    xui.Cookies.set(cookies);
+                };
+            }
+            var ajax = xui._getrpc(queryURL, queryArgs, options).apply(null, [queryURL, queryArgs, function(rspData){
+                var mapb;
+                // ensure to json
+                if(!_.isHash(rspData) && !_.isStr(rspData)){
+                    if(responseType=="XML")
+                        rspData=xui.XMLRPC.parseResponse(rspData);
+                    else if(responseType=="SOAP")
+                        rspData=xui.SOAP.parseResponse(rspData, queryArgs.methodName, con.WDSLCache[queryURL]);
+                }
+                // Normally, Gives a change to modify the "rspData"
+                if(prf.afterInvoke){
+                    mapb = prf.boxing().afterInvoke(prf, rspData, requestId||this.uid);
+                    if(_.isSet(mapb))rspData=mapb;
+                    mapb=null;
+                }
+
+                if(responseDataTarget&&responseDataTarget.length){
+                    _.arr.each(responseDataTarget, function(o){
+                        var data = o.path?_.get(rspData,o.path.split('.')):rspData,t;
+                        switch(o.type){
+                            case "alert":
+                                data = _.stringify(data);
+                                if(xui.Coder)data=xui.Coder.formatText(data);
+                                alert(data);
+                            break;
+                            case "log":
+                                xui.log(data);
+                            break;
+                            case "databinder":
+                                if(t = xui.DataBinder.getFromName(o.name)){
+                                    t.setData(data).updateDataToUI();
+                                }
+                                break;
+                            case "form":
+                                if((t = _.get(prf,["host",o.name])) && t.Class['xui.absContainer'] && t.getRootNode()){
+                                    t.setFormValues(data);
+                                }
+                                break;
+                        }
+                    });
+                }
+                if(prf.onData)prf.boxing().onData(prf, rspData, requestId||this.uid);
+                _.tryF(onSuccess,arguments,this);
+
+            }, function(rspData){
+                if(prf.afterInvoke)prf.boxing().afterInvoke(prf, rspData, requestId||this.uid);
+
+                if(responseDataTarget&&responseDataTarget.length){
+                    _.arr.each(responseDataTarget, function(o, t){
+                        switch(o.type){
+                            case "alert":
+                                rspData = _.stringify(rspData);
+                                if(xui.Coder)rspData=xui.Coder.formatText(rspData);
+                                alert(rspData);
+                            break;
+                            case "log":
+                                xui.log(rspData);
+                            break;                            
+                        }
+                    });
+                }
+               
+                if(prf.onError)prf.boxing().onError(prf, rspData, requestId||this.uid);
+                _.tryF(onFail,arguments,this);
+            }, threadid, options]);
+
+            if(mode=="quiet")
+                ajax.start();
+            else if(mode=="return")
+                return ajax;
+            else
+                _.observableRun(function(threadid){
+                    ajax.threadid=threadid;
+                    ajax.start();
+                });                
+        }
+    },
+    Static:{
+        WDSLCache:{},
+        $nameTag:"api_",
+        _pool:{},
+        _objectProp:{tagVar:1,propBinder:1,queryArgs:1,queryHeader:1,queryOptions:1,fakeCookies:1,requestDataSource:1,responseDataTarget:1},
+        destroyAll:function(){
+            this.pack(_.toArr(this._pool,false),false).destroy();
+            this._pool={};
+        },
+        getFromName:function(name){
+            var o=this._pool[name];
+            return o && o.boxing();
+        },
+        _toBase64:function(str){
+            var keyStr="ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=",
+                arr=[],
+                i=0,
+                c1,c2,c3,e1,e2,e3,e4;
+            do {
+                c1=str.charCodeAt(i++);
+                c2=str.charCodeAt(i++);
+                c3=str.charCodeAt(i++);
+                e1=c1>>2;
+                e2=((c1&3)<<4)|(c2>>4);
+                e3=((c2&15)<<2)|(c3>>6);
+                e4=c3&63;
+                if (isNaN(c2))e3=e4=64;
+                else if(isNaN(c3))e4=64;
+                arr.push(keyStr.charAt(e1)+keyStr.charAt(e2)+keyStr.charAt(e3)+keyStr.charAt(e4));
+            }while(i<str.length);
+            return arr.join('');
+        },
+        _beforeSerialized:function(profile){
+            var o={};
+            _.merge(o, profile, 'all');
+            var p = o.properties = _.clone(profile.properties,true);
+            for(var i in profile.box._objectProp)
+                if((i in p) && p[i] && (_.isHash(p[i])||_.isArr(p[i])) && _.isEmpty(p[i]))delete p[i];
+            return o;
+        },
+        DataModel:{
+            dataBinder:null,
+            dataField:null,
+            requestId:"",
+            queryAsync:true,
+            queryURL:"",
+            avoidCache:true,
+
+            oAuth2Token:"",
+            queryUserName:"",
+            queryPassword:"",
+
+            queryMethod:{
+                ini:"auto",
+                listbox:["auto","GET","POST","PUT","DELETE"]
+            },
+            requestType:{
+                ini:"FORM",
+                listbox:["FORM","JSON","XML","SOAP"]
+            },
+            responseType:{
+                ini:"JSON",
+                listbox:["JSON","TEXT","XML","SOAP"]
+            },
+
+            requestDataSource:{
+                ini:[]
+            },
+            responseDataTarget:{
+                ini:[]
+            },
+
+            queryArgs:{
+                ini:{}
+            },
+            queryHeader:{
+                ini:{}
+            },
+            queryOptions:{
+                ini:{}
+            },
+            fakeCookies:{
+                ini:{}
+            },
+            proxyType:{
+                ini:"auto",
+                listbox:["auto","AJAX","JSONP","XDMI"]// Cross-Domain Messaging with iframes
+            },
+            "name":{
+                set:function(value){
+                    var o=this,
+                        ovalue=o.properties.name,
+                         c=o.box,
+                        _p=c._pool,
+                        _old=_p[ovalue],
+                        _new=_p[value],
+                        ui;
+
+                    //if it exists, overwrite it dir
+                    //if(_old && _new)
+                    //    throw value+' exists!';
+
+                    _p[o.properties.name=value]=o;
+
+                    //pointer _old the old one
+                    if(_new && !_old) o._n=_new._n;
+                    //delete the old name from pool
+                    if(_old)delete _p[ovalue];
+                }
+            },
+            proxyInvoker:{
+                inner:true,
+                trigger:function(){
+                    var prf = this.get(0),
+                        bak = prf.properties.responseDataTarget;
+                    prf.properties.responseDataTarget=[];
+                    this.invoke(function(d){
+                        prf.properties.responseDataTarget = bak;
+
+                        d=_.stringify(d);
+                        if(xui.Coder)d=xui.Coder.formatText(d);
+                        alert(d);
+                    },function(d){
+                        prf.properties.responseDataTarget = bak;
+
+                        d=_.stringify(d);
+                        if(xui.Coder)d=xui.Coder.formatText(d);
+                        alert(d);
+                    });
+                }
+            }
+        },
+        EventHandlers:{
+            beforeInvoke:function(profile, requestId){},
+            afterInvoke:function(profile, rspData, requestId){},
+            onData:function(profile, rspData, requestId){},
+            onError:function(profile, rspData, requestId){}
+        }//,
+        //Mocker:{
+        //    remoteSericeURL:"",
+        //    mockerURL:"",
+        //    blacklist:{
+        //      xxx:1
+        //    },
+        //    whitelist:{
+        //      xxx:1
+        //    }
+        //}
     }
 });Class("xui.DataBinder","xui.absObj",{
     Instance:{
@@ -4167,7 +5052,7 @@ Class("xui.Timer","xui.absObj",{
             profile.link(c._cache,'self').link(xui._pool,'xui');
 
             self._nodes.push(profile);
-            profile._cacheInstance=self;
+            profile.Instace=self;
             self.n0=profile;
 
             if(!profile.name)self.setName(alias);
@@ -4185,49 +5070,17 @@ Class("xui.Timer","xui.absObj",{
                 profile.__gc();
             });
         },
+        setHost:function(value, alias){
+            var self=this;
+            if(value && alias)
+                self.setName(alias);
+            return arguments.callee.upper.apply(self,arguments);
+        },
 
-        // for UI Controls
-        getUI:function(key){
-            var r;
-            if(!key)
-                r=xui.UI.pack(this.get(0)._n,false);
-            else
-                _.arr.each(this.get(0)._n,function(profile){
-                    if(profile.properties.dataField==key){
-                        r=profile.boxing();
-                        return false;
-                    }
-                });
-            return r;
-        },
-        checkValid:function(){
-            return xui.absValue.pack(this.get(0)._n,false).checkValid();
-        },
-        getUIValue:function(withCaption, dirtied){
-            var ns=this,
-                prf=ns.get(0),
-                hash={};
-            _.arr.each(prf._n,function(profile){
-                if(!profile.box["xui.absValue"])return;
-                var p=profile.properties,
-                    b = profile.boxing(),
-                    // maybe return array
-                    uv = b.getUIValue();
-                // v and uv can be object(Date,Number)
-                if(!dirtied || (uv+" ")!==(b.getValue()+" ")){
-                    if(withCaption && b.getCaption){
-                        hash[p.dataField]={value:uv,caption:b.getCaption()};
-                    }else{
-                        hash[p.dataField]=uv;
-                    }
-                }
-            });
-            return hash;
-        },
         isDirtied:function(){
-            var prf=this.get(0);
-            for(var i=0,l=prf._n.length;i<l;i++){
-                var profile=prf._n[i],ins;
+            var elems=this.constructor._getBoundElems(this.get(0));
+            for(var i=0,l=elems.length;i<l;i++){
+                var profile=elems[i],ins;
                 if(profile.box["xui.absValue"]){
                     ins = profile.boxing();
                     if((ins.getUIValue()+" ")!==(ins.getValue()+" ")){
@@ -4237,29 +5090,147 @@ Class("xui.Timer","xui.absObj",{
             }
             return false;
         },
+        checkValid:function(ignoreAlert){
+            var result=true;
+            xui.absValue.pack(this.constructor._getBoundElems(this.get(0)),false).each(function(prf){
+                if(!prf.boxing().checkValid()){
+                    if(!ignoreAlert){
+                        if(!prf.beforeInputAlert || false!==prf.boxing().prf.beforeInputAlert(profile, prf, 'invalid')){
+                            xui.alert('$inline.invalid',xui.getRes('$inline.invalid') + (prf.properties.labelCaption?(" : " +prf.properties.labelCaption):"")  , function(){
+                                if(prf&&prf.renderId)
+                                       prf.boxing().activate();
+                            });
+                        }
+                        return result=false;
+                    }
+                     result=false;
+                }
+            });
+            return result;
+        },
+        checkRequired:function(ignoreAlert){
+            var result = true;
+            xui.absValue.pack(this.constructor._getBoundElems(this.get(0)),false).each(function(prf){
+                if(prf.properties.required && (!(i=prf.boxing().getUIValue())) && i!==0){
+                    if(!ignoreAlert){
+                        if(!prf.beforeInputAlert || false!==prf.boxing().prf.beforeInputAlert(profile, prf, 'required')){
+                            xui.alert('$inline.required',xui.getRes('$inline.required') + (prf.properties.labelCaption?(" : " +prf.properties.labelCaption):"")  , function(){
+                                if(prf&&prf.renderId)
+                                       prf.boxing().activate();
+                            });
+                        }
+                        return result=false;
+                    }
+                    result=false;
+                }
+            });
+            return result;
+        },
+
+        // for UI Controls
+        getUI:function(key){
+            var r;
+            if(!key)
+                r=xui.UI.pack(this.constructor._getBoundElems(this.get(0)),false);
+            else
+                _.arr.each(this.constructor._getBoundElems(this.get(0)),function(profile){
+                    var p=profile.properties;
+                    if((p.dataField||p.name||profile.alias)==key){
+                        r=profile.boxing();
+                        return false;
+                    }
+                });
+            return r;
+        },
+        getUIValue:function(withCaption, dirtied){
+            var ns=this,
+                prf=ns.get(0),
+                hash={};
+            _.arr.each(this.constructor._getBoundElems(prf),function(profile){
+                if(!profile.box["xui.absValue"])return;
+                var p=profile.properties,
+                    b = profile.boxing(),
+                    // maybe return array
+                    uv = b.getUIValue();
+                // v and uv can be object(Date,Number)
+                if(!dirtied || (uv+" ")!==(b.getValue()+" ")){
+                    if(withCaption && b.getCaption){
+                        hash[p.dataField || p.name || profile.alias]={value:uv,caption:b.getCaption()};
+                    }else{
+                        hash[p.dataField || p.name || profile.alias]=uv;
+                    }
+                }
+            });
+            return hash;
+        },
         // get dirtied UI Value
         getDirtied:function(withCaption){
             return this.getUIValue(withCaption, true);
         },
-        updateValue:function(){
-            xui.absValue.pack(this.get(0)._n,false).updateValue();
+        getData:function(key, force, ignoreAlert){
+            var prf=this.get(0);
+            // refresh
+            if(prf.$inDesign || force){
+                prf.properties.data=  {};
+                this.updateDataFromUI(false,false,false,null,null,ignoreAlert,false);
+            }
+
+            var data=prf.properties.data;
+            return _.isSet(key)?data[key]:data;
+        },
+        setData:function(key,value, force){
+            var prf=this.get(0), prop=prf.properties;
+
+            //clear data
+            if(key===false){
+                _.each(prop.data,function(o,i){
+                    prop.data[i]=null;
+                });
+            }
+            // reset all data
+            else if(!_.isSet(key))
+                prop.data={};
+            // reset all data
+            else if(_.isHash(key))
+                prop.data=key;
+            // reset one
+            else
+                prop.data[key]=value;
+
+            if(prf.$inDesign || force){
+                this.updateDataToUI();
+            }
             return this;
         },
-        updateDataFromUI:function(updateUIValue,withCaption,returnArr,adjustData,dataKeys){
+        updateValue:function(){
+            xui.absValue.pack(this.constructor._getBoundElems(this.get(0)),false).updateValue();
+            return this;
+        },
+        updateDataFromUI:function(updateUIValue,withCaption,returnArr,adjustData,dataKeys,ignoreAlert,ignoreEvent){
             var ns=this,
                 prf=ns.get(0),
                 prop=prf.properties,
                 map={},
                 mapb;
+            if(!ignoreAlert){
+                // check valid first
+                if(!ns.checkValid()){
+                    return;
+                }
+                // and check required
+                if(!ns.checkRequired()){
+                    return;
+                }
+            }
             _.merge(map,prop.data,function(v,t){
                 return !dataKeys || dataKeys===t || (_.isArr(dataKeys)?_.arr.indexOf(dataKeys,t)!=-1:false);
             });
-            _.arr.each(prf._n,function(profile){
+            _.arr.each(ns.constructor._getBoundElems(prf),function(profile){
                 var p=profile.properties,
                       eh=profile.box.$EventHandlers,
-                      t=p.dataField;
+                      t=p.dataField || p.name || profile.alias;
                 if(!dataKeys || dataKeys===t || (_.isArr(dataKeys)?_.arr.indexOf(dataKeys,t)!=-1:false)){
-                    var b = profile.boxing(),
+                    var b = profile.boxing(),cap,
                         // for absValue, maybe return array
                         uv = profile.box['xui.absValue']?b.getUIValue(_.isBool(returnArr)?returnArr:profile.__returnArray):null;
                     // v and uv can be object(Date,Number)
@@ -4302,8 +5273,15 @@ Class("xui.Timer","xui.absObj",{
                         if(_.isSet(uv) && 'value' in p)
                             if(pp&&'value' in pp)pp.value=uv;else map[t].value=uv;
                     }else{
-                        if(withCaption && 'caption' in p){
-                            map[t]={value:uv, caption:typeof(b.getCaption)=="function"?b.getCaption():p.caption};
+                        if(profile.box['xui.UI.ComboInput'] && (p.type=='file'||p.type=='upload')){
+                            map[t]=profile;
+                        }else if(withCaption && 'caption' in p){
+                            cap=typeof(b.getCaption)=="function"?b.getCaption():p.caption;
+                            // igore unnecessary caption
+                            if((!cap && !uv) || cap==uv)
+                                map[t]=uv;
+                            else
+                                map[t]={value:uv, caption:cap};
                         }else{
                             map[t]=uv;
                         }
@@ -4318,7 +5296,7 @@ Class("xui.Timer","xui.absObj",{
             if(adjustData)
                 map = _.tryF(adjustData,[map, prf],this);
 
-            if(prf.afterUpdateDataFromUI){
+            if(!ignoreEvent && prf.afterUpdateDataFromUI){
                 mapb = this.afterUpdateDataFromUI(prf, map);
                 if(_.isHash(mapb))map=mapb;
                 mapb=null;
@@ -4326,9 +5304,9 @@ Class("xui.Timer","xui.absObj",{
 
             _.merge(prf.properties.data,map,'all');
 
-            return ns;
+            return true;
         },
-        updateDataToUI:function(adjustData, dataKeys){
+        updateDataToUI:function(adjustData, dataKeys, ignoreEvent){
             var t,p,v,c,b,pp,uv,eh,
                 ns=this,
                 prf=ns.get(0),
@@ -4342,16 +5320,16 @@ Class("xui.Timer","xui.absObj",{
             if(adjustData)
                 map = _.tryF(adjustData,[map, prf],ns);
 
-            if(prf.beforeUpdateDataToUI){
+            if(!ignoreEvent && prf.beforeUpdateDataToUI){
                 mapb = ns.beforeUpdateDataToUI(prf, map);
                 if(_.isHash(mapb))map=mapb;
                 mapb=null;
             }
 
-            _.arr.each(prf._n,function(profile){
+            _.arr.each(ns.constructor._getBoundElems(prf),function(profile){
                 p=profile.properties;
                 eh=profile.box.$EventHandlers;
-                t=p.dataField;
+                t=p.dataField || p.name || profile.alias;
                 if(!dataKeys || dataKeys===t || (_.isArr(dataKeys)?_.arr.indexOf(dataKeys,t)!=-1:false)){
                     // need reset?
                     if(map && t in map){
@@ -4378,7 +5356,7 @@ Class("xui.Timer","xui.absObj",{
 
                             if(!_.isEmpty(v)){
                                 _.filter(v,function(o,i){
-                                    return i in p || i in ev;
+                                    return (i in p) || (i in v);
                                 });
                                 if(!_.isEmpty(v)){
                                     // keep value and caption at first
@@ -4404,255 +5382,12 @@ Class("xui.Timer","xui.absObj",{
                 }
             });
             return ns;
-        },
-        setHost:function(value, alias){
-            var self=this;
-            if(value && alias)
-                self.setName(alias);
-            return arguments.callee.upper.apply(self,arguments);
-        },
-        invoke:function(onSuccess, onFail, onStart, onEnd, mode, threadid, options){
-            var ns=this,
-                con=ns.constructor,
-                prf=ns.get(0),
-                prop=prf.properties,
-                dsType=prop.dataSourceType;
-            if(dsType!="remoting")return;                
-            var responseType=prop.responseType,
-                requestType=prop.requestType,
-                requestId=prop.requestId,
-                hashModel=_.isSet(prop.queryModel) && prop.queryModel!=="",
-                queryURL=(hashModel?(((prop.queryURL.lastIndexOf("/")!=prop.queryURL.length-1)?(prop.queryURL+"/"):prop.queryURL)+prop.queryModel):prop.queryURL),
-                queryUserName=prop.queryUserName;
-                queryPasswrod=prop.queryPasswrod;
-                queryArgs=_.copy(prop.queryArgs),
-                tokenParams=_.copy(prop.tokenParams),
-                queryOptions=_.copy(prop.queryOptions);
-
-            if(requestType=="HTTP")
-                    queryArgs = typeof queryArgs=='string'?_.unserialize(queryArgs):queryArgs;
-            if(_.isHash(queryArgs) && !_.isEmpty(tokenParams))
-                _.merge(queryArgs,tokenParams,'all');
-
-            // Normally, Gives a change to modify "queryArgs" for XML
-            if(prf.beforeInvoke && false===prf.boxing().beforeInvoke(prf, requestId))
-                return;
-
-            // for auto adjusting options
-            var proxyType,rMap={};
-            if(responseType=='SOAP'||requestType=='SOAP'){
-                // for wsdl
-                if(!con.WDSLCache)con.WDSLCache={};
-                if(!con.WDSLCache[queryURL]){
-                    var wsdl=xui.SOAP.getWsdl(queryURL,function(rspData){
-                       if(prf.afterInvoke)prf.boxing().afterInvoke(prf, rspData, requestId||this.uid);
-                        if(prf.onError)prf.boxing().onError(prf, rspData);
-                        _.tryF(onFail,arguments,this);
-                        _.tryF(onEnd,arguments,this);
-                    });
-                    if(wsdl)
-                        con.WDSLCache[queryURL] = wsdl;
-                    else
-                        // stop the further call
-                        return;
-                }
-            }
-            switch(responseType){
-                case "JSON":
-                    rMap.rspType="json";
-                break;
-                case "XML":
-                    proxyType="ajax";
-                    rMap.rspType="xml";
-                break;
-                case "SOAP":
-                    proxyType="ajax";
-                    rMap.rspType="xml";
-                    var namespace=xui.SOAP.getNameSpace(con.WDSLCache[queryURL]),
-                        action = ((namespace.lastIndexOf("/")!=namespace.length-1)?namespace+"/":namespace)+(queryArgs.methodName||"");
-                    rMap.header=rMap.header||{};
-                    rMap.header["SOAPAction"]=action;
-                break;
-            }
-            switch(requestType){
-                case "HTTP":
-                    // ensure object
-                    queryArgs = typeof queryArgs=='string'?_.unserialize(queryArgs):queryArgs;
-                break;
-                case "JSON":
-                    rMap.reqType="json";
-
-                    if(prop.queryMethod=="auto")
-                        rMap.method="POST";
-                    // ensure string
-                    queryArgs = typeof queryArgs=='string'?queryArgs:_.serialize(queryArgs);
-                break;
-                case "XML":
-                    rMap.reqType="xml";
-                    proxyType="ajax";
-                    rMap.method="POST";
-                    if(queryUserName && queryPassword){
-                        rMap.username=queryUserName;
-                        rMap.password=queryPassword;
-                        rMap.header=rMap.header||{};
-                        rMap.header["Authorization"]="Basic "+con._toBase64(queryUserName+":"+queryPassword);
-                    }
-                    // ensure string
-                    queryArgs = typeof queryArgs=='string'?queryArgs:xui.XMLRPC.wrapRequest(queryArgs);
-                break;
-                case "SOAP":
-                    rMap.reqType="xml";
-                    proxyType="ajax";
-                    rMap.method="POST";
-                    if(queryUserName && queryPassword){
-                        rMap.username=queryUserName;
-                        rMap.password=queryPassword;
-                        rMap.header=rMap.header||{};
-                        rMap.header["Authorization"]="Basic "+con._toBase64(queryUserName+":"+queryPassword);
-                    }
-                    // ensure string
-                    queryArgs = typeof queryArgs=='string'?queryArgs:xui.SOAP.wrapRequest(queryArgs, con.WDSLCache[queryURL]);
-                break;
-            }
-
-            // Ajax/SAjax/IAjax
-            if(!proxyType && prop.proxyType!="auto")
-                proxyType = prop.proxyType;
-            if(proxyType!="ajax")
-                rMap.asy=true;
-            if(proxyType=="sajax")
-                rMap.method="GET";
-            if(proxyType)
-                proxyType=proxyType.toLowerCase();
-
-            options=options||{};
-            if(!("asy" in options))
-                options.asy=!!prop.queryAsync;
-            if(!("method" in options)&&prop.queryMethod!="auto")
-                options.method=prop.queryMethod;
-            if(!("onEnd" in options))
-                options.onEnd=onEnd;
-            if(!("onStart" in options))
-                options.onStart=onStart;
-            _.merge(options, queryOptions);
-
-            _.merge(options, rMap, 'all');
-            options.proxyType=proxyType;
-
-            var ajax=xui._getrpc(queryURL, queryArgs, options).apply(null, [
-                queryURL,
-                queryArgs,
-                function(rspData){
-                    var mapb;
-
-                    // Normally, Gives a change to modify the "rspData" format for XML
-                    if(prf.afterInvoke){
-                        mapb = prf.boxing().afterInvoke(prf, rspData, requestId||this.uid);
-                        if(_.isSet(mapb))rspData=mapb;
-                        mapb=null;
-                    }
-                    // ensure to json
-                    if(dsType=='remoting' && !_.isHash(rspData) && !_.isStr(rspData)){
-                        if(responseType=="XML")
-                            rspData=xui.XMLRPC.parseResponse(rspData);
-                        else if(responseType=="SOAP")
-                            rspData=xui.SOAP.parseResponse(rspData, queryArgs.methodName, con.WDSLCache[queryURL]);
-                    }
-                   if(prf.onData)prf.boxing().onData(prf, rspData, requestId||this.uid);
-                   _.tryF(onSuccess,arguments,this);
-                },
-                function(rspData){
-                   if(prf.afterInvoke)prf.boxing().afterInvoke(prf, rspData, requestId||this.uid);
-                   if(prf.onError)prf.boxing().onError(prf, rspData, requestId||this.uid);
-                    _.tryF(onFail,arguments,this);
-                },
-                threadid,
-                options]
-            );
-            if(mode=="busy")
-                _.observableRun(function(threadid){
-                    ajax.start();
-                });
-            else if(mode=="return")
-                return ajax;
-            else
-                ajax.start();
-        },
-        "read":function(onSuccess, onFail, onStart, onEnd, mode, threadid, options, adjustData){
-            var ns=this,prf=ns.get(0),
-                prop=prf.properties,
-                requestId=prop.requestId,
-                dsType=prop.dataSourceType;
-            if(dsType=='none'||dsType=='memory')return;
-
-            if(prf.beforeRead && false===prf.boxing().beforeRead(prf, requestId||this.uid))
-                return;
-
-            return ns.invoke(function(rspData){
-                var mapb;
-                // Normally, Gives a change to modify the "rspData" format to suitable key/value maps
-                if(prf.afterRead){
-                    mapb = prf.boxing().afterRead(prf, rspData, requestId||this.uid);
-                    if(_.isSet(mapb))rspData=mapb;
-                    mapb=null;
-                }
-
-                if(_.isHash(rspData))
-                    // auto setData ,and reset values to UI
-                    prf.boxing().setData(rspData).updateDataToUI(adjustData);
-
-                _.tryF(onSuccess,arguments,this);
-
-            }, onFail, onStart, onEnd, mode, threadid, options);
-        },
-        "write":function(onSuccess, onFail, onStart, onEnd, mode, threadid, options){
-            var ns=this,prf=ns.get(0),dsType=prf.properties.dataSourceType;
-            if(dsType=='none'||dsType=='memory')return;
-
-            if(prf.beforeWrite && false===prf.boxing().beforeWrite(prf, requestId||this.uid))
-                return;
-
-            return ns.invoke(function(rspData){
-               var mapb;
-               if(prf.afterWrite){
-                    mapb = prf.boxing().afterWrite(prf, rspData, requestId||this.uid);
-                    if(_.isSet(mapb))rspData=mapb;
-                    mapb=null;
-                }
-                _.tryF(onSuccess,arguments,this);
-            }, onFail, onStart, onEnd, mode, threadid, options);
-        },
-        getData:function(key){
-            var prf=this.get(0),
-                data=prf.properties.data;
-            return _.isSet(key)?data[key]:data;
-        },
-        setData:function(key,value){
-            var prop=this.get(0).properties;
-
-            //clear data
-            if(key===false){
-                _.each(prop.data,function(o,i){
-                    prop.data[i]=null;
-                });
-            }
-            // reset all data
-            else if(!_.isSet(key))
-                prop.data={};
-            // reset all data
-            else if(_.isHash(key))
-                prop.data=key;
-            // reset one
-            else
-                prop.data[key]=value;
-
-            return this;
         }
     },
     Static:{
-        WDSLCache:{},
         $nameTag:"databinder_",
         _pool:{},
+        _objectProp:{tagVar:1,propBinder:1,data:1},
         destroyAll:function(){
             this.pack(_.toArr(this._pool,false),false).destroy();
             this._pool={};
@@ -4661,44 +5396,42 @@ Class("xui.Timer","xui.absObj",{
             var o=this._pool[name];
             return o && o.boxing();
         },
-        _toBase64:function(str){
-            var keyStr="ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=",
-                arr=[],
-                i=0,
-                c1,c2,c3,e1,e2,e3,e4;
-            do {
-                c1=str.charCodeAt(i++);
-                c2=str.charCodeAt(i++);
-                c3=str.charCodeAt(i++);
-                e1=c1>>2;
-                e2=((c1&3)<<4)|(c2>>4);
-                e3=((c2&15)<<2)|(c3>>6);
-                e4=c3&63;
-                if (isNaN(c2))e3=e4=64;
-                else if(isNaN(c3))e4=64;
-                arr.push(keyStr.charAt(e1)+keyStr.charAt(e2)+keyStr.charAt(e3)+keyStr.charAt(e4));
-            }while(i<str.length);
-            return arr.join('');
+        _beforeSerialized:function(profile){
+            var o={};
+            _.merge(o, profile, 'all');
+            var p = o.properties = _.clone(profile.properties,true);
+            for(var i in profile.box._objectProp)
+                if((i in p) && p[i] && (_.isHash(p[i])||_.isArr(p[i])) && _.isEmpty(p[i]))delete p[i];
+            return o;
+        },                
+        _getBoundElems:function(prf){
+            var arr=[];
+            _.arr.each(prf._n,function(profile){
+                // for container
+                if(profile.behavior.PanelKeys){
+                     xui.absValue.pack(profile.boxing().getChildren(null, true)).each(function(p){
+                        arr.push(p);
+                    });
+                }
+                // for absValue
+                else if(profile.box['xui.absValue']){
+                    arr.push(profile);
+                }
+            });
+            return _.arr.removeDuplicate(arr);
         },
         _bind:function(name, profile){
-            var t,v,b,o=this._pool[name];
+            if(!name)return;
+            var o=this._pool[name];
             if(!o){
                 b=new xui.DataBinder();
                 b.setName(name);
                 o=b.get(0);
-            }else{
-                b=o.boxing();
             }
-            var map=o.properties.data;
             if(profile){
-                if(_.arr.indexOf(o._n,profile)==-1)
+                if(_.arr.indexOf(o._n,profile)==-1){
                     //use link for 'destroy UIProfile' trigger 'auto unbind function '
                     profile.link(o._n, 'databinder.'+name);
-                if(t=profile.properties.dataField){
-                    if(map && t in map)
-                        b.updateDataToUI(null, t);
-                    else
-                        b.updateDataFromUI(false,true,false,null,t);
                 }
             }
         },
@@ -4706,90 +5439,14 @@ Class("xui.Timer","xui.absObj",{
             if(profile && profile.box && this._pool[name])
                 profile.unLink('databinder.'+name);
         },
-        _beforeSerialized:function(profile){
-            var o={};
-            _.merge(o, profile, 'all');
-            var p = o.properties = _.clone(profile.properties,true);
-            if(p.dataSourceType=='none' || p.dataSourceType=='memory'){
-                delete p.queryURL;
-                delete p.queryUserName;
-                delete p.queryPassword;
-                delete p.queryModel;
-                delete p.queryArgs;
-                delete p.queryOptions;
-                delete p.tokenParams;
-                delete p.proxyType;
-                delete p.queryAsync;
-                delete p.queryMethod;
-                delete p.requestType;
-                delete p.responseType;
-            }else{
-                delete p.data;
-            }
-            if(p.tagVar && _.isEmpty(p.tagVar))
-                delete p.tagVar;
-            if(p.data && _.isEmpty(p.data))
-                delete p.data;
-            if(p.queryArgs && _.isEmpty(p.queryArgs))
-                delete p.queryArgs;
-            if(p.tokenParams && _.isEmpty(p.tokenParams))
-                delete p.tokenParams;
-            if(p.queryOptions && _.isEmpty(p.queryOptions))
-                delete p.queryOptions;
-            return o;
-        },
         DataModel:{
             dataBinder:null,
-            dataField:null,
-            "data":{
-                ini:{}
-            },
-            requestId:"",
-            dataSourceType:{
-                ini:"none",
-                listbox:["none","memory","remoting"]
-            },
-            queryURL:{
-                ini:""
-            },
-            queryUserName:{
-                ini:""
-            },
-            queryPassword:{
-                ini:""
-            },
-            queryModel:"",
-            queryMethod:{
-                ini:"auto",
-                listbox:["auto","GET","POST"]
-            },
-            queryAsync:true,
-            requestType:{
-                ini:"HTTP",
-                listbox:["HTTP","JSON","XML","SOAP"]
-            },
-            responseType:{
-                ini:"JSON",
-                listbox:["JSON","XML","SOAP"]
-            },
-            queryArgs:{
-                ini:{}
-            },
-            tokenParams:{
-                ini:{}
-            },
-            queryOptions:{
-                ini:{}
-            },
-            proxyType:{
-                ini:"auto",
-                listbox:["auto","Ajax","SAjax","IAjax"]
-            },
+            dataField:null,            
             "name":{
                 set:function(value){
                     var o=this,
                         ovalue=o.properties.name,
-                         c=xui.DataBinder,
+                         c=o.box,
                         _p=c._pool,
                         _old=_p[ovalue],
                         _new=_p[value],
@@ -4810,29 +5467,15 @@ Class("xui.Timer","xui.absObj",{
                     //delete the old name from pool
                     if(_old)delete _p[ovalue];
                 }
-            },
-            proxyInvoker:{
-                inner:true,
-                trigger:function(){
-                    this.read(function(d){
-                        xui.alert("onData",_.stringify(d));
-                    },function(e){
-                        xui.alert("onError",_.stringify(e));
-                    });
-                }
+            },            
+            "data":{
+                ini:{}
             }
         },
         EventHandlers:{
+            beforeInputAlert:function(profile, ctrlPrf, type){},
             beforeUpdateDataToUI:function(profile, dataToUI){},
-            afterUpdateDataFromUI:function(profile, dataFromUI){},
-            beforeInvoke:function(profile, requestId){},
-            afterInvoke:function(profile, rspData, requestId){},
-            onData:function(profile, rspData, requestId){},
-            onError:function(profile, rspData, requestId){},
-            beforeRead:function(profile, requestId){},
-            afterRead:function(profile, rspData, requestId){},
-            beforeWrite:function(profile, requestId){},
-            afterWrite:function(profile, rspData, requestId){}
+            afterUpdateDataFromUI:function(profile, dataFromUI){}
         }
     }
 });(xui.Locale.en||(xui.Locale.en={})).inline={
@@ -4845,7 +5488,9 @@ Class("xui.Timer","xui.absObj",{
     yes:'Yes',
     no:'No',
     noFlash:'No Flash PlugIn!',
-    transparent:'transparent'
+    transparent:'transparent',
+    required:'There is required field need to be filled out',
+    invalid:'There is invalid field'
 };
 xui.Locale.en.date={
     WEEKS:{
@@ -5092,7 +5737,7 @@ xui.Locale.en.editor={
     fontnameList:'Arial;Arial Black;Comic Sans MS;Courier New;Impact;Tahoma;Times New Roman;Trebuchet MS;Verdana;...',
     formatblockList:'p,Normal;h1,Heading1;h2,Heading2;h3,Heading3;h4,Heading4;h5,Heading5;h6,Heading6;...,...'
 };/* event
-*  dependency: base _ ; Class ; xui ;
+*  Dependencies: base _ ; Class ; xui ;
 */
 Class('xui.Event',null,{
     Constructor:function(event,node,fordrag,tid){
@@ -7766,7 +8411,7 @@ Class('xui.Event',null,{
     Initialize:function(){
         var b=xui.browser,
 // cross browser reset 
-            css=".xui-node{margin:0;padding:0;line-height:1.22em;}"+
+            css=".xui-node{margin:0;padding:0;line-height:1.22em;-webkit-text-size-adjust:none;}"+
             ".xui-wrapper{color:#000;font-family:arial,helvetica,clean,sans-serif;font-style:normal;font-weight:normal;font-size:12px;line-height:1.22em;vertical-align:middle;}"+
             ".xui-cover{cursor:wait;background:url("+xui.ini.img_bg+") transparent repeat;font-size:12px;}"+
             ".xui-node-table{border-collapse:collapse;border-spacing:0;empty-cells:show;font-size:inherit;"+(b.ie?"font:100%;":"")+"}"+
@@ -7787,7 +8432,7 @@ Class('xui.Event',null,{
             ".xui-node-a:hover{color:red}"+
             (b.gek? (".xui-node-a:focus{outline-offset:-1px;"+ (b.ver<3?"-moz-outline-offset:-1px !important":"") +"}" ):"")+
             ".xui-node-span, .xui-node-div{border:0;font-size:12px;}"+
-            ".xui-node-span, .xui-wrapper span{outline-offset:-1px;"+
+            ".xui-node-span, .xui-wrapper span"+((b.ie && b.ver<=7)?"":", .xui-v-wrapper:before, .xui-v-wrapper > .xui-v-node")+"{outline-offset:-1px;"+
             (b.gek
                 ? b.ver<3 
                     ? ((b.ver<3?"-moz-outline-offset:-1px !important;":"") + "display:-moz-inline-block;display:-moz-inline-box;display:inline-block;")
@@ -7810,12 +8455,18 @@ Class('xui.Event',null,{
             // some cross browser css solution
             ".xui-nooutline:focus{outline:0;}"+
             ".xui-cls-wordwrap{"+
-                "white-space: pre-wrap;" + // css-3
+                "white-space: pre-wrap;word-break: break-all;" + // css-3
                 (b.gek?"white-space: -moz-pre-wrap;":"") +  // Mozilla, since 1999
                 (b.opr?"white-space: -pre-wrap;":"") + // Opera 4-6
                 (b.opr?"white-space: -o-pre-wrap;":"") + // Opera 7
                 (b.ie?"word-wrap: break-word;":"")+ // Internet Explorer 5.5+
-           "}"
+           "}"+
+           ((b.ie && b.ver<=7)?"":(".xui-v-wrapper:before{content:'';height:100%;font-size:0;vertical-align:middle;}"+
+           ".xui-v-wrapper > .xui-v-node{vertical-align:middle;}"+
+           ".xui-v-top > .xui-v-wrapper:before{vertical-align:top;}"+
+           ".xui-v-top > .xui-v-wrapper > .xui-v-node{vertical-align:top;}"+
+           ".xui-v-bottom > .xui-v-wrapper:before{vertical-align:bottom;}"+
+           ".xui-v-bottom > .xui-v-wrapper > .xui-v-node{vertical-align:bottom;}"))
            ;
 
         this.addStyleSheet(css, 'xui.CSS');
@@ -7862,12 +8513,20 @@ Class('xui.Dom','xui.absBox',{
                 return a;
             }
         },
-        each:function(fun){
-            var ns=this,purge=xui.$cache.domPurgeData,n;
-            for(var i=0,j=ns._nodes,l=j.length;i<l;i++)
-                if((n=purge[j[i]]) && (n=n.element))
-                    if(false===fun.call(ns,n,i))
-                        break;
+        each:function(fun,desc){
+            var ns=this,purge=xui.$cache.domPurgeData,n,
+                  i, j=ns._nodes, l=j.length;
+            if(desc){
+                for(i=l;i>=0;i--)
+                    if((n=purge[j[i]]) && (n=n.element))
+                        if(false===fun.call(ns,n,i))
+                            break;
+            }else{
+                for(i=0;i<l;i++)
+                    if((n=purge[j[i]]) && (n=n.element))
+                        if(false===fun.call(ns,n,i))
+                            break;
+            }
             n=null;
             return ns;
         },
@@ -8044,7 +8703,16 @@ Class('xui.Dom','xui.absBox',{
             });
             return this.$sum(property?typeof property=='function'?f5:expr?_.isReg(expr)?f1:f2:f3:f4, [tagName, property, expr]);
         },
-
+        querySelector:function(selectors){
+            return this.$sum(function(){
+                return _.toArr(this.querySelector(selectors));
+            });
+        },
+        querySelectorAll:function(selectors){
+            return this.$sum(function(){
+                return _.toArr(this.querySelectorAll(selectors));
+            });
+        },
         /*
         dom add implementation
         for addPrev prepend addNext append
@@ -8153,20 +8821,25 @@ Class('xui.Dom','xui.absBox',{
             return self;
         },
         //flag : false => remove from dom tree, not free memory
-        remove:function(triggerGC){
-            var c=xui.$getGhostDiv();
+        remove:function(triggerGC, purgeNow){
             if(triggerGC===false)
                 this.each(function(o,i){
                     if(o.raphael&&o.remove)o.remove();
                     else if(o.parentNode)o.parentNode.removeChild(o);
                 });
             else{
+                var c=xui.$getGhostDiv();
+                // append to ghost first
                 this.each(function(o){
                     c.appendChild(o);
                 });
-                xui.$purgeChildren(c);
-                c.innerHTML='';
-                c=null;
+                var f=function(){
+                    xui.$purgeChildren(c);
+                    c.innerHTML='';
+                    c=null;
+                };
+                // for performance
+                if(purgeNow)f();else _.asyRun(f);
             }
             return this;
         },
@@ -8179,7 +8852,7 @@ Class('xui.Dom','xui.absBox',{
         },
 
         //flag = false: no gc
-        html:function(content,triggerGC,loadScripts){
+        html:function(content,triggerGC,loadScripts,purgeNow){
             var s='',t,o=this.get(0);triggerGC=triggerGC!==false;
             if(content!==undefined){
                 if(o){
@@ -8191,8 +8864,20 @@ Class('xui.Dom','xui.absBox',{
                          // only asy purgeChildren need this line
                          // if(!triggerGC && xui.browser.ie)while(t=o.firstChild)o.removeChild(t);
                          //clear first
-                         if(triggerGC)
-                            xui.$purgeChildren(o);
+                         if(triggerGC){
+                            // append to ghost first
+                            var c=xui.$getGhostDiv();
+                            xui(o).children().each(function(k){
+                                c.appendChild(k);
+                            });
+                            var f=function(){
+                                xui.$purgeChildren(c);
+                                c.innerHTML='';
+                                c=null;
+                            };
+                            // for performance
+                            if(purgeNow)f();else _.asyRun(f);                            
+                         }
 
                          var scripts;
                          if(loadScripts){
@@ -8315,11 +9000,14 @@ Class('xui.Dom','xui.absBox',{
             }else{
                return (function(o){
                   if(!o)return '';
+                  return o.textContent || o.innerText;
+                  /*
                   var i,a=o.childNodes,l=a.length,content='',me=arguments.callee;
                   for(i=0;i<l;i++)
                     if(a[i].nodeType!= 8)
                       content += (a[i].nodeType!=1) ? a[i].nodeValue : me(a[i]);
                   return content;
+                  */
                 })(this.get(0));
             }
         },
@@ -8367,6 +9055,7 @@ Class('xui.Dom','xui.absBox',{
                         }
                     //set attr
                     }else{
+                        value=name=='style'?(value+'').replace(/[;]+/g,';').replace(/^;/,''):value;
                         if(iestyle)o.style.cssText=''+value;
                         else if(normal){
                              o[name]=value;
@@ -8382,7 +9071,7 @@ Class('xui.Dom','xui.absBox',{
                 if(name=="selected"&&xui.browser.kde) return o.parentNode.selectedIndex;
                 r=((name in o) && normal)?o[name]:o.getAttribute(name, xui.browser.ie && !normal ? 2 : undefined );
                 o=null;
-                return r;
+                return name=='style'?r.replace(/[;]+/g,';').replace(/^;/,''):r;
             }
         },
         $touchscroll:function(type){
@@ -8391,6 +9080,7 @@ Class('xui.Dom','xui.absBox',{
                 if(!hash[type])type=null;
                 xui(nodes).onTouchstart(hash[type]?function(p,e,src){
                     if(xui.DragDrop._profile.isWorking) return true;
+                    if(e.touches.length>1)return true;
                     var s=e.touches[0],t=xui(src).get(0);
                     if(t){
                         if(type=='xy'||type=='x')
@@ -8402,6 +9092,7 @@ Class('xui.Dom','xui.absBox',{
                 }:null);
                 xui(nodes).onTouchmove(hash[type]?function(p,e,src){
                     if(xui.DragDrop._profile.isWorking) return true;
+                    if(e.touches.length>1)return true;
                     var s=e.touches[0],t=xui(src).get(0),x1,y1,first;
                     if(t){
                         x1=t.scrollLeft;y1=t.scrollTop;
@@ -8425,6 +9116,7 @@ Class('xui.Dom','xui.absBox',{
                 }:null);
                 xui(nodes).onTouchend(hash[type]?function(p,e,src){
                     if(xui.DragDrop._profile.isWorking) return true;
+                    if(e.touches.length>1)return true;
                     ox=oy=null;
                 }:null);
             }
@@ -8450,7 +9142,7 @@ Class('xui.Dom','xui.absBox',{
         css:function(name, value){
             if(typeof name=='object' || value!==undefined){
                 this.each(function(o){
-                        xui.Dom.setStyle(o,name,value)
+                    xui.Dom.setStyle(o,name,value)
                 });
 
                 if(xui.browser.isTouch && (xui.browser.isAndroid||xui.browser.isBB)){
@@ -8466,82 +9158,225 @@ Class('xui.Dom','xui.absBox',{
                 return xui.Dom.getStyle(this.get(0), name);
             };
         },
-       rotate:function(v){
+        rotate:function(v){
             if(_.isSet(v)){
-                if(_.isFinite(v))v+='deg';
+                v=parseInt(v,10)||0;
+                v=v%360;
+                if(v<0)v=v+360;
                 return this.each(function(o){
-                    var transform=o.style.transform||"";
-                    if(/rotate\([^)]*\)/i.test(transform))transform=transform.replace(/(rotate\()([^)]+)/i, '$1'+v);
-                    else transform+=" rotate("+v+")";
-                    xui.Dom.setStyle(o,'transform',transform);
+                    if(o.raphael&&o.id){
+                        var prf=xui.Event._getProfile(o.id);
+                        if((prf = prf && prf.parent && prf.parent._paper) && (o=prf.getById(o.raphaelid)))
+                            o.transform('r'+v);
+                    }else{
+                        v+='deg';
+                        var transform=o.style.transform||"";
+                        if(/rotate\([^)]*\)/i.test(transform))transform=transform.replace(/(rotate\()([^)]+)/i, '$1'+v);
+                        else transform+=" rotate("+v+")";
+                        xui.Dom.setStyle(o,'transform',transform);
+                    }
                 });
             }else{
-               var arr=/rotate\(([-\d.]+)/i.exec(this.get(0).style.transform);
-               return arr?parseFloat(arr[1]||0):0;
+                var o=this.get(0);
+                if(o.raphael&&o.id){
+                        var prf=xui.Event._getProfile(o.id);
+                        if((prf = prf && prf.parent && prf.parent._paper) && (o=prf.getById(o.raphaelid))){
+                            // for format
+                            o=o.transform();
+                            if(_.isArr(o)){
+                                if(!o.length) o="";
+                                else o=o.join();
+                            }else{
+                                if(!o)o="";
+                                else o=Raphael.parseTransformString(o).join();
+                            }
+                            var arr=/r,([-\d.]+)/i.exec(o);
+                            v=arr?parseFloat(arr[1]||0):0;
+                            v=v%360;
+                            if(v<0)v=v+360;
+                            return v;
+                        }
+                        return 0;
+                }else{
+                   var arr=/rotate\(([-\d.]+)/i.exec(o.style.transform);
+                   return arr?parseFloat(arr[1]||0):0;
+                }
             }
         },
-       scaleX:function(v){
+        scaleX:function(v){
             if(_.isSet(v)){
                 return this.each(function(o){
-                    var transform=o.style.transform||"";
-                    if(/(scale\()([^,]+),([^)]+)/i.test(transform))transform=transform.replace(/(scale\()([^,]+),([^)]+)/i, '$1'+v+',$3');
-                    else if(/scale\([-\d.]*\)/i.test(transform))transform=transform.replace(/scale\([-\d.]*\)/i, 'scale('+v+',1)');
-                    else transform+=" scale("+v+",1)";
-                    xui.Dom.setStyle(o,'transform',transform);
+                     if(o.raphael&&o.id){
+                        v=parseFloat(v);
+                        var prf=xui.Event._getProfile(o.id),t;
+                        if((prf = prf && prf.parent && prf.parent._paper) && (o=prf.getById(o.raphaelid))){
+                            t=_.clone(Raphael.parseTransformString(o.transform()),true);
+                            // only for the first
+                            if(t&&t[0]&&t[0][0]=="s"){
+                                t[0][1]=v;
+                            }else{
+                                t=t||[];
+                                t.unshift(['s',v,1]);
+                            }
+                            o.transform(t);
+                        }
+                    }else{
+                        var transform=o.style.transform||"";
+                        if(/(scale\()([^,]+),([^)]+)/i.test(transform))transform=transform.replace(/(scale\()([^,]+),([^)]+)/i, '$1'+v+',$3');
+                        else if(/scale\([-\d.]*\)/i.test(transform))transform=transform.replace(/scale\([-\d.]*\)/i, 'scale('+v+',1)');
+                        else transform+=" scale("+v+",1)";
+                        xui.Dom.setStyle(o,'transform',transform);
+                    }
                 });
             }else{
-               var arr=/(scale\()([^,]+),([^)]+)/i.exec(this.get(0).style.transform);
-               if(arr)return parseFloat(arr[2]||1);
-               else{
-                    arr=/scale\(([-\d.]*)\)/i.exec(this.get(0).style.transform);
-                    return arr?arr[1]:1;
+                 var o=this.get(0);
+                if(o.raphael&&o.id){
+                    v=1;
+                    var prf=xui.Event._getProfile(o.id);
+                    if((prf = prf && prf.parent && prf.parent._paper) && (o=prf.getById(o.raphaelid))){
+                         _.arr.each(Raphael.parseTransformString(o.transform()),function(t){
+                            if(t[0]=="s")v*=t[1];
+                        });
+                    }
+                    return v;
+                }else{
+                   var arr=/(scale\()([^,]+),([^)]+)/i.exec(this.get(0).style.transform);
+                   if(arr)return parseFloat(arr[2]||1);
+                   else{
+                        arr=/scale\(([-\d.]*)\)/i.exec(this.get(0).style.transform);
+                        return arr?arr[1]:1;
+                    }
                 }
             }
         },
         scaleY:function(v){
             if(_.isSet(v)){
                 return this.each(function(o){
-                    var transform=o.style.transform||"";
-                    if(/(scale\()([^,]+),([^)]+)/i.test(transform))transform=transform.replace(/(scale\()([^,]+),([^)]+)/i, '$1$2,'+v);
-                    else if(/scale\([-\d.]*\)/i.test(transform))transform=transform.replace(/scale\([-\d.]*\)/i, 'scale(1,'+v+')');
-                    else transform+=" scale(1,"+v+")";
-                    xui.Dom.setStyle(o,'transform',transform);
+                    if(o.raphael&&o.id){
+                        v=parseFloat(v);
+                        var prf=xui.Event._getProfile(o.id),t;
+                        if((prf = prf && prf.parent && prf.parent._paper) && (o=prf.getById(o.raphaelid))){
+                            t=_.clone(Raphael.parseTransformString(o.transform()),true);
+                            // only for the first
+                            if(t&&t[0]&&t[0][0]=="s"){
+                                t[0][2]=v;
+                            }else{
+                                t=t||[];
+                                t.unshift(['s',1,v]);
+                            }
+                            o.transform(t);
+                        }
+                    }else{
+                        var transform=o.style.transform||"";
+                        if(/(scale\()([^,]+),([^)]+)/i.test(transform))transform=transform.replace(/(scale\()([^,]+),([^)]+)/i, '$1$2,'+v);
+                        else if(/scale\([-\d.]*\)/i.test(transform))transform=transform.replace(/scale\([-\d.]*\)/i, 'scale(1,'+v+')');
+                        else transform+=" scale(1,"+v+")";
+                        xui.Dom.setStyle(o,'transform',transform);
+                    }
                 });
             }else{
-               var arr=/(scale\()([^,]+),([^)]+)/i.exec(this.get(0).style.transform);
-               if(arr)return parseFloat(arr[3]||1);
-               else{
-                    arr=/scale\(([-\d.]*)\)/i.exec(this.get(0).style.transform);
-                    return arr?arr[1]:1;
+                var o=this.get(0);
+                if(o.raphael&&o.id){
+                   v=1;
+                    var prf=xui.Event._getProfile(o.id);
+                    if((prf = prf && prf.parent && prf.parent._paper) && (o=prf.getById(o.raphaelid))){
+                         _.arr.each(Raphael.parseTransformString(o.transform()),function(t){
+                            if(t[0]=="s")v*=t[2];
+                        });
+                    }
+                    return v;
+                }else{
+                   var arr=/(scale\()([^,]+),([^)]+)/i.exec(this.get(0).style.transform);
+                   if(arr)return parseFloat(arr[3]||1);
+                   else{
+                        arr=/scale\(([-\d.]*)\)/i.exec(this.get(0).style.transform);
+                        return arr?arr[1]:1;
+                    }
                 }
             }
         },
         translateX:function(v){
             if(_.isSet(v)){
-                if(_.isFinite(v))v+='px';
                 return this.each(function(o){
-                    var transform=o.style.transform||"";
-                    if(/translate\([^)]*\)/i.test(transform))transform=transform.replace(/(translate\()([^,]+),([^)]+)/i, '$1'+v+',$3');
-                    else transform+=" translate("+v+",0)";
-                    xui.Dom.setStyle(o,'transform',transform);
+                     if(o.raphael&&o.id){
+                        v=parseFloat(v);
+                        var prf=xui.Event._getProfile(o.id),t;
+                        // modify the last 't'
+                        if((prf = prf && prf.parent && prf.parent._paper) && (o=prf.getById(o.raphaelid))){
+                            t=_.clone(Raphael.parseTransformString(o.transform()),true);
+                            if(t&&t.length&&t[t.length-1]&&(t[t.length-1][0]=="t")){
+                                t[t.length-1][1]=v;
+                            }else{
+                                t=t||[];
+                                t.push(['t',v,0]);
+                            }
+                            o.transform(t);
+                        }
+                    }else{
+                        if(_.isFinite(v))v+='px';
+                        var transform=o.style.transform||"";
+                        if(/translate\([^)]*\)/i.test(transform))transform=transform.replace(/(translate\()([^,]+),([^)]+)/i, '$1'+v+',$3');
+                        else transform+=" translate("+v+",0)";
+                        xui.Dom.setStyle(o,'transform',transform);
+                    }
                 });
             }else{
-               var arr=/(translate\()([^,]+),([^)]+)/i.exec(this.get(0).style.transform);
-               return arr?(arr[2]||"").replace(/\s/g,''):'';
+                var o=this.get(0);
+                if(o.raphael&&o.id){
+                    v=0;
+                    var prf=xui.Event._getProfile(o.id);
+                    if((prf = prf && prf.parent && prf.parent._paper) && (o=prf.getById(o.raphaelid))){
+                         _.arr.each(Raphael.parseTransformString(o.transform()),function(t){
+                            if(t[0]=="t")v+=t[1];
+                        });
+                    }
+                    return v;
+                }else{
+                   var arr=/(translate\()([^,]+),([^)]+)/i.exec(this.get(0).style.transform);
+                   return arr?(arr[2]||"").replace(/\s/g,''):'';
+                }
             }
         },
         translateY:function(v){
             if(_.isSet(v)){
-                if(_.isFinite(v))v+='px';
                 return this.each(function(o){
-                    var transform=o.style.transform||"";
-                    if(/translate\([^)]*\)/i.test(transform))transform=transform.replace(/(translate\()([^,]+),([^)]+)/i, '$1$2,'+v);
-                    else transform+=" translate(0,"+v+")";
-                    xui.Dom.setStyle(o,'transform',transform);
+                     if(o.raphael&&o.id){
+                        v=parseFloat(v);
+                        var prf=xui.Event._getProfile(o.id);
+                        if((prf = prf && prf.parent && prf.parent._paper) && (o=prf.getById(o.raphaelid))){
+                            t=_.clone(Raphael.parseTransformString(o.transform()),true);
+                            // modify the last 't'
+                            if(t&&t.length&&t[t.length-1]&&(t[t.length-1][0]=="t")){
+                                t[t.length-1][2]=v;
+                            }else{
+                                t=t||[];
+                                t.push(['t',0,v]);
+                            }
+                            o.transform(t);
+                        }
+                    }else{
+                        if(_.isFinite(v))v+='px';
+                        var transform=o.style.transform||"";
+                        if(/translate\([^)]*\)/i.test(transform))transform=transform.replace(/(translate\()([^,]+),([^)]+)/i, '$1$2,'+v);
+                        else transform+=" translate(0,"+v+")";
+                        xui.Dom.setStyle(o,'transform',transform);
+                    }
                 });
             }else{
-               var arr=/(translate\()([^,]+),([^)]+)/i.exec(this.get(0).style.transform);
-               return arr?(arr[3]||"").replace(/\s/g,''):'';
+                var o=this.get(0);
+                if(o.raphael&&o.id){
+                    v=0;
+                    var prf=xui.Event._getProfile(o.id);
+                    if((prf = prf && prf.parent && prf.parent._paper) && (o=prf.getById(o.raphaelid))){
+                         _.arr.each(Raphael.parseTransformString(o.transform()),function(t){
+                            if(t[0]=="t")v+=t[2];
+                        });
+                    }
+                    return v;
+                }else{
+                   var arr=/(translate\()([^,]+),([^)]+)/i.exec(this.get(0).style.transform);
+                   return arr?(arr[3]||"").replace(/\s/g,''):'';
+                }
             }
         },
         skewX:function(v){
@@ -8620,7 +9455,7 @@ Class('xui.Dom','xui.absBox',{
                     return ret;
             //get caret
             }else{
-                if(ie){
+                if(ie && document.selection){
                     var r=document.selection.createRange(),
                         txt=r.text,
                         l=txt.length,
@@ -8663,6 +9498,9 @@ Class('xui.Dom','xui.absBox',{
                 }
                 if(_.isSet(left))style.left=left;
                 if(_.isSet(top))style.top=top;
+                //force to visible
+//                if(style.visibility!='visible')style.visibility='visible';
+//                if(style.display=='none')style.display='';
 
                 //ie6 bug
               /*  if(xui.browser.ie6){
@@ -8853,27 +9691,63 @@ Class('xui.Dom','xui.absBox',{
         },
 //class and src
         hasClass:function(name){
-            var arr = xui.Dom._getClass(this.get(0)).split(/\s+/);
-            return _.arr.indexOf(arr,name)!=-1;
+            var i,l,isReg=_.isReg(name), arr = xui.Dom._getClass(this.get(0)).split(/\s+/);
+            if(isReg){
+                for(i=0,l=arr.length;i<l;i++){
+                    if(name.test(arr[i])){
+                        return true;
+                    }
+                }
+            }else{
+                return _.arr.indexOf(arr, name+"")!=-1;
+            }
+            return false;
         },
         addClass:function(name){
-            var arr, t, me=arguments.callee,reg=(me.reg||(me.reg=/\s+/));
+            var arr, i,l,me=arguments.callee,reg=(me.reg||(me.reg=/\s+/)),t,ok,
+                  arr2 = (name+"").split(reg);                
+            if(!arr2.length)return this;
+
             return this.each(function(o){
-                arr = (t=xui.Dom._getClass(o)).split(reg);
-                if(_.arr.indexOf(arr,name)==-1)
-                    xui.Dom._setClass(o, t + " " +name);
+                ok=0;
+                arr = xui.Dom._getClass(o).split(reg);
+                t=[];
+                for(i=0,l=arr.length;i<l;i++)if(arr[i])t.push(arr[i]);
+                for(i=0,l=arr2.length;i<l;i++){
+                    if(arr2[i] && _.arr.indexOf(arr, arr2[i])==-1){
+                        ok=1;
+                        t.push(arr2[i]);
+                    }
+                };
+                if(ok)xui.Dom._setClass(o, t.join(" "));
             });
         },
         removeClass:function(name){
-            var arr, i,l,a, t, bs=typeof name=='string', me=arguments.callee,reg=(me.reg||(me.reg=/\s+/));
+            var arr, i,l, isReg=_.isReg(name), me=arguments.callee,reg=(me.reg||(me.reg=/\s+/)),ok,
+                  arr2;
+            if(!isReg){
+                arr2=(name+"").split(reg);
+                if(!arr2.length)return this;
+            }
             return this.each(function(o){
+                ok=0;
                 arr = xui.Dom._getClass(o).split(reg);
-                l=arr.length;
-                a=[];
-                for(i=0;t=arr[i];i++)
-                    if(bs?(t!=name):(!name.test(""+t)))
-                        a[a.length]=t;
-                if(l!=a.length)xui.Dom._setClass(o,a.join(' '));
+                if(!isReg){
+                    for(i=0,l=arr2.length;i<l;i++){
+                        if(_.arr.indexOf(arr,arr2[i])!=-1){
+                            ok=1;
+                            _.arr.removeValue(arr, arr2[i]);
+                        }
+                    }
+                }else{
+                    _.filter(arr,function(o,i){
+                        if(name.test(o)){
+                            ok=1;
+                            return false;
+                        }
+                    });
+                }
+                if(ok)xui.Dom._setClass(o, arr.join(" "));
             });
         },
         replaceClass:function(regexp,replace){
@@ -8976,7 +9850,7 @@ Class('xui.Dom','xui.absBox',{
             self.$addEventHandler(name).each(function(o){
                 if(o.nodeType==3)return;
 
-                if(!(id=event.getId(o)))
+                if(!(id=event.getId(o))&&o!==window&&o!==document)
                     id=o.id=xui.Dom._pickDomId();
 
                 if(!(c=xui.$cache.profileMap[id]))
@@ -9157,7 +10031,7 @@ Class('xui.Dom','xui.absBox',{
 
             t=p.childNodes;
             for(k=0;o=t[k];k++){
-                if(o==node || o.nodeType !=1 || !o.$xid || o.style.display=='none' || o.style.visibility=='hidden' ||  xui.getNodeData(o,'zIndexIgnore') )continue;
+                if(o==node || o.nodeType !=1 || !o.$xid || o.style.display=='none' || o.style.visibility=='hidden' || o.zIndexIgnore ||  xui.getNodeData(o,'zIndexIgnore') )continue;
                 j = parseInt(o.style && o.style.zIndex,10) || 0 ;
                 i=i>j?i:j;
             }
@@ -9199,40 +10073,39 @@ Class('xui.Dom','xui.absBox',{
             fontSize:[12,18]
         }
         */
-        animate: function(params, onStart, onEnd, duration, step, type, threadid, unit){
-            var me=arguments.callee,
-                tween = xui.Dom.$AnimateEffects || (xui.Dom.$AnimateEffects = {
-            linear:function(s,c) {return (1/s)*c;},
-            sineIn:function(s,c) {return -1*Math.cos(c/s*(Math.PI/2))+1;},
-            sineOut:function(s,c) {return Math.sin(c/s*(Math.PI/2));},
-            sineInOut:function(s,c) {return -1/2*(Math.cos(Math.PI*c/s)-1);},
-            quadIn:function(s,c) {return (c/=s)*c;},
-            quadOut:function(s,c) {return -1*(c/=s)*(c-2);},
-            quadInOut:function(s,c) {if((c/=s/2)<1) {return 1/2*c*c;} return -1/2*((--c)*(c-2)-1);},
-            cubicIn:function(s,c) {return (c/=s)*c*c;},
-            cubicOut:function(s,c) {return ((c=c/s-1)*c*c+1);},
-            cubicInOut:function(s,c) {if((c/=s/2)<1) {return 1/2*c*c*c;} return 1/2*((c-=2)*c*c+2);},
-            quartIn:function(s,c) {return (c/=s)*c*c*c;},
-            quartOut:function(s,c) {return -1*((c=c/s-1)*c*c*c-1);},
-            quartInOut:function(s,c) {if((c/=s/2)<1) {return 1/2*c*c*c*c;} return -1/2*((c-=2)*c*c*c-2);},
-            quintIn:function(s,c) {return (c/=s)*c*c*c*c;},
-            quintOut:function(s,c) {return ((c=c/s-1)*c*c*c*c+1);},
-            quintInOut:function(s,c) {if((c/=s/2)<1) {return 1/2*c*c*c*c*c;} return 1/2*((c-=2)*c*c*c*c+2);},
-            expoIn:function(s,c) {return (c==0)?0:Math.pow(2,10*(c/s-1));},
-            expoOut:function(s,c) {return (c==s)?1:(-Math.pow(2,-10*c/s)+1);},
-            expoInOut:function(s,c) {if(c==0) {return 0;} if(c==s) {return 1;} if((c/=s/2)<1) {return 1/2*Math.pow(2,10*(c-1));} return 1/2*(-Math.pow(2,-10*--c)+2);},
-            circIn:function(s,c) {return -1*(Math.sqrt(1-(c/=s)*c)-1);},
-            circOut:function(s,c) {return Math.sqrt(1-(c=c/s-1)*c);},
-            circInOut:function(s,c) {if((c/=s/2)<1) {return -1/2*(Math.sqrt(1-c*c)-1);} return 1/2*(Math.sqrt(1-(c-=2)*c)+1);},
-            bounceIn:function(s,c) {return 1-tween.bounceOut(s,s-c);},
-            bounceOut:function(s,c) {var k=7.5625; if((c/=s)<(1/2.75)) {return (k*c*c);}else if(c<(2/2.75)) {return (k*(c-=(1.5/2.75))*c+.75);}else if(c<(2.5/2.75)) {return (k*(c-=(2.25/2.75))*c+.9375);}else {return (k*(c-=(2.625/2.75))*c+.984375);}},
-            bounceInOut:function(s,c) {if(c<s/2) {return tween.bounceIn(s,c*2)*.5;}else {return tween.bounceOut(s,c*2-s)*.5+1*.5;}},
-            backIn:function(s,c) {var k=1.70158; return (c/=s)*c*((k+1)*c-k);},
-            backOut:function(s,c) {var k=1.70158;   return ((c=c/s-1)*c*((k+1)*c+k)+1);},
-            backInOut:function(s,c) {var k=1.70158; if((c/=s/2)<1) {return 1/2*(c*c*(((k*=(1.525))+1)*c-k));} return 1/2*((c-=2)*c*(((k*=(1.525))+1)*c+k)+2);},
-            elasticIn:function(s,c,p,a,z) {if(c==0) {return 0;} if((c/=s)==1) {return 1;} if(!z) {z=s*.3;} if(!a||a<1) {a=1; var k=z/4;}else {var k=z/(2*Math.PI)*Math.asin(1/a);} return -(a*Math.pow(2,10*(c-=1))*Math.sin((c*s-k)*(2*Math.PI)/z));},
-            elasticOut:function(s,c,p,a,z) {if(c==0) {return 0;} if((c/=s)==1) {return 1;} if(!z) {z=s*.3;} if(!a||a<1) {a=1; var k=z/4;}else {var k=z/(2*Math.PI)*Math.asin(1/a);} return (a*Math.pow(2,-10*c)*Math.sin((c*s-k)*(2*Math.PI)/z)+1);},
-            elasticInOut:function(s,c,p,a,z) {if(c==0) {return 0;} if((c/=s/2)==2) {return 1;} if(!z) {z=s*(.3*1.5);} if(!a||a<1) {a=1; var k=z/4;}else {var k=z/(2*Math.PI)*Math.asin(1/a);} if(c<1) {return -.5*(a*Math.pow(2,10*(c-=1))*Math.sin((c*s-k)*(2*Math.PI)/z));} return a*Math.pow(2,-10*(c-=1))*Math.sin((c*s-k)*(2*Math.PI)/z)*.5+1;}
+        animate: function(params, onStart, onEnd, duration, step, type, threadid, unit, returned, times, _goback){
+            var me=arguments.callee, tween = xui.Dom.$AnimateEffects || (xui.Dom.$AnimateEffects = {
+                linear:function(s,c) {return (1/s)*c;},
+                sineIn:function(s,c) {return -1*Math.cos(c/s*(Math.PI/2))+1;},
+                sineOut:function(s,c) {return Math.sin(c/s*(Math.PI/2));},
+                sineInOut:function(s,c) {return -1/2*(Math.cos(Math.PI*c/s)-1);},
+                quadIn:function(s,c) {return (c/=s)*c;},
+                quadOut:function(s,c) {return -1*(c/=s)*(c-2);},
+                quadInOut:function(s,c) {if((c/=s/2)<1) {return 1/2*c*c;} return -1/2*((--c)*(c-2)-1);},
+                cubicIn:function(s,c) {return (c/=s)*c*c;},
+                cubicOut:function(s,c) {return ((c=c/s-1)*c*c+1);},
+                cubicInOut:function(s,c) {if((c/=s/2)<1) {return 1/2*c*c*c;} return 1/2*((c-=2)*c*c+2);},
+                quartIn:function(s,c) {return (c/=s)*c*c*c;},
+                quartOut:function(s,c) {return -1*((c=c/s-1)*c*c*c-1);},
+                quartInOut:function(s,c) {if((c/=s/2)<1) {return 1/2*c*c*c*c;} return -1/2*((c-=2)*c*c*c-2);},
+                quintIn:function(s,c) {return (c/=s)*c*c*c*c;},
+                quintOut:function(s,c) {return ((c=c/s-1)*c*c*c*c+1);},
+                quintInOut:function(s,c) {if((c/=s/2)<1) {return 1/2*c*c*c*c*c;} return 1/2*((c-=2)*c*c*c*c+2);},
+                expoIn:function(s,c) {return (c==0)?0:Math.pow(2,10*(c/s-1));},
+                expoOut:function(s,c) {return (c==s)?1:(-Math.pow(2,-10*c/s)+1);},
+                expoInOut:function(s,c) {if(c==0) {return 0;} if(c==s) {return 1;} if((c/=s/2)<1) {return 1/2*Math.pow(2,10*(c-1));} return 1/2*(-Math.pow(2,-10*--c)+2);},
+                circIn:function(s,c) {return -1*(Math.sqrt(1-(c/=s)*c)-1);},
+                circOut:function(s,c) {return Math.sqrt(1-(c=c/s-1)*c);},
+                circInOut:function(s,c) {if((c/=s/2)<1) {return -1/2*(Math.sqrt(1-c*c)-1);} return 1/2*(Math.sqrt(1-(c-=2)*c)+1);},
+                bounceIn:function(s,c) {return 1-tween.bounceOut(s,s-c);},
+                bounceOut:function(s,c) {var k=7.5625; if((c/=s)<(1/2.75)) {return (k*c*c);}else if(c<(2/2.75)) {return (k*(c-=(1.5/2.75))*c+.75);}else if(c<(2.5/2.75)) {return (k*(c-=(2.25/2.75))*c+.9375);}else {return (k*(c-=(2.625/2.75))*c+.984375);}},
+                bounceInOut:function(s,c) {if(c<s/2) {return tween.bounceIn(s,c*2)*.5;}else {return tween.bounceOut(s,c*2-s)*.5+1*.5;}},
+                backIn:function(s,c) {var k=1.70158; return (c/=s)*c*((k+1)*c-k);},
+                backOut:function(s,c) {var k=1.70158;   return ((c=c/s-1)*c*((k+1)*c+k)+1);},
+                backInOut:function(s,c) {var k=1.70158; if((c/=s/2)<1) {return 1/2*(c*c*(((k*=(1.525))+1)*c-k));} return 1/2*((c-=2)*c*(((k*=(1.525))+1)*c+k)+2);},
+                elasticIn:function(s,c,p,a,z) {if(c==0) {return 0;} if((c/=s)==1) {return 1;} if(!z) {z=s*.3;} if(!a||a<1) {a=1; var k=z/4;}else {var k=z/(2*Math.PI)*Math.asin(1/a);} return -(a*Math.pow(2,10*(c-=1))*Math.sin((c*s-k)*(2*Math.PI)/z));},
+                elasticOut:function(s,c,p,a,z) {if(c==0) {return 0;} if((c/=s)==1) {return 1;} if(!z) {z=s*.3;} if(!a||a<1) {a=1; var k=z/4;}else {var k=z/(2*Math.PI)*Math.asin(1/a);} return (a*Math.pow(2,-10*c)*Math.sin((c*s-k)*(2*Math.PI)/z)+1);},
+                elasticInOut:function(s,c,p,a,z) {if(c==0) {return 0;} if((c/=s/2)==2) {return 1;} if(!z) {z=s*(.3*1.5);} if(!a||a<1) {a=1; var k=z/4;}else {var k=z/(2*Math.PI)*Math.asin(1/a);} if(c<1) {return -.5*(a*Math.pow(2,10*(c-=1))*Math.sin((c*s-k)*(2*Math.PI)/z));} return a*Math.pow(2,-10*(c-=1))*Math.sin((c*s-k)*(2*Math.PI)/z)*.5+1;}
                 }),
                 color = me.color || (me.color = function(from,to,curvalue){
                     if(typeof from !='string' || typeof to != 'string')return '#fff';
@@ -9264,15 +10137,19 @@ Class('xui.Dom','xui.absBox',{
                 if(onEnd)_.tryF(onEnd);
                 return;
             }
+            var parmsBak=params;
+            // clone it now
+            params=_.clone(params);
+            
             // Estimate duration by steps
             if((step||0)>0)
                 duration=step*16;
             else
                 duration = duration||200;
-
+            times=times||1;
             type = (type in tween)?type:'circIn';
 
-            var starttime, node=this.get(0), self=xui(node),   funs=[function(threadid){
+            var starttime, node=this.get(0), self=this, fun=function(threadid){
                 var offtime=_() - starttime, curvalue,u,s,e;
                 if(offtime >= duration)offtime=duration;
                 _.each(params,function(o,i){
@@ -9295,27 +10172,55 @@ Class('xui.Dom','xui.absBox',{
                     }
                 });
                 if(offtime==duration){
-                    xui.Thread(threadid).abort('normal');
+                    if(returned&&!_goback){
+                        starttime=_();
+                        _goback=1;
+                        _.each(params,function(v,k){k=v[0];v[0]=v[1];v[1]=k;});
+                    }else{
+                        if(times==-1||times>0){
+                            starttime=_();
+                            if(times>0)times-=1;
+                            if(_goback){
+                                _goback=0;
+                                _.each(params,function(v,k){k=v[0];v[0]=v[1];v[1]=k;});
+                            }
+                        }
+                    }
+                    if(!times){
+                        xui.Thread(threadid).abort('normal');
+                    }
                     return false;
                 }
-            }];
+            },funs=[fun];
 
             var tid=xui.getNodeData(node,'_inthread');
             if(tid && xui.Thread.isAlive(tid)){
                 xui.Thread(tid).abort('force');
                 xui.setNodeData(node,'_inthread',null);
             }
+            var reset=xui.getNodeData(node,'_animationreset');
+            if(typeof reset=="function"){                
+                reset();
+                xui.setNodeData(node,'_animationreset',null);
+            }
 
             return xui.Thread(threadid||_.id(), funs, 0, null, function(tid){
                 xui.setNodeData(node,'_inthread',tid);
                 starttime=_();
+                xui.setNodeData(node,'_animationreset',function(){
+                    _.merge(params,parmsBak,'all');
+                    starttime=_();
+                    fun();
+                });
                 return _.tryF(onStart,arguments,this);
             }, function(tid,flag){
                 if('force'!=flag)
                     _.tryF(onEnd,arguments,this);
                 //maybe destroyed
-                if(node&&node.$xid)
+                if(node&&node.$xid){
                     xui.setNodeData(node,'_inthread',null);
+                    xui.setNodeData(node,'_animationreset',null);
+                }
             },true);
         },
         pop : function(pos, type, parent, trigger, group){
@@ -9530,27 +10435,33 @@ type:4
             if(hideEffects)hideEffects=xui.Dom._getEffects(hideEffects,0);
             if(!_.isDefined(type))type='outer';
 
-            var aysid=groupid || (this.xid()+":"+node.xid());
+            var aysid=groupid || (this.xid()+":"+node.xid()),self=this;
             this.onMouseover(type===null?null:function(prf, e, src){
                 if(e.$force)return;
                 _.resetRun(aysid,null);
                 var ignore=xui.getData([aysid,'$ui.hover.pop'])
                                 && xui.getNodeData(node.get(0)||"empty",'$ui.hover.parent')==src;
                 if(!ignore){
-                    if(!beforePop || false!==beforePop(prf, node, e, src)){
-                        node.popToTop(src, type, parent,showEffects);
-                    }
                     xui.setData([aysid,'$ui.hover.pop'],1);
                     xui.setNodeData(node.get(0)||"empty",'$ui.hover.parent',src);
+                    if(!beforePop || false!==beforePop(prf, node, e, src)){
+                        node.popToTop(src, type, parent,showEffects);
+                        node.onMouseover(function(){
+                            self.onMouseover(true)
+                        },'hoverPop').onMouseout(function(){
+                            self.onMouseout(true)
+                        },'hoverPop');
+                    }
                 }
             },aysid).onMouseout(type===null?null:function(prf, e, src){
                 if(e.$force)return;
                 _.resetRun(aysid,function(){
-                    if(!beforeHide || false!==beforeHide(prf, node,e, src,'host')){
-                        node.hide(null,hideEffects);
-                    }
                     xui.setData([aysid,'$ui.hover.pop']);
                     xui.setNodeData(node.get(0)||"empty",'$ui.hover.parent',0);
+                    if(!beforeHide || false!==beforeHide(prf, node,e, src,'host')){
+                        node.hide(null,hideEffects);
+                        node.onMouseover(null,'hoverPop').onMouseout(null,'hoverPop');
+                    }
                 });
             },aysid);
             if(node){
@@ -9560,11 +10471,12 @@ type:4
                 },aysid).onMouseout(type===null?null:function(prf,e,src){
                     if(e.$force)return;
                     _.resetRun(aysid,function(){
-                        if(!beforeHide || false!==beforeHide(prf, node,e, src, 'pop')){
-                            node.hide(null,hideEffects);
-                        }
                         xui.setData([aysid,'$ui.hover.pop']);
                         xui.setNodeData(node.get(0)||"empty",'$ui.hover.parent',0);
+                        if(!beforeHide || false!==beforeHide(prf, node,e, src, 'pop')){
+                            node.hide(null,hideEffects);
+                            node.onMouseover(null,'hoverPop').onMouseout(null,'hoverPop');
+                        }
                     });
                 },aysid);
             }
@@ -9668,7 +10580,7 @@ type:4
                     target=ns;
                 }
 
-                target.each(function(o){if(!o.id)o.id=xui.Dom._pickDomId()});
+                target.each(function(o){if(!o.id&&o!==window&&o!==document)o.id=xui.Dom._pickDomId()});
 
                 //double link
                 arr[id]={
@@ -9787,6 +10699,8 @@ type:4
                     ? ['!document']
                     : _.isArr(obj)
                     ? obj
+                    :(obj=='[object NodeList]' || obj=='[object HTMLCollection]')
+                    ? _.toArr(obj)
                     : obj['xui.Dom']
                     ? obj._nodes
                     : obj._toDomElems
@@ -9840,6 +10754,9 @@ type:4
         },
         getStyle:function(node, name){
             if(!node || node.nodeType!=1)return '';
+            if(name=="rotate"){
+               return xui(node).rotate();
+            }
             var ns=xui.Dom,
                 css3prop=xui.Dom._css3prop;
 
@@ -10053,10 +10970,11 @@ type:4
                 var matrix=computeMatrix(value);
                 var ow=node.offsetWidth,oh=node.offsetHeight;
                 var filter=matrix.getFilter();
-
+//xui.echo(filter);
                 var t=((node.style.filter?(node.style.filter+","):"")+filter).replace(/(^[\s,]*)|([\s,]*$)/g,'').replace(/,[\s]+/g,','+(xui.browser.ver==8?"":" "));
                 if(xui.browser.ie8)node.style.msfilter = t;
                 node.style.filter=t;
+//xui.echo(t);
 
                 // for fake case
                 if(node.getBoundingClientRect){
@@ -10722,13 +11640,17 @@ type:4
                 _.each(fack.style,function(o,i){
                     arr.push(i.replace(/([A-Z])/g, "-$1" ).toLowerCase()+":"+o);
                 });
-                return arr.join(';');
+                return arr.join(';').replace(/[;]+/g,';');
             }else{
                 return fack.style;
             }
         },
         _cssfake:{rotate:1, scaleX:1,scaleY:1,translateX:1,translateY:1,skewX:1,skewY:1},
         setStyle:function(node, name , value){
+            if(name=="rotate"){
+               xui(node).rotate(value);
+               return this;
+            }
             var ns=xui.Dom,
                 css3prop=xui.Dom._css3prop,
                 xb=xui.browser,
@@ -10919,6 +11841,37 @@ type:4
             }
             return _c[key]=rt;
         },
+        $preDefinedAnims:{
+            blinkAlert:{
+                params:{opacity:[1,0]}, 
+                duration:200, 
+                returned: true, 
+                times:3
+            },
+            zoomAlert:{
+                params:{scaleX:[1,1.1],scaleY:[1,1.1]}, 
+                duration:100, 
+                returned: true, 
+                times:3
+            },
+            translateXAlert:{
+                params:{translateX:[0,5]}, 
+                duration:100, 
+                returned: true, 
+                times:3
+            },
+            translateYAlert:{
+                params:{translateY:[0,5]}, 
+                duration:100, 
+                returned: true, 
+                times:3
+            },
+            rotateAlert:{
+                params:{rotate:[0,360]}, 
+                duration:400, 
+                returned: false
+            }
+        },
         $preDefinedEffects:{
            "Classic":[{type:"circOut",duration:200,params: {opacity:[0,1],scaleX:[.75,1],scaleY:[.75,1]}}, {type:"circIn",duration:200,params: {opacity:[1,0],scaleX:[1,.75],scaleY:[1,.75]}}],
            "Blur":[{type:"circOut",duration:200,params: {opacity:[0,1]}}, {type:"circIn",duration:200,params: {opacity:[1,0]}}],
@@ -10946,7 +11899,7 @@ type:4
             if(node.nodeType != 1)return false;
             var style=node.style;
             if(value || value===0){
-                value = ((''+parseFloat(value))==(''+value)) ? (parseInt(value,10)||0) + "px" : value +'';
+                value =_.isFinite(value) ? ((parseInt(value,10)||0) + "px") : (value +'');
                 if((key=='width'||key=='height') && value.charAt(0)=='-')value='0';
                 if(style[key]!=value){
                     style[key]=value;
@@ -10958,6 +11911,7 @@ type:4
         getEmptyDiv:function(sequence){
             var i=1,id,rt,style,o,t,count=0,doc=document,body=doc.body,ini=function(o){
                 o.id=id;
+                // position:relative; is for text wrap bug
                 xui([o]).attr('style','position:absolute;visibility:hidden;overflow:visible;left:'+xui.Dom.HIDE_VALUE+';top:'+xui.Dom.HIDE_VALUE+';');
             };
             sequence=sequence || 1;
@@ -10983,7 +11937,7 @@ type:4
             }
             body=o=null;
         },
-        setCover:function(visible,label){
+        setCover:function(visible,label,cursor){
             // get or create first
             var me=arguments.callee,
                 id="xui.temp:cover:",
@@ -11006,7 +11960,7 @@ type:4
                     return;
                 if(me._showed){
                     if(o2)o2.empty(false);
-                    o1.css({zIndex:0,cursor:'',display:'none'});
+                    o1.css({zIndex:0,cursor:'',display:'none',cursor:''});
                     me._showed=false;
                 }
                 delete me._label;
@@ -11014,7 +11968,7 @@ type:4
                 if(typeof label=='string')me._label=label;
                 var t = xui.win;
                 if(!me._showed){
-                    o1.css({zIndex:xui.Dom.TOP_ZINDEX*10,display:'',width:t.scrollWidth()+'px',height:t.scrollHeight()+'px',cursor:'progress'});
+                    o1.css({zIndex:xui.Dom.TOP_ZINDEX*10,display:'',width:t.scrollWidth()+'px',height:t.scrollHeight()+'px',cursor:cursor||'progress'});
                     me._showed=true;
                 }
                 //show content
@@ -11045,28 +11999,76 @@ type:4
             data=_.isHash(data)?data:{};
             data=_.clone(data, function(o){return o!==undefined});
 
-            method=method||'get';
             action=action||'';
             target=target||(action.substring(0,6).toLowerCase()=='mailto'?'_self':'_blank');
             var _t=[];
             if(!_.isEmpty(data)){
+                var file,files=[];
+                _.each(data,function(o,i){
+                    if(o && o['xui.UIProfile'] && o.$xuiFileCtrl){
+                        if(file=o.boxing().getUploadObj()){
+                            files.push({id:o.$xid, file:file});
+                            file.id=file.name=i;
+                            data[i]=file;
+                        }
+                    }
+                });
+
+                method=method||(file?'post':'get');
+
                 if(method.toLowerCase()=='get'){
                     window.open(action + "?" + _.urlEncode(data),target);
                 }else{
                     _.each(data,function(o,i){
-                        if(_.isDefined(o))
+                        if(_.isDefined(o) && !_.isElem(o))
                             _t.push('<textarea name="'+i+'">'+(typeof o=='object'?_.serialize(o):o)+'</textarea>');
                     });
                     _t.push('<input type="hidden" name="rnd" value="'+_()+'">');
                     _t=_.str.toDom('<form target="'+target+'" action="'+action+'" method="'+method  + (enctype?'" enctype="' +enctype:'') +  '">'+_t.join('')+'</form>');
                     xui.Dom.getEmptyDiv().append(_t);
+                    // 1. add files
+                    if(files.length){
+                        _.arr.each(files,function(o,i){
+                            _t.append(o.file);
+                        });
+                    }
+                    // 2.submit
                     _t.get(0).submit();
                     _t.remove();
                     _t=null;
                 }
+                // 3.restore file input
+                if(files.length){
+                    _.arr.each(files,function(o,i){
+                        if(i=xui.getObject(o.id)){
+                            if(i['xui.UIProfile'] && i.boxing() && i.boxing().setUploadObj){
+                                i.boxing().setUploadObj(o.file);
+                            }
+                        }
+                    });
+                }
             }else{
                 window.open(action,target);
             }
+        },
+        selectFile:function(callback, accept){
+            var fileInput=document.createElement( "input" );
+            fileInput.type="file";
+            // "image/*, video/*, audio/*"
+            if(accept)fileInput.accept = accept;
+
+            fileInput.onchange=function(){
+                _.tryF(callback, [this, this.files[0]], this);
+            };
+            if (!!window.ActiveXObject || "ActiveXObject" in window)  {
+              var label=document.createElement( "div" );
+              fileInput.appendChild(label);
+              label.click();
+              fileInput.removeChild(label);
+            }else{
+              fileInput.click();
+            }
+            fileInput=null;
         },
         busy:function(label,busyMsg){
             xui.Dom.setCover(busyMsg||true,label);
@@ -11074,7 +12076,7 @@ type:4
         free:function(label){
            xui.Dom.setCover(false,label);
         },
-        animate:function(css, params, onStart, onEnd, duration, step, type, threadid, unit){
+        animate:function(css, params, onStart, onEnd, duration, step, type, threadid, unit, returned,times){
             var node = document.createElement('div');
             _.merge(css,{position:'absolute', left:this.HIDE_VALUE, zIndex:this.TOP_ZINDEX++});
             xui.Dom.setStyle(node, css);
@@ -11084,7 +12086,7 @@ type:4
                 if(node.parentNode)
                     node.parentNode.removeChild(node);
                 node=null;
-            }, duration, step, type, threadid, unit);
+            }, duration, step, type, threadid, unit, returned, times);
         },
         //plugin event function to xui.Dom
         $enableEvents:function(name){
@@ -11140,9 +12142,11 @@ type:4
         ],function(o){
             //use get Style dir
             var node,fun=xui.Dom.getStyle;
-            self.plugIn(o[0],function(){
+            self.plugIn(o[0],function(type){
+                type=type||'both';
                 node = this.get(0);
-                return (parseInt(fun(node, o[1]),10) + parseInt(fun(node, o[2]),10)) || 0;
+                return ((type=='both'||type=='left'||type=='top')?parseInt(fun(node, o[1]),10):0) 
+                     + ((type=='both'||type=='right'||type=='bottom')?parseInt(fun(node, o[2]),10):0) || 0;
             })
         });
         /*
@@ -11186,7 +12190,7 @@ type:4
 
         _.arr.each([['_W',w, '_'+p+'W', '_'+b+'W', '_'+m+'W', c+W, o+W],
         ['_H',h, '_'+p+'H', '_'+b+'H', '_'+m+'H', c+H, o+H]],function(o){
-            self.plugIn(o[0],function(node,index,value){
+            self.plugIn(o[0],function(node,index,value,_in){
                 var n,r,t,style=node.style,me=arguments.callee,contentBox=xui.browser.contentBox,
                 r1=me.r1 || (me.r1=/%$/),
                 getStyle=xui.Dom.getStyle,
@@ -11206,28 +12210,21 @@ type:4
                     switch(index){
                         case 1:
                             r=getStyle(node,o[1]);
-                            if(isNaN(parseInt(r,10)) || r1.test(r))
-                                r = me(node,2) - (contentBox?t[o[2]]():0);
+                            if((isNaN(parseInt(r,10)) || r1.test(r))&&!_in)
+                                r = me(node,2,undefined,true) - (contentBox?t[o[2]]():0);
                             r=parseInt(r,10)||0;
                             break;
                         case 2:
-                            r=node[o[6]]-t[o[3]]();
+                            r=node[o[6]];
+                            //get from css setting before css applied
+                            if(!r){
+                                if(!_in)r=me(node,1,undefined,true)+(contentBox?t[o[2]]():0);
+                            }else r-=t[o[3]]();
                             break;
                         case 3:
-                            //for in firefox, offsetHeight/Width's bad performance
-                            //if(node._bp)
-                            //    r=node['_'+o[6]];
-                            //else{
-                            //    t1=_();
-                                r=node[o[6]];
-                            //    if(_()-t1>60){
-                            //        node['_'+o[6]]=r;
-                            //        node._bp=1;
-                            //    }
-                            //}
-                            if(!r)
-                                //get from css setting before css applied
-                                r=me(node,1)+(contentBox?t[o[2]]():0)+t[o[3]]();
+                            r=node[o[6]];
+                            //get from css setting before css applied
+                            if(!r)r=me(node,1)+(contentBox?t[o[2]]():0)+t[o[3]]();
                             break;
                         case 4:
                             r=me(node,3);
@@ -11334,10 +12331,11 @@ type:4
                         value = xui.Dom.getStyle(node, o);
                     return value=='auto'?value:(parseInt(value,10)||0);
                 }else{
-                    var f=xui.Dom._setPxStyle,t,a;
+                    var f=xui.Dom._setPxStyle,t,a,
+                    av = _.isFinite(value) ? (value+"px") : value;
                     return self.each(function(v){
                         if(v.nodeType!=1)return;
-                            if(v.style[o]!==value){
+                            if(v.style[o]!==av){
                                 if(o=='width')self._W(v,1,value);
                                 else if(o=='height')self._H(v,1,value);
                                 else{
@@ -11367,6 +12365,9 @@ type:4
 
         xui.win=xui(['!window'],false);
         xui.doc=xui(['!document'],false);
+        xui.busy=xui.Dom.busy;
+        xui.free=xui.Dom.free;
+
 
         xui.$inlineBlock=xui.browser.gek
             ? xui.browser.ver<3
@@ -11530,6 +12531,7 @@ type:4
         self.events={};
         self.$template={};
         self.link(self.constructor._cache,'self').link(xui._pool,'xui');
+        self.Class=self.constructor;
         self.box=self.constructor;
         self.boxing=function(){return this};
 
@@ -11843,96 +12845,303 @@ type:4
         _ctrlId : new _.id()
     }
 });/*
-    initialize
-beforeCreated
-onCreated
-onLoadBaseClass
-onLoadReqiredClass
-onIniResource
-    iniResource (asy)
-beforeIniComponents
-    iniComponents (asy)
-afterIniComponents
-    iniExComs (asy)
-onReady
-onRender
-onDestroy
-*/
+        initialize
+    beforeCreated
+    onCreated
+    beforeShow
+    afterShow
+    onLoadBaseClass
+    onLoadRequiredClass
+    onLoadRequiredClassErr
+    onIniResource
+        iniResource (asy)
+    beforeIniComponents
+        iniComponents (asy)
+    afterIniComponents
+        iniExModules (asy)
+    onReady
+    onRender
+    onDestroy
 
-Class('xui.Com',null,{
+    // for values
+    getValue:function(){},
+    getUIValue:function(){},
+    resetValue:function(){},
+    setUIValue:function(){},
+    updateValue:function(){},
+    isDirtied:function(){},
+    checkValid:function(){},
+*/
+Class('xui.Module','xui.absProfile',{
     Initialize:function(){
         var ns=this;
         xui.launch = function(cls, onEnd, lang, theme, showUI){
             ns.load.apply(ns, arguments);
         };
+        // compitable
+        ns['xui.Com']=ns.prototype['xui.Com']=1;
+        xui.Com=ns;
     },
     After:function(){
-          this._pool={};
+        var self=this,k, e, t, b, i;
+        _.arr.each(['$DataModel','$EventHandlers'],function(v){
+            k=self[v]||{};
+            if((t=self.$parent) && (e=t.length)){
+                while(e--){
+                    b=t[e][v];
+                    for(i in b){
+                        if(!(i in k))k[i]=b[i];
+                    }
+                }
+            }
+            self[v]=k;
+        });
+        e = self.prototype;
+        if('_events' in e){
+            b = e._events;
+            // for parents defination
+            t = e._pevents = e._pevents||{};
+            for(i in b){
+                if(t[i]){
+                    if(!_.isArr(t[i]))t[i]=[t[i]];
+                    _.arr.insertAny(t[i],b[i]);
+                }else t[i]=_.clone(b[i]);
+            }
+            e._events=null;
+        }
+        if('events' in e){
+            // for class defination
+            e._events=e.events;
+            // for instance
+            e.events={};
+        }
+        self._nameId=0;
+        self._namePool={};
+        self._nameTag=self.$nameTag||(self.KEY.replace(/\./g,'_').toLowerCase());
+        self._cache=[];
     },
     Constructor:function(properties, events, host){
-        var self=this;
-        self._nodes=[];
+        var self=this,opt,alias;
+
+        // If it's a older moudle object, set xid first
+		if(properties && properties.constructor==self.constructor){
+			if(properties.$xid){
+				self.$xid = properties.$xid;
+			}
+		}
+
+        var upper=arguments.callee.upper;
+        if(upper)upper.call(self);
+        upper=null;
+
+        // If it's a older moudle object, refresh itself
+        if(properties && properties.constructor==self.constructor){
+        	 var oldm = properties; 
+             
+             events = oldm.events || {};
+             alias = oldm.alias;
+             host = oldm.host;
+             properties = oldm.properties || {};
+             // for refresh , use the old pointer
+             self=oldm;
+        }else{
+        	if(properties && properties.key && properties["xui.Module"]){
+	             var opt=properties;
+	             properties = (opt && opt.properties) || {};
+	             events = (opt && opt.events) || {};
+	             alias = opt.alias;
+	             host = opt.host;
+	        }else{
+	            properties = properties || (self.properties?_.clone(self.properties):{});
+	            events = events || (self.events?_.clone(self.events):{});
+	        }
+	    }
+        
+
+        self.Class=self.constructor;
+        self.box=self.constructor;
+        self.key=self.KEY;
+
+        if(!alias)alias =self.constructor.pickAlias();
+        if(!_.isEmpty(self.constructor.$DataModel)){
+            _.merge( properties, _.clone(self.constructor.$DataModel),'without');
+        }
+        //
+        self._links={};
+        self.link(self.constructor._cache, "self");
+        self.link(xui.Module._cache, "xui.module");
+        self.link(xui._pool,'xui');
+        
         self.host=host||self;
+        self.alias=alias;
+        
+        self.$UIValue="";
 
-        self.$xid=self.constructor._ctrlId.next();
-
-        self.constructor._pool[self.$xid]=xui.Com._pool[self.$xid]=self;
-
-        self.properties = properties || (self.properties?_.clone(self.properties):{});
-        //copy those from class setting
-        self.events = _.copy(self.events) || {};
-        if(events)
-            _.merge(self.events, events, 'all');
+        self._nodes=[];
         self._ctrlpool={};
+        self.events=events;
+        self.properties={};
+        if(self._events) self._events = _.clone(self._events);
+        if(self._pevents) self._pevents = _.clone(self._pevents);
+
+        self.setProperties(properties);
 
         self._innerCall('initialize');
+
+        return self;
     },
     Instance:{
         autoDestroy:true,
-        dataBindLoadType:"none", // "sync", "async", "none"
         background:"",
 
+        // [[[ fake boxing
+        get:function(index){
+            return  _.isNumb(index)?this:[this];
+        },
+        size:function(){
+            return 1;
+        },
+        boxing:function(){
+            return this;
+        },
+        each:function(fun,scope){
+            fun.call(scope, this);
+            return this;
+        },
+        getRoot:function(){
+            if(!this._innerModulesCreated)this._createInnerModules();
+            var fun = function(m){
+                if(m["xui.Module"]){
+                    for(var i=0,l=m._nodes,o;i<l, o=m._nodes[i];i++){
+                        if(o["xui.Module"]) return fun(o);
+                        if(o["xui.UIProfile"] && !o.box.$initRootHidden) return o.getRoot();
+                    }
+                }
+            };
+            return fun(this);
+        },
+        getRootNode:function(){
+            var ui=this.getRoot();
+            if(!ui.isEmpty())return ui.get(0);
+        },
+        getModule:function(top){
+        	var getUpperModule=function(module){
+                // if it's a inner module
+                if(module.moduleClass && module.moduleXid){
+                    var pm = xui.SC.get(module.moduleClass);
+                    if(pm && (pm = pm.getInstance(module.moduleXid))){
+                        return getUpperModule(pm);    
+                    }         
+                }
+                return module;
+            };
+            return top?getUpperModule(this):this;
+        },
+        // ]]] 
+        /*
+         // [[[ fake UIProfile
+        linkParent:function(parentProfile, linkId, index){
+            var profile=this;
+            //unlink first
+            profile.unlinkParent();
+            if(!profile.destroyed){ 
+            //link
+                profile.parent = parentProfile;
+                profile.childrenId = linkId;
+                profile.link(parentProfile.children, '$parent', [profile, linkId], index);
+            }
+            return profile;
+        },
+        unlinkParent:function(){
+            var profile=this;
+            delete profile.parent;
+            delete profile.childrenId;
+            profile.unLink('$parent');
+            return profile;
+        },
+        // ]]] 
+        */
         _toDomElems:function(){
-            var ns=this;
+            var ns=this, innerUI=ns.getUIComponents();
             if(!ns.created)
                 // create synchronously
                 ns.create(null,false)
             ns.render();
-            return ns.getUIComponents()._toDomElems();
+
+            // force to create and render the first layer inner modules
+            innerUI.each(function(o,i){
+            	if((o=o.getModule()) && o!=ns){
+            		o._toDomElems();
+            	}
+            });
+
+            return innerUI._toDomElems();
         },
-        setAlias:function(str){
-            var self=this,old=self.alias;
-            if(old && self.host && self.host!==self)
-                try{delete self.host[old]}catch(e){self.host[old]=undefined}
-            if(self.host && self.host!==self)
-                self.host[str]=self;
-            return self;
+        setAlias:function(alias){
+            return xui.absObj.prototype._setHostAlias.call(this, null, alias);
         },
         getAlias:function(){
             return this.alias;
         },
         setHost:function(host, alias){
-            var self=this;
-            self.host=host;
-            if(alias)
-                self.setAlias(alias);
-            return self;
+            return xui.absObj.prototype._setHostAlias.call(this, host, alias);
+        },
+        getName:function(){
+            return this.properties.name || this.alias;
+        },
+        setName:function(name){
+            this.properties.name=name;
+        },
+        getDesc:function(){
+            return this.properties.desc;
+        },
+        setDesc:function(desc){
+            this.properties.desc=desc;
+        },
+        getTabindex:function(){
+            return this.properties.tabindex;
+        },
+        setTabindex:function(tabindex){
+            this.properties.tabindex=tabindex;
         },
         getHost:function(){
             return this.host;
         },
         setProperties:function(key,value){
-            var self=this;
+            var self=this,
+                oDataBinder;
+            if('dataBinder' in self.properties){
+                oDataBinder = self.properties.dataBinder;
+            }
+
             if(!key)
                 self.properties={};
             else if(typeof key=='string')
                 self.properties[key]=value;
-            else
-                _.merge(self.properties, key, 'all');
+            else if(_.isHash(key)){
+                if(value/*force*/){
+                    self.properties = _.clone(key);
+                }else{
+                    _.merge(self.properties, key, 'all');
+                }
+            }
+
+            if(self.propSetAction)self.propSetAction(self.properties);
+
+            if('dataBinder' in self.properties){
+                if(oDataBinder!==self.properties){
+                    if(oDataBinder)
+                        xui.DataBinder._unBind(oDataBinder, self);
+                    xui.DataBinder._bind(self.properties.dataBinder, self);
+                }
+            }
             return self;
         },
         getProperties:function(key){
-            return key?this.properties[key]:this.properties;
+             var self=this;
+             if(self._getProperties)self.properties=self._getProperties();
+
+            return key?self.properties[key]:self.properties;
         },
         setEvents:function(key,value){
             var self=this;
@@ -11940,23 +13149,73 @@ Class('xui.Com',null,{
                 self.events={};
             else if(typeof key=='string')
                 self.events[key]=value;
-            else
-                _.merge(self.events, key, 'all');
+            else if(_.isHash(key)){
+                if(value/*force*/){
+                    self.events = _.clone(key);            
+                }else{
+                    _.merge(self.events, key, 'all');
+                }
+            }
             return self;
         },
         getEvents:function(key){
             return key?this.events[key]:this.events;
         },
+        serialize:function(rtnString, keepHost, children){
+            var t,m,
+                self=this,
+                o=(t=self.constructor._beforeSerialized)?t(self):self,
+                r={
+                    "xui.Module":true,
+                    alias:o.alias,
+                    key:o.KEY,
+                    host:o.host
+                };
+            //host
+            if(r.host===self){
+                delete r.host;
+            }else if(o.host && !keepHost ){
+                if(rtnString!==false)
+                    r.host='@this';
+                else
+                    delete r.host;
+            }
+            //properties
+            var c={}, p=o.box.$DataModel;
+            _.merge(c,o.properties, function(o,i){return p[i]!==o});
+            if(!_.isEmpty(c))r.properties=c;
+
+            //events
+            if(!_.isEmpty(t=this.getEvents()))r.events=t;
+            var eh = o.box.$EventHandlers;
+            _.filter(r.events, function(o,i){
+                return o!==eh[i];
+            });
+            if(_.isEmpty(r.properties))delete r.properties;
+
+            //events
+            if(!_.isEmpty(t=this.getEvents()))r.events=t;
+            if(_.isEmpty(r.events))delete r.events;
+
+            return rtnString===false?r:_.serialize(r);
+        },
+        clone:function(){
+            var ns=this.serialize(false,true);
+            delete ns.alias;
+            return this.constructor.unserialize(ns);
+        },
         // for outter events
         fireEvent:function(name, args, host){
-            var t,o,r,l,self=this;
-            if(self.events && (t=self.events[name])){
-                if(t && (!_.isArr(t) || t.length)){
-                    var host=host||self.host||self;
+            var o,r,l,
+                self = this,
+                tp = self._pevents && self._pevents[name],
+                ti = self._events && self._events[name],
+                t = self.events && self.events[name],
+                applyEvents=function(self, events, host, args){
                     args=args||[];
-                    if(!_.isArr(t))t=[t];
-                    l=t.length;
-                    if(_.isNumb(j=t[0].event))args[j]=xui.Event.getEventPara(args[j]);
+                    if(!_.isArr(events))events=[events];
+                    l=events.length;
+                    if(_.isNumb(j=events[0].event))args[j]=xui.Event.getEventPara(args[j]);
                     var temp={};
                     var n=0,fun=function(data){
                         // set prompt's global var
@@ -11964,7 +13223,7 @@ Class('xui.Com',null,{
                         //callback from [n]
                         for(j=n;j<l;j++){
                             n=j+1;
-                            o=t[j];
+                            o=events[j];
                             if(typeof o=='string')o=host[o];
                             if(typeof o=='function')r=_.tryF(o, args, host);
                             else if(_.isHash(o)){
@@ -11990,30 +13249,39 @@ Class('xui.Com',null,{
                         return r;
                     };
                     return fun();
-                }
-            }
+                },
+                host = host||self.host||self;
+            if(tp && (!_.isArr(tp) || tp.length))r = applyEvents(self, tp, host, args);
+            if(ti && (!_.isArr(ti) || ti.length))r = applyEvents(self, ti, host, args);
+            if(t && (!_.isArr(t) || events.t))r = applyEvents(self, t, host, args);
+            return r;
         },
         // for inner events
         _fireEvent:function(name, args){
-            var t,o,r,l,self=this;
-            if(self.events && (t=self.events[name])){
-                self.$lastEvent=name;
-                if(t){
-                    var host=self.host||self
+            var o,r,l,
+                self = this,
+                tp = self._pevents && self._pevents[name],
+                ti = self._events && self._events[name],
+                t = self.events && self.events[name],
+                applyEvents=function(self, events, host, args){
+                    self.$lastEvent=name;
                     args=args||[];
                     args.splice(0,0,self,self.threadid);
-
-                    if(!_.isArr(t))t=[t];
-                    l=t.length;
+                    if(!_.isArr(events))events=[events];
+                    l=events.length;
                     for(var i=0;i<l;i++){
-                        o=t[i];
-                        if(typeof o=='string')o=self[o];
+                        o=events[i];
+                        if(typeof o=='string')o=host[o];
                         if(typeof o=='function')r=o.apply(host, args);
-                        else if(_.isHash(o))r=xui.pseudocode.exec(o,args,host);
+                        else if(_.isHash(o))r=xui.pseudocode.exec(o,args,self);
                     }
-                    return r;
-                }
-            }
+
+                },
+                host = self.host||self;
+            if(tp && (!_.isArr(tp) || tp.length))r = applyEvents(self, tp, host, args);
+            if(ti && (!_.isArr(ti) || ti.length))r = applyEvents(self, ti, host, args);
+            if(t && (!_.isArr(t) || events.t))r = applyEvents(self, t, host, args);
+            return r;
         },
         _innerCall:function(name){
             var self=this;
@@ -12023,7 +13291,10 @@ Class('xui.Com',null,{
             return false;
         },
         show:function(onEnd,parent,subId,threadid,left,top){
+            if(false===this._fireEvent('beforeShow'))return false;
             parent=parent||xui('body');
+            
+            if(parent['xui.UIProfile'])parent=parent.boxing();
 
             var self=this,f=function(){
                 var style=self.customStyle;
@@ -12032,15 +13303,15 @@ Class('xui.Com',null,{
                     _.each(style,function(v,k){
                         arr.push(k+" : "+v+";");
                     });
-                    var txt=".xui-com-"+self.$xid+"{\r\n"+arr.join("\r\n")+"\r\n}";
-                    xui.CSS.addStyleSheet(txt,"xui:css:com-"+self.$xid,1);
+                    var txt=".xui-module-"+self.$xid+"{\r\n"+arr.join("\r\n")+"\r\n}";
+                    xui.CSS.addStyleSheet(txt,"xui:css:module-"+self.$xid,1);
                 }
-                // no UI control in com
+                // no UI control in module
                 if(self.getUIComponents().isEmpty()){
                     _.tryF(self.customAppend,[parent,subId,left,top,threadid], self);
                     _.tryF(onEnd,[null, self, threadid],self.host);
                 }else{
-                    // if parent is an ui object without rendered, dont render the com
+                    // if parent is an ui object without rendered, dont render the module
                     if(!(parent && parent['xui.UI'] && !parent.get(0).renderId))
                         self.render();
 
@@ -12048,7 +13319,8 @@ Class('xui.Com',null,{
                         //append only
                         parent.append(self.getUIComponents(false),subId);
                         // append and show
-                        self.getUIComponents(true).show(parent, subId).each(function(o){
+                        self.getUIComponents(true).each(function(o){
+                            o.boxing().show(parent, subId);
                             if(o.KEY=='xui.UIProfile' && _.get(o,['properties','defaultFocus'])){
                                try{_.asyRun(function(){o.boxing().activate()})}catch(e){}
                             }
@@ -12058,7 +13330,9 @@ Class('xui.Com',null,{
                     _.tryF(onEnd,[null, self, threadid],self.host);
                 }
                 self._showed=1;
+                self._fireEvent('afterShow');
             };
+            
             self.threadid=threadid;
             if(self.created) f();
             else self.create(f,threadid);
@@ -12077,6 +13351,74 @@ Class('xui.Com',null,{
             }
             return self;
         },
+        refresh:function(callback){
+            var paras, b, p, s, fun, 
+                o=this,
+                inm, firstUI,
+                // for builder project module updating
+                box=o.box,
+                host=o.host,
+                alias=o.alias,
+                $xid=o.$xid,
+                rt = o.$refreshTrigger,
+                mcls = o.moduleClass,
+                mxid = o.moduleXid;
+
+            if(!o.renderId)return;
+            if((inm=o.getUIComponents()).isEmpty())return;
+            firstUI = inm.get(0);
+
+            if(host && host['xui.Module']){
+                host.$ignoreAutoDestroy=true;
+            }
+            //keep parent
+            if(b=!!firstUI.parent){
+                p=firstUI.parent.boxing();
+                childId=firstUI.childrenId;
+            }else{
+                p=firstUI.parent();
+            }
+
+            //unserialize
+            s = o.serialize(false, true);
+            o.destroy(true, true, true);
+            //set back
+            _.merge(o,s,'all');
+            // notice: remove destroyed here
+            delete o.destroyed;
+            o.$xid=$xid;
+            //create, must keep the original refrence pointer
+            new box(o);
+            if(host)o.setHost(host,alias);
+
+            // must here
+            o.moduleClass=mcls;
+            o.moduleXid=mxid;
+
+            o.create(function(){
+            	var f=function(t,m){
+	                //for functions like: UI refresh itself
+	                if(rt)rt.call(rt.target, o);
+                    if(callback)_.tryF(callback);
+            	};
+                //add to parent, and trigger RenderTrigger
+                if(b)o.show(f,p,childId);
+                else if(!p.isEmpty())o.show(f,p);
+            });
+
+            if(o.host&&o.host['xui.Module']){
+                delete o.host.$ignoreAutoDestroy;
+            }
+            return this;
+        },
+        getParent:function(){
+            var prf=this.getUIComponents().get(0);
+            if(prf)return prf.parent && prf.parent.boxing();
+        },
+        getChildrenId:function(){
+            var prf=this.getUIComponents().get(0);
+            if(prf)return prf.childrenId;
+        },
         create:function(onEnd, threadid){
             //get paras
             var self=this;
@@ -12086,8 +13428,7 @@ Class('xui.Com',null,{
                 return;
             }
 
-            var  t,funs=[]
-                ;
+            var  t,funs=[];
             self.threadid=threadid;
 
             if(false===self._fireEvent('beforeCreated'))return;
@@ -12098,46 +13439,47 @@ Class('xui.Com',null,{
                 self._fireEvent('onCreated');
             });
 
-            //databinder
-            if(self.dataBindLoadType!="none"){
-                var bds=self.getDataBinders();
-                if(bds && bds.length){
-                    var dbf=function(threadid){
-                        var hash={};
-                        _.arr.each(bds,function(bd, i){
-                            var ajax=bd.boxing().read(null,null,null,null,"return");
-                            if(ajax)hash[i]=ajax;
-                        });
-                        if(!_.isEmpty(hash))
-                            xui.absIO.groupCall(hash, null, null, null, threadid);
-                        bds.length=0;
-                        hash=bds=null;
-                    };
-                    if(self.dataBindLoadType=="sync")
-                        funs.push(dbf);
-                    else
-                        dbf();
+            //base classes
+            if((t=self.Dependencies) && t.length)
+                funs.push(function(threadid){
+                    xui.require(self.Dependencies,null,function(uir,key){
+                        self._fireEvent('onLoadBaseClass', [uri,key]);
+                    },function(){
+                        self._fireEvent('onLoadBaseClassErr', _.toArr(arguments));
+                    },function(){
+                        self._fireEvent('onLoadBaseClassErr',  _.toArr(arguments));
+                    },false, threadid);
+                });
+            if(self.iniComponents){
+                var arr=[];
+                try{
+                    (self.iniComponents+"").replace(/append\s*\(\s*xui.create\(['"]([\w.]+)['"]\)/g,function(a,b){
+                        if(!xui.SC.get(b))arr.push(b);
+                    });
+                }catch(e){}
+                if(arr.length){
+                    if(self.Required&&_.isArr(self.Required)){
+                        self.Required.concat(arr);
+                    }else{
+                        self.Required=arr;
+                    }
                 }
             }
-
-            //base classes
-            if((t=self.base) && t.length)
-                funs.push(function(threadid){
-                    xui.SC.groupCall(self.base,function(key){
-                        self._fireEvent('onLoadBaseClass', [key]);
-                    },null,threadid);
-                });
             //load required class
-            if((t=self.required) && t.length)
+            if((t=self.Required) && t.length)
                 funs.push(function(threadid){
-                    xui.SC.groupCall(self.required,function(key){
-                        self._fireEvent('onLoadReqiredClass', [key]);
-                    },null,threadid);
+                    xui.require(self.Required,null,function(uri,key){
+                        self._fireEvent('onLoadRequiredClass', [uri,key]);
+                    },function(){
+                        self._fireEvent('onLoadRequiredClassErr',  _.toArr(arguments));
+                    },function(msg){
+                        self._fireEvent('onLoadRequiredClassErr',  _.toArr(arguments));
+                    },false, threadid);
                 });
             //inner components
             if(self.iniComponents)
                 funs.push(function(){
-                    self._createInnerComs();
+                    self._createInnerModules();
                 });
             //load resource here
             if(self.iniResource)
@@ -12146,9 +13488,13 @@ Class('xui.Com',null,{
                     self._innerCall('iniResource');
                 });
             //Outter components
-            if(self.iniExComs)
+            if(self.iniExComs){
+                self.iniExModules=self.iniExComs;
+                delete self.iniExComs;
+            }
+            if(self.iniExModules)
                 funs.push(function(){
-                    self._innerCall('iniExComs');
+                    self._innerCall('iniExModules');
                 });
             //core
             funs.push(function(threadid){
@@ -12172,18 +13518,49 @@ Class('xui.Com',null,{
 
             return self;
         },
-        _createInnerComs:function(){
+        _createInnerModules:function(){
             var self=this;
-            if(self._innerComsCreated)
+            if(self._recursived || self._innerModulesCreated)
+                return;            
+            var stop, checkCycle=function(h){
+                if(h && h["xui.Module"] && h.moduleClass && h.moduleXid){
+                    if(self.KEY == h.moduleClass){
+                        if(self.$xid != h.moduleXid){
+                            self._recursived = h._recursived = true;
+                            h.destroy();
+                            self.destroy();
+                            stop=1;
+                        }else{
+                            // self is ok
+                            return;
+                        }
+                    }else{
+                        checkCycle(h.host);
+                    }
+                }
+            };
+            checkCycle(self.host);
+            if(stop){
+                alert("There's a [" + self.KEY + "] in another [" + self.KEY+"], check this recursive call please!");
                 return;
+            }
+
+
             if(false===self._fireEvent('beforeIniComponents'))return;
             Array.prototype.push.apply(self._nodes, self._innerCall('iniComponents')||[]);
+
+            _.arr.each(self._nodes,function(o){
+                xui.Module.$attachModuleInfo(self,o);
+                //Recursive call
+                if(o['xui.Module'])o._createInnerModules();
+            });
             // attach destroy to the first UI control
-            if(self.autoDestroy)
+            var autoDestroy = self.autoDestroy || self.properties.autoDestroy;
+            if(autoDestroy)
                 _.arr.each(self._nodes,function(o){
-                    if(o.box && o.box["xui.UI"] && !o.box.$initRootHidden){
-                        (o.$afterDestroy=(o.$afterDestroy||{}))["comDestroyTrigger"]=function(){
-                            if(self.autoDestroy && !self.destroyed)
+                    if(o.box && o.box["xui.UI"] && !o.box["xui.UI.MoudluePlaceHolder"] && !o.box.$initRootHidden){
+                        (o.$afterDestroy=(o.$afterDestroy||{}))["moduleDestroyTrigger"]=function(){
+                            if(autoDestroy && !self.destroyed && !self.$ignoreAutoDestroy)
                                 self.destroy();
                             self=null;
                         };
@@ -12191,31 +13568,27 @@ Class('xui.Com',null,{
                     }
                 });
             self._fireEvent('afterIniComponents');
-            self._innerComsCreated=true;
+            self._innerModulesCreated=true;
         },
         iniComponents:function(){},
-        getAllComponents:function(){
-            if(!this._innerComsCreated)
-                this._createInnerComs();
 
-            var arr=[];
-            _.each(this._ctrlpool,function(o){
-                arr.push(o);
-            });
-            return xui.absObj.pack(arr,false);
-        },
         getProfile:function(){
+            if(!this._innerModulesCreated)this._createInnerModules();
+
             var hash={};
-            this.getAllComponents().each(function(prf){
+            _.each(this._ctrlpool, function(prf){
                 hash[prf.alias]=prf.serialize(false,false,false);
                 delete hash[prf.alias].key;
                 delete hash[prf.alias].alias;
                 delete hash[prf.alias].events;
+                delete hash[prf.alias]['xui.Module'];
             });
             return hash;
         },
         setProfile:function(profiles){
-            this.getAllComponents().each(function(prf,i){
+            if(!this._innerModulesCreated)this._createInnerModules();
+
+             _.each(this._ctrlpool, function(prf,i){
                 if(prf.alias in profiles){
                     i=profiles[prf.alias];
                     var ins=prf.boxing();
@@ -12233,6 +13606,8 @@ Class('xui.Com',null,{
             return this;
         },
         _getPropBinderKeys:function(){
+            if(!this._innerModulesCreated)this._createInnerModules();
+
             var bak;
             if(window.get)bak=get;
             // collect keys
@@ -12244,7 +13619,7 @@ Class('xui.Com',null,{
                 }
             };
             try{
-                this.getAllComponents().each(function(prf){
+                 _.each(this._ctrlpool, function(prf){
                     var prop=prf.properties;
                     if(prop.propBinder)
                         _.each(prop.propBinder,function(fun,key){
@@ -12255,37 +13630,47 @@ Class('xui.Com',null,{
             return _.toArr(hash,true);
         },
         reBindProp:function(dataMap){
+            if(!this._innerModulesCreated)this._createInnerModules();
+
             var bak;
             if(window.get)bak=get;
             window.get=function(k){return xui.SC.get(k,dataMap)};
             try{
-                this.getAllComponents().each(function(prf){
+                 _.each(this._ctrlpool, function(prf){
                     prf.boxing().reBindProp(dataMap,true);
                 });
             }catch(e){window.get=bak}
         },
-        getData:function(){
+
+        getData:function(withValue){
+            if(!this._innerModulesCreated)this._createInnerModules();
+
             var hash={};
-            this.getAllComponents().each(function(prf){
+             _.each(this._ctrlpool, function(prf){
                 var prop=prf.properties,
                     ins=prf.boxing(),
                     ih=hash[prf.alias]={};
-                _.arr.each(["src",'html','items','lsitKey','header','rows',"target","toggle","attr","JSONData","XMLData","JSONUrl","XMLUrl","dateStart","value",'labelCaption'],function(k){
+                _.arr.each(["src",'html','items','lsitKey','header','rows',"target","toggle","attr","JSONData","XMLData","JSONUrl","XMLUrl","dateStart","name",'labelCaption'],function(k){
                     if(k in prop)ih[k]=prop[k];
                 });
-                if('caption' in prop && _.isSet(prop.caption))
+                if(withValue)
+                    if('value' in prop)ih.value=prop.value;
+                if('caption' in prop && _.isSet(prop.caption)){
                     ih.caption=typeof(ins.getCaption)=="function"?ins.getCaption():prop.caption;
+                }
             });
             return hash;
         },
         setData:function(data){
-            this.getAllComponents().each(function(prf){
+            if(!this._innerModulesCreated)this._createInnerModules();
+
+             _.each(this._ctrlpool, function(prf){
                 var prop=prf.properties,
                     ins=prf.boxing(),ih;
                if(prf.alias in data){
                     ih=data[prf.alias];
                     if(ih && _.isHash(ih) && !_.isEmpty(ih)){
-                        _.arr.each(["src",'html','items','lsitKey','header','rows',"target","toggle","attr","JSONData","XMLData","JSONUrl","XMLUrl","dateStart","value",'labelCaption',"caption"],function(k){
+                        _.arr.each(["src",'html','items','lsitKey','header','rows',"target","toggle","attr","JSONData","XMLData","JSONUrl","XMLUrl","dateStart","name","value",'labelCaption',"caption"],function(k){
                             if(k in prop && k in ih)ins['set'+_.str.initial(k)](ih[k]);
                         });
                     }else
@@ -12294,80 +13679,201 @@ Class('xui.Com',null,{
             });
             return this;
         },
-        getValue:function(){
-            var hash={};
-            this.getAllComponents().each(function(prf){
-                if('value' in prf.properties){
-                    if(_.isSet(prf.properties.caption))
-                        hash[prf.alias]={
-                            caption:prf.properties.caption,
-                            value:prf.properties.value
-                        };
-                    else
-                        hash[prf.alias]=prf.properties.value;
+
+        // fack absValue
+        getValue:function(innerUI){
+            if(innerUI){
+                if(!this._innerModulesCreated)this._createInnerModules();
+
+                var hash={}, cap, uv;
+                 _.each(this._ctrlpool, function(prf){
+                    if('value' in prf.properties){
+                        if(_.isSet(prf.properties.caption)){
+                            cap = prf.properties.caption;
+                            uv = prf.properties.value;
+
+                            // igore unnecessary caption
+                            if((!cap && !uv) || cap==uv)
+                                hash[prf.alias]=uv;
+                            else
+                                hash[prf.alias]={value:uv, caption:cap};
+                        }
+                        else{
+                            hash[prf.alias]=prf.properties.value;
+                        }
+                    }
+                });
+                return hash;
+            }else{
+                return this.properties.value;
+            }
+        },
+        setValue:function(values, innerUI){
+            if(innerUI){
+                if(!this._innerModulesCreated)this._createInnerModules();
+
+                if(!_.isEmpty(values)){
+                     _.each(this._ctrlpool, function(prf){
+                        if('value' in prf.properties && prf.alias in values){
+                            var v=values[prf.alias],b=_.isHash(v) ;
+                            prf.boxing().setValue((b && ('value' in v)) ? v.value : v, true,'module');
+                            if(typeof(prf.boxing().setCaption)=="function" &&  b  && 'caption' in v)
+                                prf.boxing().setCaption(v.caption, null, true,'module');
+                        }
+                    });
                 }
-            });
-            return hash;
-        },
-        setValue:function(values){
-            if(!_.isEmpty(values)){
-                this.getAllComponents().each(function(prf){
-                    if('value' in prf.properties && prf.alias in values){
-                        var v=values[prf.alias],b=_.isHash(v) ;
-                        prf.boxing().setValue((b && ('value' in v)) ? v.value : v, true,'com');
-                        if(typeof(prf.boxing().setCaption)=="function" &&  b  && 'caption' in v)
-                            prf.boxing().setCaption(v.caption, null, true,'com');
-                    }
-                });
+            }else{
+                this.properties.value = values;
             }
             return this;
         },
-        getUIValue:function(){
-            var hash={};
-            this.getAllComponents().each(function(prf){
-                if('$UIvalue' in prf.properties)
-                    hash[prf.alias]=prf.properties.$UIvalue;
-            });
-            return hash;
-        },
-        setUIValue:function(values){
-            if(!_.isEmpty(values)){
-                this.getAllComponents().each(function(prf){
-                    if('value' in prf.properties && prf.alias in values){
-                        var v=values[prf.alias],b=_.isHash(v) ;
-                        prf.boxing().setUIValue((b && ('value' in v))?v.value:v, true,false,'com');
-                        if(typeof(prf.boxing().setCaption)=="function" && b &&  'caption' in v)
-                            prf.boxing().setCaption(v.caption, null, true,'com');
-                    }
+        getUIValue:function(innerUI){
+            if(innerUI){
+                if(!this._innerModulesCreated)this._createInnerModules();
+
+                var hash={};
+                 _.each(this._ctrlpool, function(prf){
+                    if('$UIValue' in prf.properties)
+                        hash[prf.alias]=prf.properties.$UIValue;
                 });
+                return hash;
+            }else{
+                return this.$UIValue;
+            }
+        },
+        setUIValue:function(values,innerUI){
+            if(innerUI){
+                if(!this._innerModulesCreated)this._createInnerModules();
+
+                if(!_.isEmpty(values)){
+                     _.each(this._ctrlpool, function(prf){
+                        if('value' in prf.properties && prf.alias in values){
+                            var v=values[prf.alias],b=_.isHash(v) ;
+                            prf.boxing().setUIValue((b && ('value' in v))?v.value:v, true,false,'module');
+                            if(typeof(prf.boxing().setCaption)=="function" && b &&  'caption' in v)
+                                prf.boxing().setCaption(v.caption, null, true,'module');
+                        }
+                    });
+                }
+            }else{
+                this.$UIValue = values;
             }
             return this;
         },
+        resetValue:function(innerUI){
+            if(innerUI){
+                if(!this._innerModulesCreated)this._createInnerModules();
+                _.each(this._ctrlpool, function(prf){
+                     if(prf.boxing().resetValue)prf.boxing().resetValue();
+                });
+            }else{
+                this.$UIValue=this.properties.value; 
+            }
+            return this;
+        },
+        updateValue:function(innerUI){
+            if(innerUI){
+                if(!this._innerModulesCreated)this._createInnerModules();
+                _.each(this._ctrlpool, function(prf){
+                     if(prf.boxing().updateValue)prf.boxing().updateValue();
+                });
+            }else{
+                this.properties.value=this.$UIValue; return this;
+            }
+            return this;
+        },
+        isDirtied:function(innerUI){
+            if(innerUI){
+                if(!this._innerModulesCreated)this._createInnerModules();
+
+                var dirtied=false;
+                _.each(this._ctrlpool, function(prf){
+                    if(prf.boxing().isDirtied){
+                        if(prf.boxing().isDirtied()){
+                            return false;
+                        }
+                    }
+                });
+                 return dirtied;
+            }else{
+                return this.properties.value===this.$UIValue;
+            }
+        },
+        checkValid:function(innerUI){
+            if(innerUI){
+                if(!this._innerModulesCreated)this._createInnerModules();
+
+                  _.each(this._ctrlpool, function(prf){
+                     if(prf.boxing().checkValid){
+                         if(!prf.boxing().checkValid()){
+                             return false;
+                         }
+                    }
+                 });
+            }else{
+                return true;
+            }
+        },
+
         getDataBinders:function(){
-            if(!this._innerComsCreated)
-                this._createInnerComs();
+            if(!this._innerModulesCreated)this._createInnerModules();
+            
             var nodes = _.copy(this._nodes),t,k='xui.DataBinder';
             _.filter(nodes,function(o){
                 return !!(o.box[k]);
             });
             return nodes;
         },
+        getForms:function(){
+            if(!this._innerModulesCreated)this._createInnerModules();
+            
+            var nodes = _.copy(this._ctrlpool),t,k='xui.absContainer';
+            _.filter(nodes,function(o){
+                return !!(o.box[k]);
+            });
+            return nodes;
+        },
+        // get all children
+        getAllComponents:function(){
+            if(!this._innerModulesCreated)this._createInnerModules();
+            var nodes=[];
+            var fun = function(m){
+                    if(m["xui.Module"]){
+                        _.each(m._ctrlpool,function(o){
+                            if(o["xui.Module"])fun(o);
+                            else nodes.push(o);
+                        });
+                    }
+                };
+            fun(this);
+            return xui.absObj.pack(nodes,false);
+        },
+        // get first level children only
+        getComponents:function(){
+            if(!this._innerModulesCreated)this._createInnerModules();
+            var nodes = [];
+            var fun = function(m){
+                if(m["xui.Module"]){
+                    _.arr.each(m._nodes,function(o){
+                        if(o["xui.Module"])fun(o);
+                        else nodes.push(o);
+                    });
+                }
+            };
+            fun(this);
+            return xui.absObj.pack(nodes,false);
+        },
+        // get first level UI children only
         // flag:true => no  $initRootHidden
         // flag:false => $initRootHidden
         // no flag: all
         getUIComponents:function(flag){
-            if(!this._innerComsCreated)
-                this._createInnerComs();
-            var nodes = _.copy(this._nodes),t,k='xui.UI',n='$initRootHidden';
+            var nodes = this.getComponents().get(),
+                k='xui.UI', n='$initRootHidden';
             _.filter(nodes,function(o){
-                return !!(o.box[k]) && (flag===true?!o.box[n]:flag===false?o.box[n]:true);
+                return !!(o && o.box &&o.box[k]) && (flag===true?!o.box[n]:flag===false?o.box[n]:true);
             });
             return xui.UI.pack(nodes, false);
-        },
-        getComponents:function(){
-            if(!this._innerComsCreated)
-                this._createInnerComs();
-            return xui.absObj.pack(_.copy(this._nodes),false);
         },
         setComponents:function(obj){
             var self=this,t;
@@ -12379,44 +13885,101 @@ Class('xui.Com',null,{
                 // set host
                 o.boxing().setHost(self, o.alias);
             });
+            _.arr.each(self._nodes,function(o){
+                xui.Module.$attachModuleInfo(self,o);
+            });
             return self;
         },
         AddComponents:function(obj){
-            var self=this,ns=self._nodes;
+            var self=this;
             _.arr.each(obj.get(),function(o){
                 o.boxing().setHost(self, o.alias);
                 self._nodes.push(o);
+                xui.Module.$attachModuleInfo(self,o);
             });
             return self;
         },
         isDestroyed:function(){
             return !!this.destroyed;
         },
-        destroy:function(){
-            var self=this,ns=self._nodes;
+        destroy:function(ignoreEffects, purgeNow,keepStructure){
+            var self=this,con=self.constructor,ns=self._nodes;
+            if(self.destroyed)return;
+            
             self._fireEvent('onDestroy');
+            if(self.alias && self.host && self.host[self.alias]){
+                delete self.host[self.alias];
+            }
+
             //set once
-            self.destroyed=true;
+        	self.destroyed=true;
             if(ns && ns.length)
                 _.arr.each(ns, function(o){
                     if(o && o.box)
-                        o.boxing().destroy();
+                        o.boxing().destroy(ignoreEffects, purgeNow);
                 },null,true);
+
             if(ns && ns.length)
                 self._nodes.length=0;
-            self._ctrlpool=null;
+        	self._ctrlpool=null;
+            
+            delete con._namePool[self.alias];
+            self.unLinkAll();
 
-            delete self.constructor._pool[self.$xid]
-            delete xui.Com._pool[self.$xid];
-
-            _.breakO(self);
-            self.destroy=function(){};
+            if(!keepStructure){
+	            _.breakO(self);
+	        }else{
+                // for refresh itself
+                delete self.renderId;
+                delete self.created;
+                delete self._innerModulesCreated;
+            }
+            //afterDestroy
+            if(self.$afterDestroy){
+                _.each(self.$afterDestroy,function(f){
+                    _.tryF(f,[],self);
+                });
+                _.breakO(self.$afterDestroy,2);
+            }
             //set again
-            self.destroyed=true;
+        	self.destroyed=true;
         }
     },
     Static:{
-        _ctrlId : new _.id(),
+        // fake absValue
+        "xui.absValue":true,
+        refresh:function(code){
+            var m=this,keep={
+                '$children':m.$children,
+                _cache:m._cache,
+                _nameId:m._nameId,
+                _namePool:m._namePool
+            },
+            key=m.KEY,
+            path=key.split("."),
+            n;
+            // clear cache
+            if(s=_.get(window,['xui','$cache','SC']))delete s[key];
+            _.set(window, path);
+            // rebuild
+            _.exec(code);
+            // the new one
+            n=_.get(window, path);
+            // merge new to old
+            _.merge(m,n,function(o,i){return n.hasOwnProperty(i);});
+            _.merge(m.prototype, n.prototype,function(o,i){return n.prototype.hasOwnProperty(i);});
+            // restore those
+            _.merge(m,keep,'all');
+            // break new
+            _.breakO(n.prototype,1);
+            _.breakO(n,1);
+            // restore namespace
+            _.set(window, path, m);
+            return m;
+        },
+        pickAlias:function(){
+            return xui.absObj.$pickAlias(this);
+        },
         getFromDom:function(id){
             var prf=xui.UIProfile.getFromDom(id);
             if(prf&&(prf=prf.host)){
@@ -12427,10 +13990,33 @@ Class('xui.Com',null,{
             return _.get(this.getFromDom(id),["KEY"]);
         },
         getAllInstance:function(){
-            return this._pool;
+            var hash={};
+            _.arr.each(this._cache,function(o){
+                hash[o.$xid]=o;
+            });
+            return hash;
+        },
+        getInstance:function(module, xid){
+            var m=this;
+            if(!xid){
+                if(module['xui.Profile'] && module.moduleClass && module.moduleXid){
+                    xid = module.moduleXid;
+                    module = module.moduleClass;
+                }else{
+                    xid = module;
+                    module = null;
+                }
+            }
+            if(module){
+                m=xui.SC.get(module);
+                if(!m||!m['xui.Module'])return;
+            }
+            var c=m._cache;
+            for(var i in c)
+                if(_.isFinite(i) ? (xid+"")==i : ('$'+xid)==i)return c[i];
         },
         destroyAll:function(){
-            _.each(this._pool,function(o){
+            _.arr.each(this._cache,function(o){
                 if(!o.destroyed)o.destroy();
             });
         },
@@ -12459,16 +14045,20 @@ Class('xui.Com',null,{
                             }catch(e){}
                         }
                         var a=this,f=function(){
-                            if(!_.isFun(a))
-                                throw "'"+cls+"' is not a constructor";
-                            var o=new a();
-                            // record it
-                            a._callfrom=cls;
-
-                            _.set(xui.ComFactory,["_cache",cls],o);
-
-                            if(showUI!==false)o.show(onEnd);
-                            else _.tryF(onEnd,[null,o],o);
+                            if(!_.isFun(a)){
+                                var e=new Error( "'"+cls+"' is not a constructor");
+                                _.tryF(onEnd,[e,null]);
+                                throw e;
+                            }else{
+                                var o=new a();
+                                // record it
+                                a._callfrom=cls;
+    
+                                _.set(xui.ModuleFactory,["_cache",cls],o);
+    
+                                if(showUI!==false)o.show(onEnd);
+                                else _.tryF(onEnd,[null,o],o);
+                            }
                         };
                         if(theme&&theme!="default"){
                             xui.setTheme(theme,true,function(){
@@ -12489,12 +14079,14 @@ Class('xui.Com',null,{
                 };
                 if(typeof(cls)=='function'&&cls.$xui$)ifun(ok);
                 else cls=cls+"";
-                if(/\.js$/i.test(cls))
+                if(/\//.test(cls) && !/\.js$/i.test(cls))
+                    cls=cls+".js";
+                if(/\.js$/i.test(cls)){
                     xui.fetchClass(cls,ifun,
                         function(e){
                             _.tryF(onEnd,[e,null]);
                         });
-                else
+                }else
                     //get app class
                     xui.SC(cls,ifun,true,null,{
                         retry:0,
@@ -12508,37 +14100,71 @@ Class('xui.Com',null,{
             else
                 xui.main(fun);
         },
+        unserialize:function(hash){
+            return new this(hash);
+        },
+        $attachModuleInfo:function(module,prf){
+            // module in module
+            if(prf.moduleClass && prf.moduleXid){
+                var t=xui.SC.get(prf.moduleClass);
+                    t=t.getInstance(prf.moduleXid);
+                if(t!==module){
+                    t.moduleClass=module.KEY;
+                    t.moduleXid=module.$xid;
+                    return;
+                }
+            }
+
+            prf.moduleClass=module.KEY;
+            prf.moduleXid=module.$xid;
+            _.arr.each(prf.children,function(v){
+               xui.Module.$attachModuleInfo(module, v[0]);
+            });
+        },
+
+        // for setting only
+        $DataModel:{
+            autoDestroy:true,
+            dataBinder:"",
+            value:""
+        },
         $EventHandlers:{
-            beforeCreated:function(com, threadid){},
-            onLoadBaseClass:function(com, threadid, key){},
-            onIniResource:function(com, threadid){},
-            beforeIniComponents:function(com, threadid){},
-            afterIniComponents:function(com, threadid){},
-            onLoadRequiredClass:function(com, threadid, key){},
-            onReady:function(com, threadid){},
-            onRender:function(com, threadid){},
-            onDestroy:function(com){}
+            beforeCreated:function(module, threadid){},
+            onLoadBaseClass:function(module, threadid, uri, key){},
+            onLoadBaseClassErr:function(module, threadid, key){},
+            onLoadRequiredClass:function(module, threadid, uri, key){},
+            onLoadRequiredClassErr:function(module, threadid, uri){},
+            onIniResource:function(module, threadid){},
+            beforeIniComponents:function(module, threadid){},
+            afterIniComponents:function(module, threadid){},
+            onReady:function(module, threadid){},
+            onRender:function(module, threadid){},
+            onDestroy:function(module){}
         }
     }
 });Class("xui.Cookies", null,{
     Static:{
         set:function(name,value,days,path,domain,isSecure){
-	    if(name){
-	        if(typeof value !="string")value=_.serialize(value);
-    	        document.cookie = escape(name) + "=" + escape(value) +
-    		        (days?";expires="+(new Date((new Date()).getTime()+(24*60*60*1000*days))).toGMTString():"")+
-    		        (path?";path="+path:"")+
-    		        (domain?";domain="+domain:"")+ 
-    		        (isSecure?";secure":"");
+            if(_.isHash(name)){
+                for(var i in name) this.set(i, name[i],days,path,domain,isSecure);
+           }else{
+	           if(typeof value !="string")value=_.serialize(value);
+    	       document.cookie = escape(name+'') + "=" + escape(value) +
+    		        (days?"; expires="+(new Date((new Date()).getTime()+(24*60*60*1000*days))).toGMTString():"")+
+    		        (path?"; path="+path:"")+
+    		        (domain?"; domain="+domain:"")+ 
+    		        (isSecure?"; secure":"");
     	    }
             return this;
         },
         get:function(name){
-        	var i,a,s,ca = document.cookie.split( "; " ),hash={};
+        	var i,a,s,ca = document.cookie.split( "; " ),hash={},unserialize=function(v){
+                return  /^\s*\{[\s\S]*\}$/.test(v) ? _.unserialize(v) : /^\s*\[[\s\S]*\]$/.test(v) ? _.unserialize(v) : v;
+            };
         	for(i=0;i<ca.length;i++){
         		a=ca[i].split("=");
-        	        s=a[1]?unescape(a[1]):'';
-        	        hash[a[0]]=_.unserialize(s)||s;
+    	        s=a[1]?unescape(a[1]):'';
+    	        hash[a[0]] = unserialize(s)||s;
         		if(name && a[0]==escape(name))
         		    return hash[a[0]];
         	}
@@ -13917,7 +15543,7 @@ Class('xui.DragDrop',null,{
                 pos.left -=  d.$proxySize;
                 pos.top -= d.$proxySize;
                 if(!p.targetOffsetParent)
-                    dom.setCover(true);
+                    dom.setCover(true,null,p.dragCursor);
             }
             if(temp=p.targetOffsetParent)
                 xui(temp).append(t);
@@ -14608,36 +16234,50 @@ Class("xui.Tips", null,{
 
         }
     }
-});Class('xui.ComFactory',null,{
+});Class('xui.ModuleFactory',null,{
     Initialize:function(){
         var ns=this;
-        xui.getCom=function(cls, onEnd, threadid, cached, properties, events){
-            return ns.getCom.apply(ns,arguments)
+        xui.getModule=function(cls, onEnd, threadid, cached, properties, events){
+            return ns.getModule.apply(ns,arguments)
         };
-        xui.newCom=function(cls, onEnd, threadid, properties, events){
-            return ns.newCom.apply(ns,arguments)
+        xui.newModule=function(cls, onEnd, threadid, properties, events){
+            return ns.newModule.apply(ns,arguments)
         };
-        xui.showCom=function(cls, beforeShow, onEnd, threadid, cached, properties, events, parent, subId, left, top){
-            return ns.getCom(cls, function(err, com, threadid){
-                if(!err && false!==_.tryF(beforeShow, [com, threadid], com)){
-                    this.show.apply(com, [onEnd,parent,subId,threadid,left,top]);
+        xui.showModule=function(cls, beforeShow, onEnd, threadid, cached, properties, events, parent, subId, left, top){
+            return ns.getModule(cls, function(err, module, threadid){
+                if(!err && false!==_.tryF(beforeShow, [module, threadid], module)){
+                    this.show.apply(module, [onEnd,parent,subId,threadid,left,top]);
                 }else{
-                    _.tryF(onEnd, [err, com, threadid], com);
+                    _.tryF(onEnd, [err, module, threadid], module);
                 }
             }, threadid, cached, properties, events);
         };
+
+        //compitable
+        xui.getCom=xui.getModule;
+        xui.newCom=xui.newModule;
+        xui.showCom=xui.showModule;
+
+        ns.setCom=ns.setModule;
+        ns.getComFromCache=ns.getModuleFromCache;
+        ns.getCom=ns.getModule;
+        ns.newCom=ns.newModule;
+        ns.storeCom=ns.storeModule;
+        ns.prepareComs=ns.prepareModules;
+
+        xui.ComFactory=ns;
     },
     Static:{
         _pro:{},
         _cache:{},
-        _domId:'xui:ComFactory:',
+        _domId:'xui:ModuleFactory:',
         getProfile:function(key){
             return key?this._pro[key]:this._pro;
         },
         setProfile:function(key, value){
             if(typeof key=='string')
                 this._pro[key]=value;
-            else
+            else if(_.isHash(key))
                 this._pro=key;
             return this;
         },
@@ -14655,16 +16295,16 @@ Class("xui.Tips", null,{
             }
         },
 
-        setCom:function(id, obj){
+        setModule:function(id, obj){
             this._cache[id]=obj;
-            if(obj)obj.comRefId=id;
+            if(obj)obj.moduleRefId=id;
             return this;
         },
-        getComFromCache:function(id){
+        getModuleFromCache:function(id){
             return this._cache[id]||null;
         },
         //cached:false->don't get it from cache, and don't cache the result.
-        getCom:function(id, onEnd, threadid, cached, properties, events){
+        getModule:function(id, onEnd, threadid, cached, properties, events){
             if(!id){
                 var e=new Error("No id");
                 _.tryF(onEnd,[e,null,threadid]);
@@ -14706,32 +16346,13 @@ Class("xui.Tips", null,{
                         if(config.events)
                             _.merge(o.events,config.events,'all');
                         if(config.cached!==false)
-                            xui.ComFactory.setCom(id, o);
+                            xui.ModuleFactory.setModule(id, o);
 
-                        var args = [function(err,com,threadid){
-                            var arr = com.getUIComponents().get(),
+                        var args = [function(err,module,threadid){
+                            var arr = module.getUIComponents().get(),
                                 fun=function(arr,subcfg,firstlayer){
                                     var self1 = arguments.callee;
                                     _.arr.each(arr,function(v,i){
-                                        //if tag exists, replace tag with com from xui.ComFactory
-                                        if(v.key=='xui.UI.Tag'){
-                                            var tag=v, cid=tag.properties.tagKey;
-
-                                            if(cid && subcfg && subcfg[cid])
-                                                self.apply(me, [subcfg[cid], function(){
-                                                    //set link to parent com(xui.Com)
-                                                    com[cid]=this;
-                                                    //set com parent
-                                                    this.parent=com;
-
-                                                    //replace tag with this
-                                                    var ui = this.getUIComponents(), root;
-                                                    // no UI in this com
-                                                    if(!(root=ui.get(0)))return;
-
-                                                    xui.UI.Tag.replace(tag,root,firstlayer?com:null);
-                                                },threadid]);
-                                        }
                                         if(v.children){
                                             var a=[];
                                             _.arr.each(v.children,function(o){
@@ -14741,7 +16362,7 @@ Class("xui.Tips", null,{
                                         }
                                     });
                                 };
-                            //handle tag sub from com
+                            //handle tag sub from module
                             fun(arr,config.children,1);
                         }];
                         args.push(threadid||null);
@@ -14791,10 +16412,10 @@ Class("xui.Tips", null,{
                 },null,threadid);
             }
         },
-        newCom:function(cls, onEnd, threadid, properties, events){
-            return this.getCom(cls, onEnd, threadid, false, properties, events);
+        newModule:function(cls, onEnd, threadid, properties, events){
+            return this.getModule(cls, onEnd, threadid, false, properties, events);
         },
-        storeCom:function(id){
+        storeModule:function(id){
             var m,t,c=this._cache,domId=this._domId;
             if(t=c[id]){
                 if(!(m=xui.Dom.byId(domId)))
@@ -14810,11 +16431,11 @@ Class("xui.Tips", null,{
                 }
             }
         },
-        prepareComs:function(arr){
+        prepareModules:function(arr){
             var self=this,funs=[];
             _.arr.each(arr, function(i){
                 funs.push(function(){
-                    self.getCom(i);
+                    self.getModule(i);
                 });
             });
             xui.Thread(null, funs, 500).start();
@@ -15170,11 +16791,11 @@ Class("xui.Tips", null,{
                         ins.append(v[0],v[1]);
                     delete ns.exchildren;
                 }
-                if(ns.excoms){
+                if(ns.exmodules){
                     var arr=[];
-                    for(var i=0,v;v=ns.excoms[i++];)
+                    for(var i=0,v;v=ns.exmodules[i++];)
                         v[0].show(null, ins, v[1], false);
-                    delete ns.excoms;
+                    delete ns.exmodules;
                 }
             }
             
@@ -15218,7 +16839,7 @@ Class("xui.Tips", null,{
 
             // try to clear parent host
             var o;
-            if(ns.alias && ns.host && (o=ns.host[ns.alias]) && (o=o._nodes) && o.length===1){
+            if(ns.alias && ns.host && (o=ns.host[ns.alias]) && (o=o._nodes) && (o.length===0 || o.length===1 && o[0]==ns)){
                 delete ns.host[ns.alias];
             }
 
@@ -15252,8 +16873,19 @@ Class("xui.Tips", null,{
             if(ns.afterDestroy)ns.boxing().afterDestroy(ns);
             _.breakO([ns.properties,ns.events, ns.CF, ns.CB, ns.CC, ns.CA, ns.CS, ns],2);
             //set again
-            ns.destroy=function(){};
             ns.destroyed=true;
+        },
+        linkParent:function(parentProfile, linkId, index){
+            var profile=this;
+            //unlink first
+            profile.unlinkParent();
+            if(!profile.destroyed){ 
+                //link
+                profile.parent = parentProfile;
+                profile.childrenId = linkId;
+                profile.link(parentProfile.children, '$parent', [profile, linkId], index);
+            }
+            return profile;
         },
         unlinkParent:function(){
             var profile=this;
@@ -15270,18 +16902,7 @@ Class("xui.Tips", null,{
         },
         getContainer:function(subId){
             if(subId!==true&&(subId=typeof subId=='string'?subId:null))subId=this.getSubIdByItemId(subId);
-            return this.box._CONTAINERKEY?this.getSubNode(this.box._CONTAINERKEY, subId):this.keys.PANEL?this.getSubNode(this.keys.PANEL, subId):this.getRoot();
-        },
-        linkParent:function(parentProfile, linkId, index){
-            var profile=this;
-            //unlink first
-            profile.unlinkParent();
-
-            //link
-            profile.parent = parentProfile;
-            profile.childrenId = linkId;
-            profile.link(parentProfile.children, '$parent', [profile, linkId], index);
-            return profile;
+            return this.box._CONTAINERKEY?this.getSubNodes(this.box._CONTAINERKEY, subId):this.keys.PANEL?this.getSubNodes(this.keys.PANEL, subId):this.getRoot();
         },
         _cacheR1:/^\w[\w_-]*$/,
         setDomId:function(id){
@@ -15365,8 +16986,8 @@ Class("xui.Tips", null,{
                 h={},
                 str,
                 k1='xui.UIProfile',
-                k2='xui.Profile',
-                id, i, o, m, a, b, data;
+                k2='xui.Module',
+                id, i, l, o, m, a, b, data;
             if(self.destroyed)return "";
 
             // create first
@@ -15380,15 +17001,24 @@ Class("xui.Tips", null,{
                 str = c._build(self, data);
     
                 if((!prop.lazyAppend||force) && (m=self.children)){
-                    for(i=0; o=m[i++];)
-                        if(o[0][k1]){
-                            id=o[1]||'';
-                            a=h[id]||(h[id]=[]);
-                            a[a.length]=o[0].toHtml(force);
-                        }else if(!o[0][k2]){
-                            b.ini.call(b,o[0]);
-                            o[0]=b.get(0);
+                    for(i=0, l=m.length; i<l; i++){
+                        o=m[i];
+                        if(o&&o[0]){
+                            if(o[0][k2]){
+                                var mh=new xui.UI.MoudluePlaceHolder({
+                                    host:o[0].host,
+                                    alias:o[0].alias
+                                });
+                                mh.get(0)._module = o[0];
+                                o[0] = mh.get(0);
+                            }
+                            if(o[0][k1]){
+                                id=o[1]||'';
+                                a=h[id]||(h[id]=[]);
+                                a[a.length]=o[0].toHtml(force);
+                            }
                         }
+                    }
                 }
     
                 return str.replace(self._cacheR2, function(a,b){
@@ -15411,7 +17041,7 @@ Class("xui.Tips", null,{
             return nodes;
         },
         serialize:function(rtnString, keepHost, children){
-            var t,m,
+            var t,m,moduleHash={},
                 self=this,
                 o=(t=self.box._beforeSerialized)?t(self):self,
                 r={
@@ -15463,8 +17093,17 @@ Class("xui.Tips", null,{
                     });
                 }
                 t=r.children=[];
-                _.arr.each(o.children,function(v){
-                    m=[v[0].serialize(false, keepHost)];
+                _.arr.each(o.children,function(v,w,y,z){
+                    w=v[0];
+                    if(w.moduleClass && w.moduleXid && (y=xui.SC.get(w.moduleClass)) && (y=y.getInstance(w.moduleXid)) && y["xui.Module"]){
+                        if(moduleHash[z=w.moduleClass+"["+w.moduleXid+"]"]){
+                            return;
+                        }else{
+                            moduleHash[z]=1;
+                            w=y;
+                        }
+                    }
+                    m=[w.serialize(false, keepHost)];
                     if(v[1])m[1]=v[1];
                     t[t.length]=m
                 });
@@ -15472,17 +17111,22 @@ Class("xui.Tips", null,{
             if(false!==children && o.exchildren && o.exchildren.length){
                 r.exchildren=o.exchildren;
             }
+            moduleHash=null;
             return rtnString===false?r:_.serialize(r);
         },
         _applySetAction:function(fun, value, ovalue){
             if(this.renderId)
                 return fun.call(this, value, ovalue);
         },
-        getKey:function(id){
+        getKey:function(id,tagOnly){
             var t;
             if(id.charAt(0)=='!')id=xui.use(id).id();
             if(id.indexOf(':')==-1)id=(t=xui.$cache.profileMap[id])&&(t.$domId);
-            return id?id.split(":")[0]:"";
+            if(id){
+                id=id.split(":")[0];
+                if(tagOnly)id=id.split('-')[1]||"KEY";
+            }
+            return id||"";
         },
         getSubId:function(id){
             var t;
@@ -15512,17 +17156,18 @@ Class("xui.Tips", null,{
                 hash=key+":"+(tag||'');
             return self._cacheH1[hash] || (self._cacheH1[hash]=key.replace(self._cacheR3,'-').toLowerCase().replace('xui-ui','xui') + (tag||''));
         },
-        _getSubNodeId:function(key, subId){
+        _getSubNodeId:function(key, subId, tag){
             var arr = this.$domId.split(':');
             arr[0]=key;
             arr[2]=_.isSet(subId)?(subId+""):'';
+            if(tag)arr[2]+='_'+tag;
             key=arr.join(':');
             return key==this.$domId
                 ? xui.$cache.profileMap[key].domId
                 : key;
         },
         //flag : remove from cache
-        getSubNode:function(key, subId){
+        getSubNode:function(key, subId, tag){
             var self=this;
 
             // destroyed already
@@ -15538,35 +17183,35 @@ Class("xui.Tips", null,{
             // by key only
             if(subId===true)
                 //key==self.keys.KEY for domId!=$domId
-                r =xui([self.renderId]).query('*', 'id', key==self.keys.KEY?self.domId:new RegExp('^'+key+':'+self.serialId));
+                r =xui([self.renderId]).query('*', 'id', key==self.keys.KEY?self.domId:new RegExp('^'+key+':'+self.serialId +(tag?("_"+tag):"")));
             else{
                 if(!_.isSet(subId) && h[key] && h[key]._nodes.length==1)return h[key];
-                r = (t=xui.Dom.byId(s=self._getSubNodeId(key, subId))) ? xui([t]) : ((t=self.renderId) && xui.use(t).query('*', 'id', s));
+                r = (t=xui.Dom.byId(s=self._getSubNodeId(key, subId,tag))) ? xui([t]) : ((t=self.renderId) && xui.use(t).query('*', 'id', s));
                 if(!_.isSet(subId))h[key]=r;
             }
             return r;
         },
-        getSubNodes:function(arr,subId){
-            if(!subId)subId=true;
-            var a=[],s1=typeof arr=='string',s2=typeof subId=='string'||subId===true,o,v;
+        getSubNodes:function(arr,subId,tag){
+            if(!_.isDefined(subId))subId=true;
+            var a=[],s1=typeof arr=='string',s2=typeof subId=='string'||subId===true||_.isNull(subId),o,v;
             if(s1){
                 if(s2)
-                    Array.prototype.push.apply(a,this.getSubNode(arr,subId).get());
+                    Array.prototype.push.apply(a,this.getSubNode(arr,subId,tag).get());
                 else
                     for(var j=0;v=subId[j++];)
-                        Array.prototype.push.apply(a,this.getSubNode(arr,v).get());
+                        Array.prototype.push.apply(a,this.getSubNode(arr,v,tag).get());
             }else
                 for(var i=0;o=arr[i++];){
                     if(s2)
-                        Array.prototype.push.apply(a,this.getSubNode(o,subId).get());
+                        Array.prototype.push.apply(a,this.getSubNode(o,subId,tag).get());
                     else
                         for(var j=0;v=subId[j++];)
-                            Array.prototype.push.apply(a,this.getSubNode(o,v).get());
+                            Array.prototype.push.apply(a,this.getSubNode(o,v,tag).get());
                 }
             return xui(a);
         },
-        getSubNodeByItemId:function(key, itemId){
-            return (itemId=this.getSubIdByItemId(itemId)) ? this.getSubNode(key, itemId) : xui();
+        getSubNodeByItemId:function(key, itemId, tag){
+            return (itemId=this.getSubIdByItemId(itemId)) ? this.getSubNode(key, itemId, tag) : xui();
         },
         getItemByItemId:function(itemId){
             var prf=this,t;
@@ -15635,9 +17280,18 @@ Class("xui.UI",  "xui.absObj", {
         return true;
     },
     After:function(){
-        xui.absObj.After.apply(this,arguments);
         var self=this,me=arguments.callee,
             temp,t,k,u,c,i,j,e,w,v,b,d;
+
+        xui.absObj.After.apply(this,arguments);
+
+        // remove datafield for containers
+        if(self.Behaviors && self.Behaviors.PanelKeys &&  self.$DataModel && self.$DataModel.dataField){
+            delete self.$DataModel.dataField;
+            delete self.$DataStruct.dataField;
+            delete self.prototype.setDataField;
+            delete self.prototype.getDataField;
+        }
 
         self._ctrlId = new _.id();
         self._idCache=[];
@@ -15725,19 +17379,25 @@ Class("xui.UI",  "xui.absObj", {
                         var ignore=xui.getData([aysid,'$ui.hover.pop'])
                                         && xui.getNodeData(node.get(0)||"empty",'$ui.hover.parent')==src;
                         if(!ignore){
-                            if(!beforePop || false!==beforePop(prf, node, e, src, item)){
-                                node.popToTop(src, type, parent);
-                            }
                             xui.setData([aysid,'$ui.hover.pop'],item);
                             xui.setNodeData(node.get(0)||"empty",'$ui.hover.parent',src);
+                            if(!beforePop || false!==beforePop(prf, node, e, src, item)){
+                                node.popToTop(src, type, parent);
+                                node.onMouseover(function(){
+                                    xui(src).onMouseover(true)
+                                },'hoverPop').onMouseout(function(){
+                                    xui(src).onMouseout(true)
+                                },'hoverPop');
+                            }
                         }
                     }else{
                         _.resetRun(aysid,function(){
-                            if(!beforeHide || false!==beforeHide(prf, node,e, src ,'host',item)){
-                                node.hide();
-                            }
                             xui.setData([aysid,'$ui.hover.pop']);
                             xui.setNodeData(node.get(0)||"empty",'$ui.hover.parent',0);
+                            if(!beforeHide || false!==beforeHide(prf, node,e, src ,'host',item)){
+                                node.hide();
+                                node.onMouseover(null,'hoverPop').onMouseout(null,'hoverPop');
+                            }
                         });
                     }
                 };
@@ -15749,12 +17409,13 @@ Class("xui.UI",  "xui.absObj", {
                 },aysid).onMouseout(type===null?null:function(prf,e,src){
                     if(e.$force)return;
                     _.resetRun(aysid,function(){
+                        xui.setData([aysid,'$ui.hover.pop'])
+                        xui.setNodeData(node.get(0)||"empty",'$ui.hover.parent',0);
                         var item=xui.getData([aysid,'$ui.hover.pop']);
                         if(!beforeHide || false!==beforeHide(prf,node, e,src,'pop',item)){
                             node.hide();
+                            node.onMouseover(null,'hoverPop').onMouseout(null,'hoverPop');
                         }
-                        xui.setData([aysid,'$ui.hover.pop'])
-                        xui.setNodeData(node.get(0)||"empty",'$ui.hover.parent',0);
                     });
                 },aysid);
             }
@@ -15779,7 +17440,11 @@ Class("xui.UI",  "xui.absObj", {
         getTheme:function(){
             return this.get(0) && this.get(0).theme;
         },
-        destroy:function(ignoreEffects){
+        getModule:function(top){
+            var prf=this.get(0);
+            if(prf)return prf.getModule(top);
+        },
+        destroy:function(ignoreEffects, purgeNow){
             var ns=this;
             this.each(function(o,i){
                 if(o.destroyed)return;
@@ -15799,7 +17464,7 @@ Class("xui.UI",  "xui.absObj", {
                         });
                         _.breakO(o.$afterDestroy,2);
                     }
-                    if(o.renderId)o.getRoot().remove();
+                    if(o.renderId)o.getRoot().remove(true, purgeNow);
                     else o.__gc();    
                     _.arr.removeFrom( ns._nodes, i);
                 };
@@ -15893,13 +17558,16 @@ Class("xui.UI",  "xui.absObj", {
             if(temp && temp.length){
                 for(var i=0,v;v=temp[i++];){
                     //from serialize
-                    if(!v[0]['xui.UIProfile'])
-                        v[0]=new (xui.SC(v[0].key))(v[0]).get(0);
-                    v[0].linkParent(profile,v[1]);
+                    if(!v[0]['xui.UIProfile'])  v[0]=xui.create(v[0]).get(0);
+                    if(v[0]['xui.UIProfile'])  v[0].linkParent(profile,v[1]);
+                    else if(v[0]['xui.Module']) 
+                        v[0].getUIComponents().each(function(p){
+                            p.linkParent(profile,v[1]);
+                        });
                 }
             }
             self._nodes.push(profile);
-            profile._cacheInstance=self;
+            profile.Instace=self;
             self.n0=profile;
 
             return self;
@@ -15954,8 +17622,7 @@ Class("xui.UI",  "xui.absObj", {
                     o.boxing().adjustDock(force);
                 }else{
                     if(force){
-                        o._resize_h=-1;
-                        o._resize_w=-1;
+                        o._resize_h=o._resize_w=-1;
                     }
                     xui.UI.$tryResize(o,p.width,p.height,force);
                 }
@@ -15987,10 +17654,10 @@ Class("xui.UI",  "xui.absObj", {
                     xui.UI.$toDom(ns.get(0)/*first represents all*/,a.join(''));
             }
 
-            //render UIProfiles
-            for(i=0;o=arr[i++];)
+            //render all UIProfiles
+            for(i=0;o=n[i++];)
                 o._render(triggerLayOut);
-
+                
             a.length=arr.length=0;
             return ns;
         },
@@ -16042,7 +17709,7 @@ Class("xui.UI",  "xui.absObj", {
         },
         show:function(parent,subId,left,top,ignoreEffects){
             return this.each(function(o){
-                var t=o.properties,b;
+                var t=o.properties,ins=o.boxing(),b;
                 left=(left||left===0)?(parseInt(left,10)||0):null;
                 top=(top||top===0)?(parseInt(top,10)||0):null;
                 if(left!==null)t.left=left;
@@ -16054,15 +17721,20 @@ Class("xui.UI",  "xui.absObj", {
                     if(t.dock && t.dock!='none')
                         xui.UI.$dock(o,false,true);
                 //first call show
-                }else if(!parent && (!o.renderId || (o.getRootNode().id || "").indexOf(xui.Dom._emptyDivId)===0))
-                    parent=xui('body');
+                }else{
+                    parent = parent || o.parent;
+                    if(!parent && (!o.renderId || (o.getRootNode().id || "").indexOf(xui.Dom._emptyDivId)===0))
+                        parent=xui('body');
+                }
                 var p=parent,n;
                 if(p){
                     if(p['xui.UIProfile']){n=p.renderId;p=p.boxing()}
                     else if(p['xui.UI'])n=(n=p.get(0))&&n.renderId;
                     else n=(p=xui(p))&&p._nodes[0];
                     if(n){
-                        p.append(o.boxing(),subId);
+                        p.append(ins,subId);
+//                        if(t.visibility=="hidden")ins.setVisibility("",true);
+//                        if(t.display=="none")ins.setDisplay("",true);
                         if(!b)o.getRoot().show(left&&(left+'px'), top&&(top+'px'));
                     }
                 }
@@ -16078,15 +17750,16 @@ Class("xui.UI",  "xui.absObj", {
 
                 box=o.box;
                 
-                var autoDestroy,
-                    host=o.host,
+                var host=o.host,
                     alias=o.alias;
-                if(o.host&&o.host['xui.Com']&&o.host.autoDestroy){
-                    o.host.autoDestroy=false;
+                if(o.host&&o.host['xui.Module']){
+                    o.host.$ignoreAutoDestroy=true;
                 }
                 //save related id
                 $xid=o.$xid;
-                serialId=o.serialId;
+                serialId=o.serialId,
+                mcls = o.moduleClass,
+                mxid = o.moduleXid;
 
                 var ar=o.$afterRefresh;
 
@@ -16129,8 +17802,8 @@ Class("xui.UI",  "xui.absObj", {
                 o.$noReclaim=1;
 
                 // keep cache refrence
-                var _c=o._cacheInstance;
-                o.boxing().destroy(true);
+                var _c=o.Instace;
+                o.boxing().destroy(true,true);
 
                 //set back
                 _.merge(o,s,'all');
@@ -16138,6 +17811,8 @@ Class("xui.UI",  "xui.absObj", {
                 delete o.destroyed;
                 o.$xid=$xid;
                 o.serialId=serialId;
+                o.moduleClass=mcls;
+                o.moduleXid=mxid;
 
                 //create
                 var n=new box(o).render();
@@ -16145,7 +17820,7 @@ Class("xui.UI",  "xui.absObj", {
                 // set cache refrence
                 if(_c){
                     _.merge(_c,n,'all');
-                    n.get(0)._cacheInstance=_c;
+                    n.get(0).Instace=_c;
                     // must reset it to keep memory pointer
                     n=_c;
                 }
@@ -16181,8 +17856,8 @@ Class("xui.UI",  "xui.absObj", {
                     n.get(0).$afterRefresh=ar;
                     ar(n.get(0));
                 }
-                if(_.isSet(autoDestroy&&n.host&&n.host['xui.Com'])){
-                    n.host.autoDestroy=autoDestroy;
+                if(n.host&&n.host['xui.Module']){
+                    delete n.host.$ignoreAutoDestroy;
                 }
             });
         },
@@ -16220,7 +17895,7 @@ Class("xui.UI",  "xui.absObj", {
             if(pro.beforeAppend && false===this.beforeAppend(pro,target,subId,pre,base))
                 return;
 
-            if(target['xui.Com']){
+            if(target['xui.Module']){
                 if(subId!==false){
                     var i=index;
                     target.getUIComponents().each(function(profile){
@@ -16238,7 +17913,7 @@ Class("xui.UI",  "xui.absObj", {
                     }
                 }
                 else{
-                    _.arr.insertAny(pro.excoms||(pro.excoms=[]),[target,subId],index,true);
+                    _.arr.insertAny(pro.exmodules||(pro.exmodules=[]),[target,subId],index,true);
                 }
             }else{
                 if(subId!==false){
@@ -16285,27 +17960,106 @@ Class("xui.UI",  "xui.absObj", {
             var prf=this.get(0);
             if(prf)return prf.childrenId;
         },
-        getChildren:function(subId, all){
-            var a=[],f=function(prf){
-                _.arr.each(prf.children,function(v){
-                    a.push(v[0]);
-                    if(v[0].children && v[0].children.length)
-                        f(v[0]);
+        getChildren:function(subId, type){
+            // return array only, don't recursive call in any module
+            if(type===false || type=="withModule"){
+                var prf=this.get(0),
+                    moduleHash={},
+                    a=[],z,
+                    moduleClass=prf.moduleClass,
+                    moduleXid=prf.moduleXid,
+                    getModlue=function(p){
+                        if(p.moduleClass && p.moduleXid){
+                            // exclude the container's module
+                            if(p.moduleClass!==moduleClass && p.moduleXid!==moduleXid){
+                                // got it already
+                                if(moduleHash[z=p.moduleClass+"'"+p.moduleXid+"]"]){
+                                    return null;
+                                }else{
+                                    moduleHash[z]=1;
+                                    var q = p.getModule();
+                                    // module in module, we use the top mudule only( exclude the container's module )
+                                     if(q && q.moduleClass && q.moduleXid){
+                                         // look up toward top layer
+                                         if(q.moduleClass!==moduleClass && q.moduleXid!==moduleXid){
+                                            return getModlue(q);
+                                         }else{
+                                             return q;
+                                         }
+                                     }
+                                }
+                            }
+                        }
+                        return p;
+                    },
+                    f=function(p){
+                        _.arr.each(p.children,function(v,t){
+                            t=getModlue(v[0]);
+                            if(t){
+                                a.push(t);
+                                if(t['xui.UIProfile'] && t.children && t.children.length)
+                                    f(t);
+                            }
+                        });
+                    };
+                _.arr.each(prf.children,function(v,t){
+                    if((subId&&typeof(subId)=="string")?v[1]===subId:1){
+                        t=getModlue(v[0]);
+                        if(t){
+                            a.push(t);
+                            if(t['xui.UIProfile'] && t.children && t.children.length)
+                                f(t);
+                        }
+                    }
                 });
-            };
-            _.arr.each(this.get(0).children,function(v){
-                if((subId&&typeof(subId)=="string")?v[1]===subId:1){
-                    a.push(v[0]);
-                    if(all)f(v[0]);
-                }
-            });
-            return xui.UI.pack(a);
+                // return array only
+                return a;
+            }else{
+                var a=[],f=function(prf){
+                    _.arr.each(prf.children,function(v){
+                        a.push(v[0]);
+                        if(v[0].children && v[0].children.length)
+                            f(v[0]);
+                    });
+                };
+                _.arr.each(this.get(0).children,function(v){
+                    if((subId&&typeof(subId)=="string")?v[1]===subId:1){
+                        a.push(v[0]);
+                        if((type===true ||type=="recurse") && v[0].children && v[0].children.length)
+                            f(v[0]);
+                    }
+                });
+                return xui.UI.pack(a);
+            }
         },
+        /**
+        * subId:
+        *     "id1"
+        *     ["id1","id2"]
+        *     ["id1;id2"]
+        *     [xui.UIProfile]
+        *     [xui.UIProfile, [xui.UIProfile]
+        *     [xui.UI]
+        *     [xui.UI, [xui.UI]
+        **/
         removeChildren:function(subId, bDestroy){
             return this.each(function(o){
-                var c=_.copy(o.children);
+                var c=_.copy(o.children),
+                    s=o.box.$DataModel.valueSeparator||";",
+                    b,arr;
                 _.arr.each(c,function(v){
-                    if(subId===true?1:subId?typeof subId=='string'?(v[1]==subId):(v[0]==(subId["xui.UI"]?subId.get(0):subId)):1){
+                    b=0;
+                    if(!subId || subId===true){
+                        b=1;
+                    }else{
+                        if(_.isStr(subId) || _.isArr(subId)) {
+                            arr = _.isArr(subId)?subId:(subId+"").split(s);
+                            b=_.arr.indexOf(arr, v[1])!=-1 || _.arr.indexOf(arr, v[0])!=-1 || _.arr.indexOf(arr, v[0].boxing())!=-1;
+                        }else{
+                            b=v[0]==subId["xui.UI"]?subId.get(0):subId;
+                        }
+                    }
+                    if(b){
                         if(o.beforeRemove && false===o.boxing().beforeRemove(o,v[0],v[1],bDestroy))
                             return;
 
@@ -16570,8 +18324,7 @@ Class("xui.UI",  "xui.absObj", {
                             n.style.width=0;
                             n.style.height=0;
                             // ensure force 2
-                            o._resize_h=-1;
-                            o._resize_w=-1;
+                            o._resize_h=o._resize_w=-1;
                         }
                         xui.UI.$dock(o,true,true);
                     }
@@ -16586,7 +18339,7 @@ Class("xui.UI",  "xui.absObj", {
     },
     Initialize:function(){
         var ns=this.prototype;
-        _.arr.each('getSubNode,getDomId,getRootNode,getRoot,getContainer'.split(','),function(o){
+        _.arr.each('getSubNode,getSubNodes,getDomId,getRootNode,getRoot,getContainer'.split(','),function(o){
             if(!ns[o])
                 ns[o]=function(){
                     var p=this.get(0);
@@ -16616,7 +18369,7 @@ Class("xui.UI",  "xui.absObj", {
                     }
 
                     if(p.dock!='none'){
-                        args={
+                            args={
                             $type:p.dock,
                             $dockid:_.arr.indexOf(['width','height','fill','cover'],p.dock)!=-1?self.$xid:null
                         };
@@ -16659,7 +18412,12 @@ Class("xui.UI",  "xui.absObj", {
                                 args.width=args.height=1;
                                 break;
                         }
-                        _.tryF(self.$dockFun,[args],self);
+                        var pp = xui.UIProfile.getFromDom(self.$dockParent);
+                        if(pp && pp.properties.conDockFlexFill){
+                            pp.boxing().adjustDock(true);
+                        }else{
+                            _.tryF(self.$dockFun,[args],self);
+                        }
                     }
                 }
             }
@@ -16727,8 +18485,7 @@ Class("xui.UI",  "xui.absObj", {
         self.setDataModel(hash);
 
         xui.UI.$cache_css += xui.UI.buildCSSText({
-            '.xui-css-noscroll, .xui-css-noscroll body, .xui-css-viewport, .xui-css-viewport body':{
-                overflow:'hidden',
+            '.xui-css-viewport, .xui-css-viewport body':{
                 height:'100%',
                 border:'0 none',
                 margin:'0',
@@ -17493,6 +19250,17 @@ Class("xui.UI",  "xui.absObj", {
         });
 
         xui.UI.$cache_css2 += xui.UI.buildCSSText({
+            '.xui-css-noscroll, .xui-css-noscroll body':{
+                'overflow':'hidden',
+                'overflow-x':'hidden',
+                'overflow-y':'hidden'
+            },
+            '.xui-css-noscrollx, .xui-css-noscroll body':{
+                'overflow-x':'hidden'
+            },
+            '.xui-css-noscrolly, .xui-css-noscroll body':{
+                'overflow-y':'hidden'
+            },
             '.xui-css-dockparent':{
                 overflow:'hidden'
              },
@@ -17502,7 +19270,8 @@ Class("xui.UI",  "xui.absObj", {
                 'background-repeat': 'no-repeat',
                 'background-position':'-390px -290px'
             },
-            '.xui-ui-readonly, .xui-ui-inputreadonly, .xui-ui-itemreadonly, .xui-ui-readonly, .xui-ui-itemreadonly *, .xui-ui-readonly *':{
+            // Firefox will ignore input:read-only
+            'input[readonly], textarea[readonly], .xui-ui-readonly, .xui-ui-inputreadonly, .xui-ui-itemreadonly, .xui-ui-readonly, .xui-ui-itemreadonly *, .xui-ui-readonly *':{
                 $order:2,
                 color: '#808080'
             },
@@ -17510,12 +19279,12 @@ Class("xui.UI",  "xui.absObj", {
                 $order:3,
                 color: '#909090'
             },
-            '.xui-ui-disabled, .xui-ui-inputdisabled, .xui-ui-itemdisabled, .xui-ui-disabled, .xui-ui-itemdisabled *, .xui-ui-disabled *':{
+            'input:disabled, button:disabled, a:disabled,  .xui-ui-inputdisabled, .xui-ui-itemdisabled, .xui-ui-disabled *, .xui-ui-itemdisabled *':{
                 $order:2,
                 cursor:'not-allowed',
                 color: '#808080'
             },
-            '.xui-ui-inputdisabled, .xui-ui-disabled, .xui-ui-itemdisabled , .xui-ui-disabled input, .xui-ui-itemdisabled input, .xui-ui-disabled textarea, .xui-ui-itemdisabled textarea':{
+            'input:disabled, button:disabled, a:disabled,  .xui-ui-inputdisabled, .xui-ui-itemdisabled, .xui-ui-disabled input, .xui-ui-itemdisabled input, .xui-ui-disabled textarea, .xui-ui-itemdisabled textarea':{
                 $order:3,
                 'background-color':'#eee'
             },
@@ -17528,7 +19297,7 @@ Class("xui.UI",  "xui.absObj", {
                 'white-space': 'nowrap'
             },
             '.xui-ui-busy':{
-                'background-image': 'url('+xui.ini.img_busy+')',
+                 'background-image': 'url('+xui.ini.img_busy+')',
                 'background-repeat':'no-repeat', 
                 'background-position': 'center center'
             },
@@ -17548,6 +19317,9 @@ Class("xui.UI",  "xui.absObj", {
                 "background-image":"url(data:image/gif;base64,R0lGODlhEAAQAOMAAAQCBHx+fLy+vOTm5ERCRMTGxISGhAQGBISChMTCxOzq7FRSVMzKzP7+/gAAAAAAACH/C05FVFNDQVBFMi4wAwEAAAAh+QQJCQANACwAAAAAEAAQAAAESrDJSau9OOvNe1VFonCFIBRcIiQJp7BjNySDxRjMNAQBUk+FAwCAaiR6gURhsUgYhgCEZIDgDRYEwqIALTZmNay2UTB4KwKmwBIBACH5BAkJAA8ALAAAAAAQABAAgwQCBHx+fLy+vERCRKSmpOTi5BQWFNTW1KyurIyKjMTCxERGRPTy9BwaHLSytP7+/gRE8MlJq7046827n47RIJwBAEZ5phsikg9TMNZBHBMj7PR0DEDco7ATFA6JhA04IEh0AgUjEQgomcLY7EG1PmzZClJpiQAAIfkECQkADQAsAAAAABAAEAAABEewyUmrtcywWxn4BTcZH4CIUlGGaFMYbOsuSywuBLHIuC4LNEFrkBjIBoEAwmhRFBKKRDKQuBQEgsIAoWRWEoJEleitRKGWCAAh+QQJCQAPACwAAAAAEAAQAIMEAgR8fny8vrxEQkSkpqTk4uQUFhTU1tSsrqyMiozEwsRERkT08vQcGhy0srT+/v4ERfDJ6UxDM2sDgHkHcWgT5x1DOpKIhRDpQJAaqtK1iJNHkqy7RyIQSAQlw+IR5APiGAXGkiGoSoOFqqBwpAoU1yA0vJxEAAAh+QQJCQANACwAAAAAEAAQAAAES7DJWdYqMzdmWFsEsTRDMkwMoFbhMgQBcjaGCiCCJQhwkEgFG2YyQMRmjYJhmCkhNVBFoqCAQgu7nzWTECS0W4k0UQ2bz+i0en2OAAAh+QQJCQAPACwAAAAAEAAQAIMEAgR8fny8vrxEQkSkpqTk4uQUFhTU1tSsrqyMiozEwsRERkT08vQcGhy0srT+/v4ERfDJeVI6M79DcApB8jAFQy3DUIEJI7zmQ6RDZx3FKxTSQWMTl0AR23Q0o5LEYWggkEgDAGCAaqRUawbRfGq/4LB4TC5DIwAh+QQJCQANACwAAAAAEAAQAAAER7DJqUpSM7eRRkuCUGjSgAQIJyQJ+QXwxWLkAKeuxnm5VCyLVk+yIBAWQ6IRmRQABclJwcCIMg4AwGhoyAIQyYJ3O5ySo9EIACH5BAkJAA8ALAAAAAAQABAAgwQCBHx+fLy+vERCRKSmpOTi5BQWFNTW1KyurIyKjMTCxERGRPTy9BwaHLSytP7+/gRG8MlJ62SFWcuE19tUeEIRXp4Cng+2hkeSHKyUBEFSP3e+x7Od5ECg1Q6LwcB4IigHBETD4NgcngcDAGCAFR9a7g5hMCAsEQA7)",
                 "background-repeat":"no-repeat",
                 "background-position":"center center"
+            },
+            ".xui-required":{
+                "color":"#ff0000"
             },
             ".xui-err":{
                 "background-image":"url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAQAAAC1+jfqAAAAAmJLR0QA/4ePzL8AAAAJcEhZcwAAAEgAAABIAEbJaz4AAAAJdnBBZwAAABAAAAAQAFzGrcMAAADdSURBVCjPfdGxTsJQGIbhpw20GgN1IZQBDQnGxvu/FEU3IjEBB5SKUsGkdTiCYeGb/pw803uixum1iMJ1KZdp40dpYQWNqBERuXItRY1YrPJspmm0wNAYlZkvdPR1jTVmtJAZgUhliaWFQs9IqYwxkKhUUnf64NuTD6kBMTK8mKgkigNZaGQBJGqfVh6PyFotCWC/NxMbiUL+/xhjJ9Y5kEriVk9HbBdAKZI7A+8ebLQVhigDmNvqKg7k3kZbamceOpSmbvSkXq1xIfSfKh2lPlf/pWa7Tx3A6c86vV+v4FNOkQDWwAAAACV0RVh0ZGF0ZTpjcmVhdGUAMjAxMC0wMi0xMVQxMTo1MDowOC0wNjowMNYQZfsAAAAldEVYdGRhdGU6bW9kaWZ5ADIwMDYtMDUtMDVUMTM6MjI6NDAtMDU6MDC/5P4aAAAAAElFTkSuQmCC)",
@@ -17593,7 +19365,7 @@ Class("xui.UI",  "xui.absObj", {
         $ID:"\x01id\x01",
         $DOMID:'\x01domid\x01',
         $CLS:"\x01cls\x01",
-        $COMCLS:"\x01comcls\x01",
+        $MODULECLS:"\x01modulecls\x01",
         $childTag:"<!--\x03{id}\x04-->",
 
         $onSize:function(profile,e){
@@ -17603,13 +19375,15 @@ Class("xui.UI",  "xui.absObj", {
             style=null;
         },
         $ps:{left:1,top:1,width:1,height:1,right:1,bottom:1},
-        _objectProp:{tagVar:1,propBinder:1,dockMargin:1},
+        objectProp:{},
         $toDom:function(profile, str, addEventHandler){
             if(addEventHandler===false)
                 return _.str.toDom(str);
 
             //must use empty div for RenderTriggers
             var matrix=xui.Dom.getEmptyDiv().get(0), r=[];
+            // for control size
+            matrix.style.position='relative';
             matrix.innerHTML=str;
             //add event handlers
             this.$addEventsHanlder(profile, matrix);
@@ -17735,28 +19509,35 @@ Class("xui.UI",  "xui.absObj", {
 
           flag: default flase => no clear not mactched symbols
         */
-        $doTemplate:function(profile, template, properties, tag, result){
+        $doTemplate:function(profile, template, properties, tag, result, index, realtag){
             var self=arguments.callee,
                 s,t,n,
                 x01=xui.UI.$x01,
                 x01r=' \x01 ',
                 str='',
                 isA = _.isArr(properties),
+                // this one maybe a fake tamplate tag, for switch function
                 temp = template[tag||''],
                 r = !result,
                 result= result || [];
+            // get the real tag
+            tag = realtag||tag;
             if(isA){
                 if(typeof temp != 'function')temp = self;
-                for(var i=0;t=properties[i++];)
-                    temp(profile, template, t, tag, result);
+                for(var i=0;t=properties[i++];){
+                    if(false===temp(profile, template, t, tag, result, i)){
+                        break;
+                    }
+                }
             }else{
                 if(t=properties.object){
                     //[properties] is for xui.Template
                     result[result.length]=t.toHtml();
                 }else{
-                    if(typeof temp == 'function')
-                        temp(profile, template, properties, tag, result);
-                    else{
+                    if(typeof temp == 'function'){
+                        t=temp(profile, template, properties, tag, result);
+                        if(t)tag=t;
+                    }else{
                         tag = tag?tag+'.':'';
                         var a0=temp[0], a1=temp[1];
                         for(var i=0,l=a0.length;i<l;i++){
@@ -17849,7 +19630,7 @@ Class("xui.UI",  "xui.absObj", {
                     u.$tag_special + (key||'KEY') + '_CT'+u.$tag_special + ' ' +
                     //custom class
                     u.$tag_special + (key||'KEY') + '_CC'+u.$tag_special + ' '+
-                    u.$COMCLS +" xui-custom"
+                    u.$MODULECLS +" xui-custom"
             }
             delete template.className;
 
@@ -17929,7 +19710,7 @@ Class("xui.UI",  "xui.absObj", {
         _rpt:function(profile,temp){
             var me=arguments.callee,
                 host = profile.host,
-                comCls = (host&&host['xui.Com']&&host.customStyle&&!_.isEmpty(host.customStyle))?(" xui-com-"+host.$xid):null,
+                moduleCls = (host&&host['xui.Module']&&host.customStyle&&!_.isEmpty(host.customStyle))?(" xui-module-"+host.$xid):null,
                 ui=xui.UI,
                 tag=ui.$tag_special,
                 ca=function(h,s,i){
@@ -17942,7 +19723,7 @@ Class("xui.UI",  "xui.absObj", {
                     id:profile.serialId,
                     cls:profile.getClass('KEY'),
                     domid:profile.$domId,
-                    comcls:comCls
+                    modulecls:moduleCls
                 },
                 h2={
                     A:profile.CA,
@@ -18091,8 +19872,8 @@ Class("xui.UI",  "xui.absObj", {
                     return fun;
                 }),
                 hls={},t;
-            if(!xui.SC.get('xui.absComposed'))
-                Class('xui.absComposed','xui.absObj',{
+            if(!xui.SC.get('xui.absContainer'))
+                Class('xui.absContainer','xui.absObj',{
                     Instance:{
                         addPanel:function(paras, children, item){
                             var pro = _.clone(xui.UI.Panel.$DataStruct,true);
@@ -18116,21 +19897,210 @@ Class("xui.UI",  "xui.absObj", {
                         getPanelPara:function(){
                             return _.clone(this.get(0).properties,true);
                         },
+                        dumpContainer:function(subId){
+                            return this.each(function(profile){
+                               var dm = profile.box.$DataModel,
+                                    s = dm.valueSeparator||";",
+                                    p = profile.properties,
+                                    hasitems='items' in p,
+                                    b,id,arr,con;
+                                if(!hasitems){
+                                    if(con=profile.boxing().getContainer())con.html("",true);
+                                }else{
+                                    _.arr.each(p.items, function(item){
+                                        id = item.id;
+                                        if(!subId || subId===true){
+                                            b=1;
+                                        }else{
+                                            arr = _.isArr(subId)?subId:(subId+"").split(s);
+                                            b=_.arr.indexOf(arr, id)!=-1;
+                                        }
+                                        if(b){
+                                            if(con=profile.boxing().getContainer(id))con.html("",true);
+                                        }
+                                    });
+                                }
+                            });
+                        },
                         getPanelChildren:function(){
                             return this.get(0).children;
                         },
+                        getFormValues:function(dirtied, subId, withCaption){
+                            var hash={};
+                            this.getFormElements(subId).each(function(prf){
+                                var p=prf.properties,
+                                    ins = prf.boxing(),
+                                    // maybe return array
+                                    uv = ins.getUIValue();
+                                // v and uv can be object(Date,Number)
+                                if(!dirtied || (uv+" ")!==(ins.getValue()+" ")){
+                                    if(withCaption && ins.getCaption){
+                                        hash[p.name||prf.alias]={value:uv,caption:ins.getCaption()};
+                                    }else{
+                                        hash[p.name||prf.alias]=uv;
+                                    }
+                                }
+                            });
+                            return hash;
+                        },
+                        setFormValues:function(values, subId){
+                            if(!_.isEmpty(values)){
+                                this.getFormElements(subId).each(function(prf){
+                                    if('value' in prf.properties && (prf.properties.name||prf.alias) in values){
+                                        var v=values[prf.properties.name||prf.alias],b=_.isHash(v) ;
+                                        prf.boxing().setValue((b && ('value' in v)) ? v.value : v, true,'module');
+                                        if(typeof(prf.boxing().setCaption)=="function" &&  b  && 'caption' in v)
+                                            prf.boxing().setCaption(v.caption, null, true,'module');
+                                    }
+                                });
+                            }
+                            return this;
+                        },
+                        getFormElements:function(subId, dirtiedOnly){
+                            var a=this.getChildren(subId, false),
+                                elems = xui.absValue.pack(a);
+                            if(dirtiedOnly){
+                                var arr=[],ins,t;
+                                elems.each(function(p,z){
+                                    ins = p.boxing();
+                                    if( (ins.getUIValue()+" ")!==(ins.getValue()+" ")){
+                                        arr.push(p);    
+                                    }
+                                });
+                                return xui.absValue.pack(arr);
+                            }
+                            return elems;
+                        },
+                        isDirtied:function(subId){
+                           var elems = this.getFormElements(subId).get();
+                           for(var i=0,l=elems.length;i<l;i++){
+                                var profile=elems[i],ins;
+                                if(profile.box["xui.absValue"]){
+                                    ins = profile.boxing();
+                                    if((ins.getUIValue()+" ")!==(ins.getValue()+" ")){
+                                        return true;
+                                    }
+                                }
+                            }
+                            return false;
+                        },
+                        checkValid:function(ignoreAlert, subId){
+                            var profile=this.get(0), result=true;
+                            this.getFormElements(subId).each(function(prf){
+                                if(!prf.boxing().checkValid()){
+                                    if(!ignoreAlert){
+                                        if(!prf.beforeInputAlert || false!==prf.boxing().prf.beforeInputAlert(profile, prf, 'invalid')){
+                                            xui.alert('$inline.invalid',xui.getRes('$inline.invalid') + (prf.properties.labelCaption?(" : " +prf.properties.labelCaption):"")  , function(){
+                                                if(prf&&prf.renderId)
+                                                       prf.boxing().activate();
+                                            });
+                                        }
+                                        return result=false;
+                                    }
+                                     result=false;
+                                }
+                            });
+                            return result;
+                        },
+                        checkRequired:function(ignoreAlert, subId){
+                            var result=true;
+                            this.getFormElements(subId).each(function(prf, i){
+                                if(prf.properties.required && (!(i=prf.boxing().getUIValue())) && i!==0){
+                                    if(!ignoreAlert){
+                                        if(!prf.beforeInputAlert || false!==prf.boxing().prf.beforeInputAlert(profile, prf, 'required')){
+                                            xui.alert('$inline.required',xui.getRes('$inline.required') + (prf.properties.labelCaption?(" : " +prf.properties.labelCaption):"")  , function(){
+                                                if(prf&&prf.renderId)
+                                                       prf.boxing().activate();
+                                            });
+                                        }
+                                        return result=false;
+                                    }
+                                    result=false;
+                                }
+                            });
+                            return result;
+                        },
+                        formReset:function(subId){
+                            return this.each(function(prf){
+                                var p = prf.properties,
+                                     elems = prf.boxing().getFormElements();
+                                if(prf.beforeFormReset && false===prf.boxing().beforeFormReset(prf, elems, subId)){
+                                        return;
+                                }
+                                elems.each(function(p,i){
+                                        if((i=p.properties.$UIValue) !== p.properties.value)
+                                        p.boxing().setValue(i, true);
+                                });
+                                if(prf.afterFormReset){
+                                        prf.boxing().afterFormReset(prf, elems, subId);
+                                }
+                            });
+                        },
+                        formSubmit:function(ignoreAlert, subId){
+                            var ns=this;
+                            // check valid first
+                            if(!ignoreAlert && !ns.checkValid()){
+                                return;
+                            }
+                            var prf=ns.get(0),
+                              p = prf.properties, f,
+                              data = ns.getFormValues(subId),
+                              apicaller;
+                            // call before event
+                            if(prf.beforeFormSubmit && false===prf.boxing().beforeFormSubmit(prf, data, subId)){
+                                    return;
+                            }
+                            // and check required
+                            if(!ignoreAlert && !ns.checkRequired()){
+                                return;
+                            }
+                            if(p.formTarget=="Alert"){
+                                data = _.stringify(data);
+                                if(xui.Coder && xui.Coder.formatText)
+                                    data = xui.Coder.formatText(data);
+                                alert(data);
+                            }else if(/^\s*\{[^}]+\}\s*$/.test(p.formTarget)){
+                                f=xui.adjustVar(p.formTarget);
+                                f(data);
+                            }else if(/^((\s*function\s*([\w$]+\s*)?\(\s*([\w$\s,]*)\s*\)\s*)(\{([^\{\}]*)\}))\s*$/.test(p.formTarget)){
+                                if(f=_.unserialize(p.formTarget)){
+                                    f(data);
+                                }
+                            }
+                            else{
+                                // try to get APICaller
+                                if(xui.APICaller && _.arr.indexOf(['_blank','_self','_parent','_top'],p.formTarget)==-1) {
+                                    apicaller = xui.APICaller.getFromName(p.formTarget);
+                                }
+                                if(apicaller){
+                                    apicaller.setQueryArgs(data);
+                                    apicaller.invoke();
+                                }else{
+                                    xui.Dom.submit(p.formAction, data, p.formMethod, p.formTarget, p.formEnctype);
+                                }
+                            }
+                            // update UI 
+                            ns.getFormElements().updateValue();
+
+                            if(prf.afterFormSubmit)prf.boxing().afterFormSubmit(prf, data, subId);
+                        },
+                        // use refrence to keep the Class's function mark
                         _e1:function(profile, item, e, src, type){},
                         _e2:function(profile, keyboard, e, src){},
                         _e3:function(profile, e, shiftKey, src){},
                         _e4:function(profile, e, src, dragKey, dragData, item){},
-                        _e5:function(profile, e, src){}
+                        _e5:function(profile, e, src){},
+                        _e6:function(profile, ctrlPrf, type){},
+                        _e7:function(profile, elems, subId){},
+                        _e8:function(profile, data, subId){}
                     },
                     Static:{
+                        $abstract:true,
                         DataModel:{
                             dragKey:'',
                             dropKeys:'',
                             overflow:{
-                                ini:xui.browser.isTouch?'auto':undefined,
+                                ini:xui.browser.deviceType=="touchOnly"?'auto':undefined,
                                 combobox:['','visible','hidden','scroll','auto','overflow-x:auto;overflow-y:auto'],
                                 action:function(v){
                                     var prf=this;
@@ -18198,13 +20168,55 @@ Class("xui.UI",  "xui.absObj", {
                                         prf.getSubNode(k,true).css('background-attachment',v);
                                     });
                                 }
+                            },
+                            conDockPadding:{
+                                ini:{left:0,top:0,right:0,bottom:0},
+                                action:function(){
+                                    this.boxing().adjustDock(true);
+                                }
+                            },
+                            conDockSpacing:{
+                                ini:{width:0,height:0},
+                                action:function(){
+                                    this.boxing().adjustDock(true);
+                                }
+                            },
+                            conDockFlexFill:{
+                                ini:"",
+                                combobox:['none','width','height','both'],
+                                action:function(){
+                                    this.boxing().adjustDock(true);
+                                }
+                            },
+                            conDockStretch:{
+                                ini:"",
+                                combobox:['fixed','forward','rearward','stretch','0.25','0.33','0.5','0.25,0.5,0.25'],
+                                action:function(){
+                                    this.boxing().adjustDock(true);
+                                }
+                            },
+                            formMethod:{
+                                ini:'get',
+                                listbox:['get','post']
+                            },
+                            formTarget:{
+                                ini:'Alert',
+                                combobox:['Alert','_blank','_self','_parent','_top','[framename]','[APICaller]','function(d){xui.log(d)}']
+                            },
+                           formAction:"",
+                           formEnctype:{
+                                ini:'application/x-www-form-urlencoded',
+                                listbox:['application/x-www-form-urlencoded','multipart/form-data','text/plain']
                             }
-                        },
-                        $abstract:true
+                        }
                     }
                 });
-            var src=xui.absComposed.prototype;
-
+            var src=xui.absContainer.prototype;
+            // form
+            hls.beforeInputAlert=src._e6;
+            hls.beforeFormReset=hls.afterFormReset=src._e7;
+            hls.beforeFormSubmit=hls.afterFormSubmit=src._e8;
+            
             if(hash.HoverEffected){
                 _.each(hash.HoverEffected,function(o,i){
                     t=map[i]?hash:(hash[i]||(hash[i]={}));
@@ -18326,7 +20338,7 @@ Class("xui.UI",  "xui.absObj", {
                 });
 
                 t=self.prototype;
-                _.arr.each('addPanel,removePanel,getPanelPara,getPanelChildren,getDropKeys,setDropKeys'.split(','),function(o){
+                _.arr.each('addPanel,removePanel,dumpContainer,getPanelPara,getPanelChildren,getDropKeys,setDropKeys,getFormValues,setFormValues,getFormElements,isDirtied,checkValid,checkRequired,formReset,formSubmit'.split(','),function(o){
                     if(!t[o])t[o]=src[o];
                 });
                 self.$DataModel.dropKeys=self.$DataStruct.dropKeys='';
@@ -18351,14 +20363,19 @@ Class("xui.UI",  "xui.absObj", {
             }
             if((t=hash.PanelKeys) && t.length){
                 t=self.prototype;
-                _.arr.each(["overflow","panelBgClr","panelBgImg","panelBgImgPos","panelBgImgRepeat","panelBgImgAttachment"],function(o){
-                    var f='get'+_.str.initial(o);
+                _.arr.each('overflow,panelBgClr,panelBgImg,panelBgImgPos,panelBgImgRepeat,panelBgImgAttachment,conDockPadding,conDockSpacing,conDockFlexFill,conDockStretch,formMethod,formTarget,formAction,formEnctype'.split(','),function(o){
+                    var f='get'+_.str.initial(o),dm;
                     if(!t[f])t[f]=src[f];
                     f='set'+_.str.initial(o);
                     if(!t[f])t[f]=src[f];
-                    self.$DataStruct[o]="";
-                    self.$DataModel[o]=_.copy(xui.absComposed.$DataModel[o]);
+                    dm=xui.absContainer.$DataModel[o];
+                    self.$DataStruct[o]=_.isSet(dm.ini)?_.copy(dm.ini):"";
+                    self.$DataModel[o]=_.copy(dm);
                 });
+
+                 _.merge(hls, xui.absContainer.$EventHandlers);
+
+                 self['xui.absContainer']=true;
             }
             self.setEventHandlers(hls);
         },
@@ -18528,7 +20545,7 @@ Class("xui.UI",  "xui.absObj", {
                         + (b.isSafari ? "xui-css-safari ": b.isChrome ? "xui-css-chrome " :"")
                         + (b.isMac ? "xui-css-mac": b.isLinux ? "xui-css-linux " :"")
                 );
-                xui('html').addClass(b.isStrict?"xui-css-base xui-css-strict":"xui-css-base ");
+                xui('html').addClass(b.isStrict?"xui-css-base xui-css-strict xui-css-viewport":"xui-css-base xui-css-viewport");
             }
             if(cache1){
                 xui.CSS.addStyleSheet(cache1, 'xui.UI-CSS'+(self.$cssNo++));
@@ -18863,12 +20880,13 @@ Class("xui.UI",  "xui.absObj", {
                                 t.properties.tagVar.hoverFrom=arguments;
                             },function(){
                                 delete t.properties.tagVar.hoverFrom;
-                            });
+                            },t.getRoot().parent(),v);
                      }
                 }
             },
             hoverPopType:{
                 ini:'outer',
+                dftWidth:180,
                 listbox:['outer','inner',
                 'outerleft-outertop','left-outertop','center-outertop','right-outertop','outerright-outertop',
                 'outerleft-top','left-top','center-top','right-top','outerright-top',
@@ -18876,6 +20894,14 @@ Class("xui.UI",  "xui.absObj", {
                 'outerleft-bottom','left-bottom','center-bottom','right-bottom','outerright-bottom',
                 'outerleft-outerbottom','left-outerbottom','center-outerbottom','right-outerbottom','outerright-outerbottom'
                 ]
+            },
+            locked:{
+                ini:false,
+                action:function(){
+                    if(this.$inDesign){
+                            this.boxing().refresh(true);
+                    }
+                }
             },
             dock:{
                 ini:'none',
@@ -18885,6 +20911,14 @@ Class("xui.UI",  "xui.absObj", {
                 }
             },
             dockIgnore:{
+                ini:false,
+                action:function(v){
+                    var self=this;
+                    if(self.properties.dock!='none')
+                        xui.UI.$dock(self,true,true);
+                }
+            },
+            dockFloat:{
                 ini:false,
                 action:function(v){
                     var self=this;
@@ -18910,7 +20944,14 @@ Class("xui.UI",  "xui.absObj", {
                         xui.UI.$dock(self,true,true);
                 }
             },
-            dockFloat:{
+
+            dockMinW:0,
+            dockMinH:0,
+            dockMaxW:0,
+            dockMaxH:0,
+
+            // to stop conDockFlexFill
+            dockIgnoreFlexFill:{
                 ini:false,
                 action:function(v){
                     var self=this;
@@ -18918,20 +20959,73 @@ Class("xui.UI",  "xui.absObj", {
                         xui.UI.$dock(self,true,true);
                 }
             },
-            dockMinW:0,
-            dockMinH:0,
-            tips:'',
+            // for top/left/right/bottom only
+            // "" can be reset by container's conDockStretch
+            dockStretch:{
+                ini:"",
+                combobox:['fixed','forward','rearward','stretch','0.25','0.33','0.5'],
+                set:function(value){
+                    var o=this, t=o.properties;
+                    t.dockStretch=value;
+                    if(t.dock == "fill"||t.dock == "cover"||t.dock == "width"||t.dock == "height"){
+                        if(value!='forward'&&value!='rearward'&&value!='stretch'){
+                            t.dockStretch="stretch";
+                        }
+                    }
+                    if(o.rendered && t.dock!='none'){
+                        xui.UI.$dock(o,true,true);
+                    }
+                }
+            },
+            tips:{
+                ini:'',
+                action:function(v){
+                    var t=xui.Tips;
+                    if(t&&t._showed){
+                        if(xui.UIProfile.getFromDom(t._markId)==this){
+                            t.setTips(v, true);
+                        }
+                    }
+                }
+            },
             rotate:{
                 ini:0,
                 action:function(v){
                     var root=this.getRoot(),ins=this.boxing();
-                    v=parseInt(v,10);
+                    v=parseInt(v,10)||0;
                     v=v%360;
                     if(v<0)v=v+360;
                     if(this.box['xui.svg']){
-                            ins.setAttr("KEY", {transform:'r'+v}, false);
+                        ins.setAttr("KEY", {transform:'r'+v}, false);
                     }else{
-                            root.css('transform', "rotate("+v+"deg)");
+                        root.rotate(v);
+                    }
+                }
+            },
+            animConf:{
+                hidden:true,
+                ini:{}
+            },
+            activeAnim:{
+                ini:"",
+                action:function(v){
+                    // stop first
+                    var prf=this,
+                        node=prf.getRootNode(),
+                        tid=xui.getNodeData(node,'_inthread'),
+                         reset=xui.getNodeData(node,'_animationreset');
+                    if(tid && xui.Thread.isAlive(tid)){
+                        xui.Thread(tid).abort('force');
+                        xui.setNodeData(node,'_inthread',null);
+                    }
+                    if(typeof reset=="function"){
+                        reset();
+                        xui.setNodeData(node,'_animationreset',null);
+                    }
+                    if(v){
+                        var items=this.properties.animConf, item=items[v];
+                        if(!item)item=xui.Dom.$preDefinedAnims[v];
+                        if(item && item.params)prf.getRoot().animate(item.params, item.onStart, item.onEnd,item.duration||200, null, item.type||"linear", null, item.unit, item.returned, item.times).start();
                     }
                 }
             }
@@ -18975,7 +21069,16 @@ Class("xui.UI",  "xui.absObj", {
                 _.asyRun(function(){
                     b.setHoverPop(p.hoverPop,true);
                 });
-            }            
+            }
+            if(p.activeAnim){
+                _.asyRun(function(){
+                    b.setActiveAnim(p.activeAnim, true);
+                });
+            }
+            // set dataBinder for container 
+            if(prf.behavior.PanelKeys){
+                if(t=p.dataBinder)b.setDataBinder(t,true);
+            }
             prf._inValid=1;
         },
         $doResize:function(profile,w,h,force,key){
@@ -19070,7 +21173,66 @@ Class("xui.UI",  "xui.absObj", {
             var node = profile.getRoot(),
                 isSVG = profile.box['xui.svg'],
                 ins = profile.boxing(),
-                p=xui((node.get(0) && node.get(0).parentNode)||profile.$dockParent);
+                i1=-1,i2=-1,i3=-1,i4=-1,
+                p=xui((node.get(0) && node.get(0).parentNode)||profile.$dockParent),
+                adjustOverflow=function(p,isWin){
+                    var f,t,c,x,y;
+                    if(isWin){
+                        f=xui.win.$getEvent('onSize','dock');
+                    }else if(p && p.get(0)){
+                        f=p.$getEvent('onSize','dock');
+                    }
+
+                    if(f && f.dockall && f.dockall.length){
+                        for(var i=0,l=f.dockall.length,s; i<l; i++){
+                            s=f.dockall[i].$dockType;
+                            switch(s){
+                                case "fill":
+                                case "cover":
+                                    x=y=1;
+                                break;
+                                case "top":
+                                case "bottom":
+                                case "width":
+                                    x=1;
+                                break;
+                                case "left":
+                                case "right":
+                                case "height":
+                                    y=1;
+                                break;
+                            }
+                        }
+                    }
+                    if(x&&y){
+                        c="xui-css-noscroll";
+                    }else if(x){
+                        c="xui-css-noscrollx";
+                    }else if(y){
+                        c="xui-css-noscrolly";
+                    }
+                    if(isWin){
+                        xui('html').removeClass(/^xui-css-noscroll(x|y)?$/);
+                        t=xui('body').get(0);
+                        if(t)t.scroll='';
+                        if(c){
+                            if(x)xui.win.scrollLeft(0);
+                            if(y)xui.win.scrollTop(0);
+                            xui('html').addClass(c);
+                            if(x && y && t){
+                                t.scroll='no';
+                            }
+                        }
+                    }else{
+                        p.removeClass(/^xui-css-noscroll(x|y)?$/);
+                        if(c){
+                            if(x)p.scrollLeft(0);
+                            if(y)p.scrollTop(0);
+                            p.addClass(c);
+                        }
+                    }
+                };
+
             if(!p.get(0))
                 return;
             var prop = profile.properties,
@@ -19109,10 +21271,10 @@ Class("xui.UI",  "xui.absObj", {
                 profile.$dockType = value;
 
                 //unlink first
-                profile.unLink('$dockall');
-                profile.unLink('$dock');
-                profile.unLink('$dock1');
-                profile.unLink('$dock2');
+                i1=profile.unLink('$dockall');
+                i2=profile.unLink('$dock');
+                i3=profile.unLink('$dock1');
+                i4=profile.unLink('$dock2');
 
                 //set the fix value first
                 switch(value){
@@ -19178,34 +21340,189 @@ Class("xui.UI",  "xui.absObj", {
                                 map=xui.UI.$dock_map,
                                 arr=xui.UI.$dock_args,
                                 rePos=me.rePos,
+                                pid=me.pid,
                                 // the dock parent is window
-                                win= me.pid=="!window" || me.pid=="!document",
-                                node=win?xui.win:xui(me.pid);
+                                isWin= me.pid=="!window" || me.pid=="!document",
+                                pprf = isWin?0:xui.UIProfile.getFromDom(pid),
+                                pprop = pprf && pprf.properties,
+                                conDockSpacing=(pprop && ('conDockSpacing' in pprop))?pprop.conDockSpacing:{width:0,height:0},
+                                conDockPadding=(pprop && ('conDockPadding' in pprop))?pprop.conDockPadding:{left:0,top:0,right:0,bottom:0},
+                                conDockFlexFill=(pprop && ('conDockFlexFill' in pprop))?pprop.conDockFlexFill:'',
+                                conDockStretch=(pprop && ('conDockStretch' in pprop))?pprop.conDockStretch.split(/[,;\s]+/):[],
+                                perW=conDockFlexFill=="width"||conDockFlexFill=="both",
+                                perH=conDockFlexFill=="height"||conDockFlexFill=="both",
+                                node=isWin?xui.win:xui(pid);
 
                              if(!node.get(0))
                                 return;
 
-                             var style=node.get(0).style,
+                             var style=(isWin?xui.win:node).get(0).style,
                                 obj,i,k,o,key,target,width,height;
 
-                            width=(style&&parseInt(style.width,10))||node.width();
-                            height=(style&&parseInt(style.height,10))||node.height();
+                            var ofs = isWin ? xui('body').get(0).style : style,
+                                old_of=ofs.overflow,
+                                old_ofx=ofs.overflowX,
+                                old_ofy=ofs.overflowY;
+
+                            if(style){
+                                style.overflow=style.overflowX=style.overflowY="hidden";
+                            }
+
+                            width=(style&&parseInt(style.width,10))||node.width()||0;
+                            height=(style&&parseInt(style.height,10))||node.height()||0;
+                            //width=Math.max( node.scrollWidth()||0,  (style&&parseInt(style.width,10))||node.width()||0);
+                            //height=Math.max( node.scrollHeight()||0, (style&&parseInt(style.height,10))||node.height()||0);
+
+                           if(style){
+                               style.overflow = old_of;
+                               style.overflowX = old_ofx;
+                               style.overflowY = old_ofy;
+                           }
 
                             //window resize: check time span, for window resize in firefox
                             //force call when input $dockid
                             //any node resize
-                            if( arg.$dockid || !win || ((_() - xui.$cache._resizeTime) > 50)){
+                            if( arg.$dockid || !isWin || ((_() - xui.$cache._resizeTime) > 50)){
                                 //recruit call, give a short change
-                                obj = {left:0,top:0,right:0,bottom:0,width:width,height:height};
+                                obj = {
+                                    left: conDockPadding.left,
+                                    top: conDockPadding.top,
+                                    right: conDockPadding.right,
+                                    bottom: conDockPadding.bottom,
+                                    width: width,
+                                    height: height
+                                };
+                                obj.preX = obj.oX = obj.left;
+                                obj.preY = obj.oY = obj.top;
+                                obj.ww = obj.width - obj.left - obj.right + conDockSpacing.width;
+                                obj.hh = obj.height - obj.top - obj.bottom + conDockSpacing.height;
+                                obj.leftHolder=obj.topHolder=obj.rightHolder=obj.bottomHolder=0;
 
+
+                                // adjust width/height first
+                                if(perW || perH){
+                                    var wCount=0,wSum=0,hCount=0,hSum=0,tmp,hMax=0,adjustMM=function(prop,direction,numb,t){
+                                        if(t=prop['dockMin'+direction])numb=Math.max(t,numb);
+                                        if(t=prop['dockMax'+direction])numb=Math.min(t,numb);
+                                        return numb;
+                                    };
+                                    // collect controls (w/h) to be percentaged, no dockIgnore
+                                    for(k=0;key=arr[k++];){
+                                        target = me[key];
+                                        if(target.length){
+                                            for(i=0;o=target[i++];){
+                                                if(!(o.properties.dockIgnore || o.properties.dockIgnoreFlexFill)){
+                                                    var node = o.getRoot();
+                                                    if(perW && (key=='left'||key=='right'||key=='width')){
+                                                        wCount++;
+                                                        tmp= adjustMM(o.properties,"W",parseFloat(o.properties.width) || node.width()) ;
+                                                        wSum +=tmp;
+                                                        if(o.properties.dock!="fill"){
+                                                            hMax = Math.max(hMax, adjustMM(o.properties,"H",parseFloat(o.properties.height) || node.height()));
+                                                        }
+                                                    }
+                                                    if(perH && (key=='top'||key=='bottom'||key=='height')){
+                                                        hCount++;
+                                                        hSum += adjustMM(o.properties,"H",parseFloat(o.properties.height) || node.height());
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                    if(hSum&&hMax){
+                                        hSum += hMax;
+                                    }
+                                    // for w percent
+                                    if(wCount>=1 && wSum && obj.width){
+                                        var innerW = obj.width - conDockPadding.left - conDockPadding.right - (wCount-1)*conDockSpacing.width;
+                                        for(k=0;key=arr[k++];){
+                                            target = me[key];
+                                            if(target.length){
+                                                for(i=0;o=target[i++];){
+                                                    if(!o.properties.dockIgnore && o.properties.dockIgnoreFlexFill){
+                                                        var node = o.getRoot();
+                                                        if(key=='left'||key=='right'||key=='width'){
+                                                            innerW -= adjustMM(o.properties,"W",parseFloat(o.properties.width) || node.width());
+                                                            innerH -= conDockSpacing.width;
+                                                        }
+                                                    }
+                                                }
+                                                for(i=0;o=target[i++];){
+                                                    if(!(o.properties.dockIgnore || o.properties.dockIgnoreFlexFill)){
+                                                        var node = o.getRoot();
+                                                        if(key=='left'||key=='right'||key=='width'){
+                                                            node.width(adjustMM(o.properties,"W",Math.min(1, (parseFloat(o.properties.width) || node.width()) / wSum) * innerW));
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                    // for h percent
+                                    if(hCount>=1  && hSum && obj.height){
+                                        var innerH = obj.height - conDockPadding.top - conDockPadding.bottom - (hCount-1)*conDockSpacing.height;
+                                        for(k=0;key=arr[k++];){
+                                            target = me[key];
+                                            if(target.length){
+                                                for(i=0;o=target[i++];){
+                                                    if(!o.properties.dockIgnore && o.properties.dockIgnoreFlexFill){
+                                                        var node = o.getRoot();
+                                                        if(key=='top'||key=='bottom'||key=='height'){
+                                                            innerH -= adjustMM(o.properties,"H",parseFloat(o.properties.height) || node.height());
+                                                            innerH -= conDockSpacing.height;
+                                                        }
+                                                    }
+                                                }
+                                                for(i=0;o=target[i++];){
+                                                    if(!(o.properties.dockIgnore || o.properties.dockIgnoreFlexFill)){
+                                                        var node = o.getRoot();
+                                                        if(key=='top'||key=='bottom'||key=='height'){
+                                                            node.height(adjustMM(o.properties,"H",Math.min(1, (parseFloat(o.properties.height) || node.height())/ hSum) * innerH));
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                    if(pprf&&perW)pprf._conDockFlexFillW=1;
+                                    if(pprf&&perH)pprf._conDockFlexFillH=1;
+                                }
+                                if(conDockFlexFill!="both"){
+                                    for(k=0;key=arr[k++];){
+                                        target = me[key];
+                                        if(target.length){
+                                            for(i=0;o=target[i++];){
+                                                if(!(o.properties.dockIgnore || o.properties.dockIgnoreFlexFill)){
+                                                    var node = o.getRoot();
+                                                    if(pprf&&pprf._conDockFlexFillW && !perW && (key=='left'||key=='right'||key=='width')){
+                                                        node.width(o.properties.width) ;
+                                                    }
+                                                    if(pprf&&pprf._conDockFlexFillH && !perH && (key=='top'||key=='bottom'||key=='height')){
+                                                        node.height(o.properties.height);
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                    if(pprf&&!perW)delete pprf._conDockFlexFillW;
+                                    if(pprf&&!perH)delete pprf._conDockFlexFillH;
+                                }
+
+                                // repos && resize
                                 for(k=0;key=arr[k++];){
-                                    target = me[key];
-                                    if(target.length){
-                                        if(!map[key])arg.width=arg.height=1;
-                                        for(i=0;o=target[i++];)
-                                            if(!o.properties.dockIgnore)
-                                                rePos(o, obj, key, arg.$dockid, win||arg.width, win||arg.height);
+                                    obj.preX = obj.oX;
+                                    obj.preY = obj.top;
 
+                                    target = me[key];
+                                    var ii=0;
+                                    if(target.length){
+                                        delete obj.$prevLeft;
+                                        if(!map[key])arg.width=arg.height=1;
+                                        for(i=0;o=target[i++];){
+                                            if(!o.properties.dockIgnore){
+                                                rePos(o, ii++, obj, key, arg.$dockid, isWin||arg.width, isWin||arg.height, conDockSpacing.width, conDockSpacing.height, conDockStretch);
+                                            }
+                                        }
                                     }
                                 }
                                 
@@ -19270,9 +21587,10 @@ Class("xui.UI",  "xui.absObj", {
                                 }
 
                                 //if window resize, keep the timestamp
-                                if(win)
+                                if(isWin)
                                     xui.$cache._resizeTime = _();
                             }
+
                             me=rePos=node=style=null;
                         };
                         f.pid=pid;
@@ -19280,13 +21598,16 @@ Class("xui.UI",  "xui.absObj", {
                             f[key]=[];
                         });
                         f.dockall=[];
-                        f.rePos=function(profile, obj, value, id, w, h){
+                        f.rePos=function(profile, index, obj, value, id, w, h, spaceW, spaceH, conDockStretch){
                             //if $dockid input, and not the specific node, return
                             var flag=false;
                             if(id && profile.$xid!=id)flag=true;
                             var prop = profile.properties,
                                 flt=prop.dockFloat,
                                 margin = prop.dockMargin,
+                                stretch=prop.dockStretch,
+                                sStart,sEnd,noStretch,pct,isCover,
+                                tempW=0,tempH=0,
                                 node = profile.getRoot(),
                                 ins = profile.boxing(),
                                 style = profile.getRootNode().style,
@@ -19305,6 +21626,47 @@ Class("xui.UI",  "xui.absObj", {
 
                             if(style.display=='none')
                                 return;
+                            switch(value){
+                                case 'middle':
+                                case 'center':
+                                    sStart = sEnd = 0;
+                                    break;
+                                default:                                    
+                                    // flow stretch can be copy from container
+                                    stretch = stretch || ((value=="width"||value=="height")?"":conDockStretch[index % conDockStretch.length]) || "stretch";
+
+                                    // width/height support 3 only:
+                                    if(value=="width" || value=="height"){
+                                        if(stretch!="stretch" && stretch!="forward" && stretch!="rearward"){
+                                            stretch='stretch';
+                                        }
+                                    }
+                                    switch(stretch){
+                                        case 'stretch':
+                                            sStart=1;
+                                            sEnd=1;
+                                            noStretch=0;
+                                        break;
+                                        case 'forward':
+                                            sStart=1;
+                                            sEnd=0;
+                                            noStretch=0;
+                                        break;
+                                        case 'rearward':
+                                            sStart=0;
+                                            sEnd=1;
+                                            noStretch=0;
+                                        break;
+                                        case 'fixed':
+                                            noStretch=1;
+                                        break;
+                                        default:
+                                            noStretch=1;
+                                            pct = Math.min(1, Math.max(0, parseFloat(stretch) ));
+                                    }
+                            }
+
+                            isCover = prop.dock=='cover';
                             //top/bottom/left/right must be set by order first
                             switch(value){
                                 case 'middle':
@@ -19322,99 +21684,315 @@ Class("xui.UI",  "xui.absObj", {
                                     break;
                                 case 'top':
                                     if(!flag){
-                                        left=margin.left;
-                                        right=margin.right;
-                                        top=(flt?0:obj.top)+margin.top;
-                                        if(parseFloat(style.top)!=top)region.top=top;
-                                        temp=obj.width - left - right - x;
-                                        temp=_adjust(prop.dockMinW?Math.max(prop.dockMinW,temp):temp);
-                                        if(parseFloat(style.width)!=temp)region.width=_adjust(temp);
-                                        if(!_.isEmpty(region)){
-                                            if(isSVG)
-                                                ins._setBBox(region);
-                                            else
-                                                node.cssRegion(region,true);
+                                        if(noStretch){
+                                            temp = (pct ? parseInt(obj.ww*pct,10) : _adjust(isSVG ? bbox.width : parseFloat(prop.width))) + (obj.$prevLeft||0);
+                                            delete obj.$prevLeft;
+                                            if(prop.dockMinW) temp=_adjust((prop.dockMinW<=temp)?(temp):(obj.$prevLeft=temp-prop.dockMinW,  prop.dockMinW));
+                                            if(prop.dockMaxW) temp=_adjust((prop.dockMaxW<=temp)?(obj.$prevLeft=temp-prop.dockMaxW,  prop.dockMaxW):(temp));
+                                            
+                                            tempW = temp - margin.left - margin.right;
+                                            if((obj.preX + temp - obj.oX) > obj.ww){
+                                                obj.top += obj.topHolder;
+                                                obj.topHolder=0;
+                                                obj.preX = obj.oX;
+                                            }
+                                            tempW -= spaceW;
+
+                                            left=obj.preX;
+                                            top=obj.top + margin.top;
+                                           
+                                            if(parseFloat(style.left)!=left)region.left=left;
+                                            if(parseFloat(style.top)!=top)region.top=top;
+                                            if(parseFloat(style.width)!=tempW)region.width=tempW=_adjust(tempW)
+
+                                            if(!_.isEmpty(region)){
+                                                if(isSVG)  ins._setBBox(region);
+                                                else node.cssRegion(region,true);
+                                            }
+
+                                            // keep for next calculation
+                                            obj.preX += temp;
+                                            obj.topHolder = Math.max(obj.topHolder, (isSVG ? bbox.height : node.offsetHeight()) + margin.top + margin.bottom + spaceH);
+                                        }else{
+                                            if(obj.topHolder){
+                                                obj.top += obj.topHolder;
+                                                obj.topHolder=0;
+                                                obj.preX = obj.oX;
+                                            }
+                                            left = sStart ? ((flt?0:obj.left)+margin.left) : parseFloat(prop.left);
+                                            right = sEnd ? ((flt?0:obj.right)+margin.right) : (obj.width-parseFloat(prop.width)-parseFloat(prop.left));
+                                            top=(flt?0:obj.top)+margin.top;
+                                            temp = obj.width - left - right - x + (obj.$prevLeft||0);
+                                            delete obj.$prevLeft;                                            
+                                            if(prop.dockMinW) temp=_adjust((prop.dockMinW<=temp)?(temp):(obj.$prevLeft=temp-prop.dockMinW,  prop.dockMinW));
+                                            if(prop.dockMaxW) temp=_adjust((prop.dockMaxW<=temp)?(obj.$prevLeft=temp-prop.dockMaxW,  prop.dockMaxW):(temp));
+                                            
+
+                                            if(parseFloat(style.left)!=left)region.left=left;
+                                            if(parseFloat(style.top)!=top)region.top=top;
+                                            if(parseFloat(style.width)!=temp)region.width=_adjust(temp);
+
+                                            if(!_.isEmpty(region)){
+                                                if(isSVG) ins._setBBox(region);
+                                                else node.cssRegion(region,true);
+                                            }
+
+                                            if(!flt)
+                                                obj.top += (isSVG ? bbox.height : node.offsetHeight()) + margin.top + margin.bottom + spaceH;
                                         }
                                     }
 
-                                    if(!flt)
-                                        obj.top += (isSVG?bbox.height:node.offsetHeight() + margin.top + margin.bottom);
                                     break;
                                 case 'bottom':
                                     if(!flag){
-                                        left=margin.left;
-                                        right=margin.right;
-                                        bottom=(flt?0:obj.bottom)+margin.bottom;
-                                        if(parseFloat(style.bottom)!=bottom)region.bottom=bottom;
-                                        temp=obj.width - left - right - x;
-                                        temp=_adjust(prop.dockMinW?Math.max(prop.dockMinW,temp):temp);
-                                        if(parseFloat(style.width)!=temp)region.width=_adjust(temp);
-                                        if(!_.isEmpty(region)){
-                                            if(isSVG)
-                                                ins._setBBox(region);
-                                            else
-                                                node.cssRegion(region,true);
+                                        if(noStretch){
+                                            temp = (pct ? parseInt(obj.ww*pct,10) : _adjust(isSVG ? bbox.width : parseFloat(prop.width))) + (obj.$prevLeft||0);
+                                            delete obj.$prevLeft;                                            
+                                            if(prop.dockMinW) temp=_adjust((prop.dockMinW<=temp)?(temp):(obj.$prevLeft=temp-prop.dockMinW,  prop.dockMinW));
+                                            if(prop.dockMaxW) temp=_adjust((prop.dockMaxW<=temp)?(obj.$prevLeft=temp-prop.dockMaxW,  prop.dockMaxW):(temp));
+
+                                            tempW = temp - margin.left - margin.right;
+                                            if((obj.preX + temp - obj.oX) > obj.ww){
+                                                obj.bottom += obj.bottomHolder;
+                                                obj.bottomHolder=0;
+                                                obj.preX = obj.oX;
+                                            }
+                                            tempW -= spaceW;
+
+                                            left=obj.preX;
+                                            bottom=obj.bottom + margin.bottom;
+                                           
+                                            if(parseFloat(style.left)!=left)region.left=left;
+                                            if(parseFloat(style.bottom)!=bottom)region.bottom=bottom;
+                                            if(parseFloat(style.width)!=tempW)region.width=tempW=_adjust(tempW)
+
+                                            if(!_.isEmpty(region)){
+                                                if(isSVG)  ins._setBBox(region);
+                                                else node.cssRegion(region,true);
+                                            }
+
+                                            // keep for next calculation
+                                            obj.preX += temp;
+                                            obj.bottomHolder = Math.max(obj.bottomHolder, (isSVG ? bbox.height : node.offsetHeight()) + margin.top + margin.bottom + spaceH);
+                                        }
+                                        else{
+                                            if(obj.bottomHolder){
+                                                obj.bottom += obj.bottomHolder;
+                                                obj.bottomHolder=0;
+                                                obj.preX = obj.oX;
+                                            }
+                                            left=sStart?((flt?0:obj.left)+margin.left):parseFloat(prop.left);
+                                            right=sEnd?((flt?0:obj.right)+margin.right):(obj.width-parseFloat(prop.width)-parseFloat(prop.left));
+                                            bottom=(flt?0:obj.bottom)+margin.bottom;
+
+                                            temp=obj.width - left - right - x + (obj.$prevLeft||0);
+                                            delete obj.$prevLeft;                                            
+                                            if(prop.dockMinW) temp=_adjust((prop.dockMinW<=temp)?(temp):(obj.$prevLeft=temp-prop.dockMinW,  prop.dockMinW));
+                                            if(prop.dockMaxW) temp=_adjust((prop.dockMaxW<=temp)?(obj.$prevLeft=temp-prop.dockMaxW,  prop.dockMaxW):(temp));
+
+                                            if(parseFloat(style.bottom)!=bottom)region.bottom=bottom;
+                                            if(parseFloat(style.left)!=left)region.left=left;
+                                            if(parseFloat(style.width)!=temp)region.width=_adjust(temp);
+                                            
+                                            if(!_.isEmpty(region)){
+                                                if(isSVG)
+                                                    ins._setBBox(region);
+                                                else
+                                                    node.cssRegion(region,true);
+                                            }
+                                        
+                                            if(!flt)
+                                                obj.bottom += (isSVG?bbox.height:node.offsetHeight()) + margin.top + margin.bottom + spaceH;
                                         }
                                     }
-                                    if(!flt)
-                                        obj.bottom += (isSVG?bbox.height:node.offsetHeight() + margin.top + margin.bottom);
                                     break;
                                 case 'left':
                                     if(!flag){
-                                        left=(flt?0:obj.left)+margin.left;
-                                        top=(flt?0:obj.top)+margin.top;
-                                        bottom=(flt?0:obj.bottom)+margin.bottom;
-                                        if(parseFloat(style.left)!=left)region.left=left;
-                                        if(parseFloat(style.top)!=top)region.top=top;
-                                        temp=obj.height - top - bottom - y;
-                                        temp=_adjust(prop.dockMinH?Math.max(prop.dockMinH,temp):temp);
-                                        if(parseFloat(style.height)!=temp)region.height=_adjust(temp);
-                                        if(!_.isEmpty(region)){
-                                            if(isSVG)
-                                                ins._setBBox(region);
-                                            else
-                                                node.cssRegion(region,true);
+                                        if(obj.topHolder){
+                                            obj.top += obj.topHolder;
+                                            obj.topHolder=0;
+                                            // reset preY
+                                            obj.preY = obj.top;
+                                        }
+                                        if(obj.bottomHolder){
+                                            obj.bottom += obj.bottomHolder;
+                                            obj.bottomHolder = 0;
+                                        }
+                                        // reset hh
+                                        obj.hh = obj.height - obj.top - obj.bottom + spaceH;
+
+                                        if(obj.hh<=0)return;
+
+                                        if(noStretch){
+                                            temp = (pct ? parseInt(obj.hh*pct,10) : _adjust(isSVG ? bbox.height : parseFloat(prop.height))) + (obj.$prevLeft||0);
+                                            delete obj.$prevLeft;                                            
+                                            if(prop.dockMinH) temp=_adjust((prop.dockMinH<=temp)?(temp):(obj.$prevLeft=temp-prop.dockMinH,  prop.dockMinH));
+                                            if(prop.dockMaxH) temp=_adjust((prop.dockMaxH<=temp)?(obj.$prevLeft=temp-prop.dockMaxH,  prop.dockMaxH):(temp));
+
+
+                                            tempH = temp - margin.top - margin.bottom;
+                                            if((obj.preY + temp + obj.bottom - spaceH) > obj.height){
+                                                obj.left += obj.leftHolder;
+                                                obj.leftHolder=0;
+                                                // reset preY
+                                                obj.preY = obj.top;
+                                            }
+                                            tempH -= spaceH;
+
+                                            top=obj.preY;
+                                            left=obj.left + margin.left;
+                                           
+                                            if(parseFloat(style.left)!=left)region.left=left;
+                                            if(parseFloat(style.top)!=top)region.top=top;
+                                            if(parseFloat(style.height)!=tempH)region.height=tempH=_adjust(tempH)
+
+                                            if(!_.isEmpty(region)){
+                                                if(isSVG)  ins._setBBox(region);
+                                                else node.cssRegion(region,true);
+                                            }
+
+                                            // keep for next calculation
+                                            obj.preY += temp;
+                                            obj.leftHolder = Math.max(obj.leftHolder, (isSVG ? bbox.width : node.offsetWidth()) + margin.left + margin.right + spaceW);
+                                        }
+                                        else{
+                                            if(obj.leftHolder){
+                                                obj.left += obj.leftHolder;
+                                                obj.leftHolder=0;
+                                                obj.preY = obj.top;
+                                            }
+
+                                            left=(flt?0:obj.left)+margin.left;
+                                            top=sStart?((flt?0:obj.top)+margin.top):parseFloat(prop.top);
+                                            bottom=sEnd?((flt?0:obj.bottom)+margin.bottom):(obj.height-parseFloat(prop.height)-parseFloat(prop.top));
+
+                                            temp=obj.height - top - bottom - y + (obj.$prevLeft||0);
+                                            delete obj.$prevLeft;                                            
+                                            if(prop.dockMinH) temp=_adjust((prop.dockMinH<=temp)?(temp):(obj.$prevLeft=temp-prop.dockMinH,  prop.dockMinH));
+                                            if(prop.dockMaxH) temp=_adjust((prop.dockMaxH<=temp)?(obj.$prevLeft=temp-prop.dockMaxH,  prop.dockMaxH):(temp));
+                                            
+                                            if(parseFloat(style.left)!=left)region.left=left;
+                                            if(parseFloat(style.top)!=top)region.top=top;
+                                            if(parseFloat(style.height)!=temp)region.height=_adjust(temp);
+
+                                            if(!_.isEmpty(region)){
+                                                if(isSVG)
+                                                    ins._setBBox(region);
+                                                else
+                                                    node.cssRegion(region,true);
+                                            }
+                                            if(!flt)
+                                                obj.left += (isSVG?bbox.width:node.offsetWidth()) + margin.left + margin.right + spaceW;
                                         }
                                     }
-                                    if(!flt)
-                                        obj.left += (isSVG?bbox.width:node.offsetWidth() + margin.left + margin.right);
                                     break;
                                 case 'right':
                                     //if no top/bottom and change w only
                                     if(!flag){
-                                        right=(flt?0:obj.right)+margin.right;
-                                        top=(flt?0:obj.top)+margin.top;
-                                        bottom=(flt?0:obj.bottom)+margin.bottom;
-                                        if(parseFloat(style.right)!=right)region.right=right;
-                                        if(parseFloat(style.top)!=top)region.top=top;
-                                        temp=obj.height - top - bottom - y;
-                                        temp=_adjust(prop.dockMinH?Math.max(prop.dockMinH,temp):temp);
-                                        if(parseFloat(style.height)!=temp)region.height=_adjust(temp);
-                                        if(!_.isEmpty(region)){
-                                            if(isSVG)
-                                                ins._setBBox(region);
-                                            else
-                                                node.cssRegion(region,true);
+                                        if(obj.topHolder){
+                                            obj.top += obj.topHolder;
+                                            obj.topHolder=0;
+                                            // reset preY
+                                            obj.preY = obj.top;
+                                        }
+                                        if(obj.bottomHolder){
+                                            obj.bottom += obj.bottomHolder;
+                                            obj.bottomHolder = 0;
+                                        }
+                                        // reset hh
+                                        obj.hh = obj.height - obj.top - obj.bottom + spaceH;
+
+                                        if(obj.hh<=0)return;
+
+                                        if(noStretch){
+                                            temp = (pct ? parseInt(obj.hh*pct,10) : _adjust(isSVG ? bbox.height : parseFloat(prop.height))) + (obj.$prevLeft||0);
+                                            delete obj.$prevLeft;                                            
+                                            if(prop.dockMinH) temp=_adjust((prop.dockMinH<=temp)?(temp):(obj.$prevLeft=temp-prop.dockMinH,  prop.dockMinH));
+                                            if(prop.dockMaxH) temp=_adjust((prop.dockMaxH<=temp)?(obj.$prevLeft=temp-prop.dockMaxH,  prop.dockMaxH):(temp));
+
+                                            tempH = temp - margin.top - margin.bottom;
+                                            if((obj.preY + temp + obj.bottom - spaceH) > obj.height){
+                                                obj.right += obj.rightHolder;
+                                                obj.rightHolder=0;
+                                                // reset preY
+                                                obj.preY = obj.top;
+                                            }
+                                            tempH -= spaceH;
+
+                                            top=obj.preY;
+                                            right=obj.right + margin.right;
+                                           
+                                            if(parseFloat(style.right)!=right)region.right=right;
+                                            if(parseFloat(style.top)!=top)region.top=top;
+                                            if(parseFloat(style.height)!=tempH)region.height=tempH=_adjust(tempH)
+
+                                            if(!_.isEmpty(region)){
+                                                if(isSVG)  ins._setBBox(region);
+                                                else node.cssRegion(region,true);
+                                            }
+
+                                            // keep for next calculation
+                                            obj.preY += temp;
+                                            obj.rightHolder = Math.max(obj.rightHolder, (isSVG ? bbox.width : node.offsetWidth()) + margin.left + margin.right + spaceW);
+                                        }
+                                        else{
+                                            if(obj.rightHolder){
+                                                obj.right += obj.rightHolder;
+                                                obj.rightHolder=0;
+                                                obj.preY = obj.top;
+                                            }
+
+                                            right=(flt?0:obj.right)+margin.right;
+                                            top=sStart?((flt?0:obj.top)+margin.top):(parseFloat(prop.top));
+                                            bottom=sEnd?((flt?0:obj.bottom)+margin.bottom):(obj.height-parseFloat(prop.height)-parseFloat(prop.top));
+
+                                            temp=obj.height - top - bottom - y + (obj.$prevLeft||0);
+                                            delete obj.$prevLeft;                                            
+                                            if(prop.dockMinH) temp=_adjust((prop.dockMinH<=temp)?(temp):(obj.$prevLeft=temp-prop.dockMinH,  prop.dockMinH));
+                                            if(prop.dockMaxH) temp=_adjust((prop.dockMaxH<=temp)?(obj.$prevLeft=temp-prop.dockMaxH,  prop.dockMaxH):(temp));
+                                            
+                                            if(parseFloat(style.right)!=right)region.right=right;
+                                            if(parseFloat(style.top)!=top)region.top=top;
+                                            if(parseFloat(style.height)!=temp)region.height=_adjust(temp);
+
+                                            if(!_.isEmpty(region)){
+                                                if(isSVG)
+                                                    ins._setBBox(region);
+                                                else
+                                                    node.cssRegion(region,true);
+                                            }
+                                            if(!flt)
+                                                obj.right += (isSVG?bbox.width:node.offsetWidth()) + margin.left + margin.right + spaceW;
                                         }
                                     }
-                                    if(!flt)
-                                        obj.right += (isSVG?bbox.width:node.offsetWidth() + margin.left + margin.right);
                                     break;
                                 case 'width':
                                     //if no top/bottom/left/right and change h only
                                     if(!w)return;
-                                    left = (prop.dock=='cover'?0:(flt?0:obj.left)) + margin.left;
-                                    right = (prop.dock=='cover'?0:(flt?0:obj.right))  + margin.right;
-                                    top = prop.dock=='width'?(parseInt(prop.top,10) || 0):( (prop.dock=='cover'?0:(flt?0:obj.top)) + margin.top);
+                                    if(obj.leftHolder){
+                                        obj.left += obj.leftHolder;
+                                        obj.leftHolder=0;
+                                    }
+                                    if(obj.rightHolder){
+                                        obj.right += obj.rightHolder;
+                                        obj.rightHolder=0;
+                                    }
+
+                                    left = sStart?((isCover?0:(flt?0:obj.left)) + margin.left):parseFloat(prop.left);
+                                    right = sEnd?((isCover?0:(flt?0:obj.right))  + margin.right):(obj.width-parseFloat(prop.width)-parseFloat(prop.left));
+                                    top = prop.dock=='width'?(parseInt(prop.top,10) || 0):(sStart?((isCover?0:(flt?0:obj.top)) + margin.top):parseFloat(prop.top));
                                     //later call for w/h change once
                                     temp=obj.width - left - right - x;
+                                    if(prop.dockMinW) temp=_adjust((prop.dockMinW<=temp)?(delete profile.$dockMinW, temp):(profile.$dockMinW=1,  prop.dockMinW));
+                                    if(prop.dockMaxW) temp=_adjust((prop.dockMaxW<=temp)?(profile.$dockMaxW=1,  prop.dockMaxW):(delete profile.$dockMaxW, temp));
+
                                     obj.later=obj.later||{};
                                     obj.later[profile.$xid] = obj.later[profile.$xid] || {};
                                     _.merge(obj.later[profile.$xid],{
                                         isSVG:isSVG,
                                         ins:ins,
                                         node:node,
-                                        width: _adjust(prop.dockMinW?Math.max(prop.dockMinW,temp):temp),
+                                        width: temp,
                                         left:left,
                                         top:top
                                     },'all');
@@ -19422,18 +22000,32 @@ Class("xui.UI",  "xui.absObj", {
                                 case 'height':
                                     //if no top/bottom/left/right and change w only
                                     if(!h)return;
-                                    top = (prop.dock=='cover'?0:(flt?0:obj.top)) + margin.top;
-                                    bottom = (prop.dock=='cover'?0:(flt?0:obj.bottom))  + margin.bottom;
-                                    left = prop.dock=='height'?(parseInt(prop.left,10) || 0):((prop.dock=='cover'?0:(flt?0:obj.left))+ margin.left);
+                                    if(obj.topHolder){
+                                        obj.top += obj.topHolder;
+                                        obj.topHolder=0;
+                                        obj.preX = obj.oX;
+                                    }
+                                    if(obj.bottomHolder){
+                                        obj.bottom += obj.bottomHolder;
+                                        obj.bottomHolder=0;
+                                        obj.preX = obj.oX;
+                                    }
+
+                                    top = sStart?((isCover?0:(flt?0:obj.top)) + margin.top):parseFloat(prop.top);
+                                    bottom = sEnd?((isCover?0:(flt?0:obj.bottom))  + margin.bottom):(obj.height-parseFloat(prop.height)-parseFloat(prop.top));
+                                    left = prop.dock=='height'?(parseInt(prop.left,10) || 0):(sStart?((isCover?0:(flt?0:obj.left)) + margin.left):parseFloat(prop.left));
                                     //later call for w/h change once
                                     temp=obj.height - top - bottom - y;
+                                    if(prop.dockMinH) temp = _adjust((prop.dockMinH<=temp)?(delete profile.$dockMinH, temp):(profile.$dockMinH=1,  prop.dockMinH));
+                                    if(prop.dockMaxH) temp=_adjust((prop.dockMaxH<=temp)?(profile.$dockMaxH=1,  prop.dockMaxH):(delete profile.$dockMaxH, temp));
+
                                     obj.later=obj.later||{};
                                     obj.later[profile.$xid] = obj.later[profile.$xid] || {};
                                     _.merge(obj.later[profile.$xid],{
                                         isSVG:isSVG,
                                         ins:ins,
                                         node:node,
-                                        height: _adjust(prop.dockMinH?Math.max(prop.dockMinH,temp):temp),
+                                        height: temp,
                                         left:left,
                                         top:top
                                     },'all');
@@ -19441,24 +22033,24 @@ Class("xui.UI",  "xui.absObj", {
                                     break;
                             }
                         };
-
+  
                         //add handler to window or node
                         p.onSize(f,'dock');
                     }
                     //set link to node
                     if(value=='fill' || value=='cover'){
-                        profile.link(f.height, '$dock1');
-                        profile.link(f.width, '$dock2');
+                        profile.link(f.height, '$dock1',null,i3);
+                        profile.link(f.width, '$dock2',null,i4);
                         _.arr.stableSort(f.height,order);
                         _.arr.stableSort(f.width,order);
                     }else if(value=='origin'){
-                        profile.link(f.center, '$dock1');
-                        profile.link(f.middle, '$dock2');
+                        profile.link(f.center, '$dock1',null,i3);
+                        profile.link(f.middle, '$dock2',null,i4);
                     }else{
-                        profile.link(f[value], '$dock');
+                        profile.link(f[value], '$dock',null,i2);
                         _.arr.stableSort(f[value],order);
                     }
-                    profile.link(f.dockall, '$dockall');
+                    profile.link(f.dockall, '$dockall',null,i1);
 
                     //
                     xui.$cache._resizeTime=1;
@@ -19466,32 +22058,9 @@ Class("xui.UI",  "xui.absObj", {
                     //set shortuct
                     profile.$dockFun=f;
                 }
-                
-                var fun=function(p,isWin){
-                    var f,t;
-                    if(isWin){
-                        f=xui.win.$getEvent('onSize','dock');
-                        if(f && f.dockall && f.dockall.length){
-                            xui('html').addClass('xui-css-viewport');
-                            if(t=xui('body').get(0))
-                                t.scroll='no';
-                        }else{
-                            xui('html').removeClass('xui-css-viewport');
-                            if(t=xui('body').get(0))
-                                t.scroll='';
-                        }
-                    }else{
-                        if(p && p.get(0)){
-                            f=p.$getEvent('onSize','dock');
-                            if(f && f.dockall && f.dockall.length){
-                                p.addClass('xui-css-dockparent');
-                            }else{
-                                p.removeClass('xui-css-dockparent');
-                            }
-                        }
-                    }
-                };
-                fun(p,isWin);
+
+                // adjust dock parent's overflow
+                adjustOverflow(p, isWin);
                 
                 if(value != 'none'){
                     (profile.$beforeDestroy=(profile.$beforeDestroy||{}))["releaseDock"]=function(){
@@ -19499,8 +22068,8 @@ Class("xui.UI",  "xui.absObj", {
                         profile.unLink('$dock');
                         profile.unLink('$dock1');
                         profile.unLink('$dock2');
-                        fun(p,isWin);
-                        
+                        adjustOverflow(p,isWin);
+
                         if( p && p.get(0) && (p=xui.UIProfile.getFromDom(p.id())) )
                             _.tryF(p.clearCache,[],p);
                         profile=fun=p=null;
@@ -19520,34 +22089,22 @@ Class("xui.UI",  "xui.absObj", {
         },
 
         _beforeSerialized:function(profile){
-            var b,t,o={};
+            var b,t,r,o={};
             _.merge(o, profile, 'all');
-            var p = o.properties = _.clone(profile.properties,true);
+            var p = o.properties = _.clone(profile.properties,true),
+                ds = o.box.$DataStruct;
             switch(p.dock){
                 case 'top':
                 case 'bottom':
-                    delete p.width;delete p.left;delete p.top;delete p.right;delete p.bottom;
+                    delete delete p.top;delete p.bottom;delete p.right;
                     break;
                 case 'left':
                 case 'right':
-                    delete p.height;delete p.left;delete p.top;delete p.right;delete p.bottom;
-                    break;
-                case 'width':
-                    delete p.width;delete p.left;delete p.right;
-                    break;
-                case 'height':
-                    delete p.height;delete p.top;delete p.bottom;
-                    break;
-                case 'fill':
-                case 'cover':
-                    delete p.width;delete p.height;delete p.left;delete p.top;delete p.right;delete p.bottom;
+                    delete p.left;delete p.right;delete p.bottom;
                     break;
             }
             for(var i in xui.UI.$ps)
                 if((i in p) && typeof p[i]!='number' && p[i]!='' && p[i]!='auto')p[i]=isNaN(p[i]=parseFloat(p[i]))?'auto':p[i];
-
-            for(var i in profile.box._objectProp)
-                if((i in p) && p[i] && _.isHash(p[i]) && _.isEmpty(p[i]))delete p[i];
 
             if(p.items && p.items.length){
                 t=xui.absObj.$specialChars;
@@ -19561,9 +22118,22 @@ Class("xui.UI",  "xui.absObj", {
                     return !t[((d===1?o.id:i)+'').charAt(0)] && o!=undefined;
                 });
             }
+            // for empty object
+            for(var i in profile.box._objectProp)
+                if((i in p) && p[i] && (_.isHash(p[i])||_.isArr(p[i])) && _.isEmpty(p[i]))delete p[i];
+            // 
+            _.arr.each(["dockMargin","conDockPadding","conDockSpacing","propBinder","tagVar","animConf"],function(key){
+                if(t=p[key]){
+                    r=ds[key];
+                    for(var i in t){
+                        if(r[i]!==t[i]){
+                            return;
+                        }
+                    }
+                    delete p[key];
+                }
+            });
             
-            if((t=p.dockMargin)&&!t.left&&!t.top&&!t.right&&!t.bottom)
-                delete p.dockMargin;
             if(_.isEmpty(p.resizerProp))
                 delete p.resizerProp;
             if(p.items&&(p.items.length==0||p.listKey))
@@ -19599,6 +22169,9 @@ Class("xui.UI",  "xui.absObj", {
             //can't input id in properties
             if(prop.id)delete prop.id;
 
+            if('required' in dm)
+                prop._required=prop.required?"xui-required":"";
+
             // cant null
             if('nodeName' in dm && !prop.nodeName)
                 prop.nodeName="xui";
@@ -19614,9 +22187,9 @@ Class("xui.UI",  "xui.absObj", {
 
             //give border width
             if('$hborder' in dm)
-                data.bWidth=prop.width - (prop.$hborder||0)*2;
+                data.bWidth=parseFloat(prop.width) - (prop.$hborder||0)*2;
             if('$vborder' in dm)
-                data.bHeight=prop.height - (prop.$vborder||0)*2;
+                data.bHeight=parseFloat(prop.height) - (prop.$vborder||0)*2;
 
             //set left,top,bottom,right,width,height,position,z-index,visibility,display
             for(var j=0,i;i=map[j];j++){
@@ -19681,6 +22254,11 @@ Class("xui.UI",  "xui.absObj", {
                 if(typeof items[i]!='object')
                     items[i]={id:items[i]};
                 item=items[i];
+
+                if(profile.beforePrepareItem && false===profile.boxing().beforePrepareItem(profile, item, pid, mapCache, serialId)){
+                    continue;
+                }
+
                 if(!item.hasOwnProperty('caption'))item.caption=item.id;
 
                 dataItem={id: item.id};
@@ -19833,8 +22411,8 @@ Class("xui.absList", "xui.absObj",{
                 };
             return this.each(function(profile){
                 var p=profile.properties,data=[];
-                 arr = _.isArr(arr)?arr:(arr+"").split(p.valueSeparator);
-                _.arr.each(arr,function(o,i){arr[i]=''+o});
+                 arr = _.isHash(arr)?[arr.id+'']:_.isArr(arr)?arr:(arr+"").split(p.valueSeparator);
+                _.arr.each(arr,function(o,i){arr[i]=''+(_.isHash(o)?o.id:o)});
                 // clear properties
                 remove(profile, p.items, arr, data);
                 // clear value
@@ -19876,13 +22454,13 @@ Class("xui.absList", "xui.absObj",{
                 //profile.properties.value=null;
             });
         },
-        updateItem:function(subId,options){
-            subId+='';
+        updateItem:function(itemId,options){
+            itemId=_.isHash(itemId)?itemId.id:(itemId+'');
             var self=this,
                 profile=self.get(0),
                 box=profile.box,
                 items=profile.properties.items,
-                rst=profile.queryItems(items,function(o){return typeof o=='object'?o.id===subId:o==subId},true,true,true),
+                rst=profile.queryItems(items,function(o){return typeof o=='object'?o.id===itemId:o==itemId},true,true,true),
                 nid,item,serialId,arr,node,oldsub,t;
             if(!_.isHash(options))options={caption:options+''};
 
@@ -19895,13 +22473,13 @@ Class("xui.absList", "xui.absObj",{
 
                 // [[modify id
                 if(_.isSet(options.id))options.id+="";
-                if(options.id && subId!==options.id){
+                if(options.id && itemId!==options.id){
                     nid=options.id;
                     var m2=profile.ItemIdMapSubSerialId, v;
                     if(!m2[nid]){
-                        if(v=m2[subId]){
+                        if(v=m2[itemId]){
                             m2[nid]=v;
-                            delete m2[subId];
+                            delete m2[itemId];
                             profile.SubSerialIdMapItem[v].id=nid;
                         }else{
                             item.id=nid;
@@ -19915,7 +22493,7 @@ Class("xui.absList", "xui.absObj",{
                 //]]
                 
                 //in dom already?
-                node=profile.getSubNodeByItemId('ITEM',nid || subId);
+                node=profile.getSubNodeByItemId('ITEM',nid || itemId);
                 if(!node.isEmpty()){
                     //for the sub node
                     if('sub' in options){
@@ -19934,26 +22512,26 @@ Class("xui.absList", "xui.absObj",{
                     }
                     // keep sub nodes
                     else if(item.sub){
-                        oldsub=profile.getSubNodeByItemId('SUB',nid || subId);
+                        oldsub=profile.getSubNodeByItemId('SUB',nid || itemId);
                     }
                     
                     //merge options
                     _.merge(item, options, 'all');
                     //prepared already?
-                    serialId=_.get(profile,['ItemIdMapSubSerialId',nid || subId]);
+                    serialId=_.get(profile,['ItemIdMapSubSerialId',nid || itemId]);
                     arr=box._prepareItems(profile, [item],item._pid,false, serialId);
                     node.replace(profile._buildItems(arguments[2]||'items', arr),false);
 
                     // restore sub nodes
                     if(oldsub && !oldsub.isEmpty()){
-                        if(!(t=profile.getSubNodeByItemId('SUB',nid || subId)).isEmpty())
+                        if(!(t=profile.getSubNodeByItemId('SUB',nid || itemId)).isEmpty())
                             t.replace(oldsub);
                     }
                     if(typeof self.setUIValue=='function'){
                         var uiv=profile.properties.$UIvalue||"", arr=(''+uiv).split(profile.properties.valueSeparator);
-                        if(arr.length && _.arr.indexOf(arr, subId)!=-1){
+                        if(arr.length && _.arr.indexOf(arr, itemId)!=-1){
                             if(nid){
-                                _.arr.removeValue(arr,subId);
+                                _.arr.removeValue(arr,itemId);
                                 arr.push(item.id);
                                 // id changed
                                 self.setUIValue(arr.join(profile.properties.valueSeparator), true,null,'update');
@@ -19993,31 +22571,31 @@ Class("xui.absList", "xui.absObj",{
                     }
                     if(!_.isEmpty(hash)){
                         _.arr.each(box.$Behaviors.PanelKeys,function(k){
-                            panel=profile.getSubNode(k,nid || subId).css(hash);
+                            panel=profile.getSubNode(k,nid || itemId).css(hash);
                         });
                     }
                 }
             }
             return self;
         },
-        hideItems:function(subId){
+        hideItems:function(itemId){
             return this.each(function(profile){
-                _.arr.each(_.isArr(subId)?subId:(subId+"").split(profile.properties.valueSeparator),function(i){
+                _.arr.each(_.isHash(itemId)?itemId.id:_.isArr(itemId)?itemId:(itemId+"").split(profile.properties.valueSeparator),function(i){
                     if(!(i=profile.getSubNodeByItemId('ITEM',i)).isEmpty())
                         i.css('display','none');
                 });
             });
         },
-        showItems:function(subId){
+        showItems:function(itemId){
             return this.each(function(profile){
-                _.arr.each(_.isArr(subId)?subId:(subId+"").split(profile.properties.valueSeparator),function(i){
+                _.arr.each(_.isHash(itemId)?itemId.id:_.isArr(itemId)?itemId:(itemId+"").split(profile.properties.valueSeparator),function(i){
                     if(!(i=profile.getSubNodeByItemId('ITEM',i)).isEmpty())
                         i.css('display','');
                 });
             });
         },
-        getItems:function(type){
-            var v=this.get(0).properties.items;
+        getItems:function(type, v){
+            v=v||this.get(0).properties.items;
             if(type=='data')
                 return _.clone(v,true);
             else if(type=='min'){
@@ -20029,12 +22607,16 @@ Class("xui.absList", "xui.absObj",{
             }else
                 return v;
         },
-        fireItemClickEvent:function(subId){
-            subId+="";
-            this.getSubNodeByItemId(this.constructor._focusNodeKey, subId).onClick();
+        selectItem:function(itemId){
+            return this.fireItemClickEvent(_.isHash(itemId)?itemId.id:(itemId+''));
+        },
+        fireItemClickEvent:function(itemId){
+            itemId=_.isHash(itemId)?itemId.id:(itemId+'');
+            this.getSubNodeByItemId(this.constructor._focusNodeKey, itemId).onClick();
             return this;
         },
         editItem:function(itemId){
+            itemId=_.isHash(itemId)?subId.id:(itemId+'');
             var profile=this.get(0),item,source;
             if(profile&&profile.renderId&&!profile.destroyed){
                 if(item=profile.getItemByItemId(itemId)){
@@ -20097,6 +22679,24 @@ Class("xui.absList", "xui.absObj",{
                 }
             }
             return this;
+        },
+        getSelectedItem:function(){
+            var uiv=this.getUIValue(true),
+                prf=this.get(0),
+                items=[],
+                item;
+            if(_.isArr(uiv)){
+                if(uiv.length){
+                    _.arr.each(uiv,function(id){
+                        if(item=prf.getItemByItemId(id)){
+                            items.push(item);
+                        }
+                    });
+                    return items;
+                }
+            } else if (uiv){
+                return prf.getItemByItemId(uiv);
+            }
         }
     },
     Initialize:function(){
@@ -20112,6 +22712,9 @@ Class("xui.absList", "xui.absObj",{
     Static:{
         _focusNodeKey:'ITEM',
         $abstract:true,
+        // for item in box array
+        _ensureValues:xui.UI._ensureValues,
+
         DataModel:{
             listKey:{
                 set:function(value){
@@ -20222,6 +22825,7 @@ Class("xui.absList", "xui.absObj",{
             };
         },
         EventHandlers:{
+            beforePrepareItem:function(profile, item, pid){},
             beforeIniEditor:function(profile, item, captionNode){},
             onBeginEdit:function(profile, item, editor){},
             beforeEditApply:function(profile, item, caption, editor, tag){},
@@ -20236,12 +22840,11 @@ Class("xui.absList", "xui.absObj",{
             return (item&&item.dragKey) ||profile.properties.dragKey;
         },
         _adjustItems:function(arr){
-            if(!arr)arr=[];
-            if(_.isStr(arr))arr=[arr];
-
+            if(!_.isSet(arr))arr=[];
+            if(!_.isArr(arr))arr=[arr];
             var a=_.copy(arr),m;
             _.arr.each(a,function(o,i){
-                if(typeof o!= 'object')
+                if(!_.isHash(o))
                     a[i]={id:o+''};
                 else{
                     a[i]=_.copy(o);
@@ -20480,6 +23083,17 @@ Class("xui.absValue", "xui.absObj",{
                         i.removeClass('xui-ui-readonly');
                 }
             },
+            required:{
+                ini:false,
+                // mark required
+                action:function(v){
+                    if(this.keys['LABEL']){
+                        var node = this.getSubNode('LABEL');
+                        if(v)node.addClass('xui-required');
+                        else node.removeClass('xui-required');
+                    }
+                }
+            },
             // setValue and getValue
             value:{
                 ini:null,
@@ -20519,6 +23133,9 @@ Class("xui.absValue", "xui.absObj",{
             dirtyMark:true,
             showDirtyMark:true
         },
+        // for item in box array
+        _ensureValues:xui.UI._ensureValues,
+        // for value
         _ensureValue:function(profile,value){
             if(profile.box.$DataModel.selMode && (profile.properties.selMode=='multi'||profile.properties.selMode=='multibycheckbox')){
                 if(!_.isArr(value)){
@@ -20544,9 +23161,11 @@ Class("xui.absValue", "xui.absObj",{
         },
         RenderTrigger:function(){
             var self=this, b=self.boxing(),p=self.properties,t;
-
-            if(t=p.dataBinder)b.setDataBinder(t,true);
-            if(t=p.dataField)b.setDataField(t);
+            // disable dataField for container control
+            if(!self.behavior.PanelKeys){
+                if(t=p.dataBinder)b.setDataBinder(t,true);
+                if(t=p.dataField)b.setDataField(t);
+            }
 
             if(p.value!==undefined){
                 if(typeof (t=self.box._ensureValue)=='function'){
@@ -20664,7 +23283,7 @@ new function(){
                     var r;
                     if(!profile.properties.disabled && profile.onClick)
                         r = profile.boxing().onClick(profile, e, src);
-                    //**** if dont return false, this click will break sajax in IE
+                    //**** if dont return false, this click will break jsonp in IE
                     //**** In IE, click a fake(javascript: or #) href(onclick not return false) will break the current script downloading
                     var href=xui.use(src).attr('href');
                     return typeof r=='boolean'?r:(href.indexOf('javascript:')===0||href.indexOf('#')===0)?false:true;
@@ -20726,6 +23345,7 @@ new function(){
                 }
             },
             Behaviors:{
+                HoverEffected:{KEY:'KEY'},
                 onClick:function(profile, e, src){
                     var p=profile.properties;
                     if(p.disabled)return false;
@@ -20986,7 +23606,7 @@ new function(){
     
     Class(u+".Element", u,{
         Static:{
-            _objectProp:{tagVar:1,propBinder:1,dockMargin:1,attributes:1},
+            _objectProp:{attributes:1},
             Templates:{
                 _NativeElement:true,
                 tagName:'{nodeName}',
@@ -21033,10 +23653,11 @@ new function(){
             },
             Appearances:{
                 KEY:{
-                    'line-height':'1.22em'
+                    'line-height':'auto'
                 }
             },
             Behaviors:{
+                HoverEffected:{KEY:'KEY'},
                 onClick:function(profile, e, src){
                     var p=profile.properties;
                     if(p.disabled)return false;
@@ -21074,15 +23695,29 @@ new function(){
                 className:'xui-wrapper {_className}',
                 style:'{_style};',
                 tabindex: '{tabindex}',
-                text:'{html}'+xui.UI.$childTag
+                text:'{html}'+xui.UI.$childTag 
             },
             DataModel:{
                 nodeName:null,
-                tabindex:1
+                tabindex:1,
+                disabled:{
+                    ini:false,
+                    action: function(v){
+                        var i=this.getRoot(),
+                            cls="xui-ui-disabled";
+                        
+                        if(v)this.getRoot().addClass(cls);
+                        else this.getRoot().removeClass(cls);
+                        i.attr('disabled',v?"1":null);
+                    }
+                }
+            },
+            Behaviors:{
+                HoverEffected:{KEY:'KEY'}
             },
             Appearances:{
                 KEY:{
-                    'line-height':'1.22em',
+                    'line-height':'auto',
                     'cursor':'pointer'
                 }
             }
@@ -21109,7 +23744,7 @@ new function(){
                     }
                 },
                 overflow:{
-                    ini:xui.browser.isTouch?'auto':undefined,
+                    ini:xui.browser.deviceType=="touchOnly"?'auto':undefined,
                     combobox:['','visible','hidden','scroll','auto','overflow-x:auto;overflow-y:auto'],
                     action:function(v){
                         var node=this.getContainer();
@@ -21129,10 +23764,11 @@ new function(){
             },
             Appearances:{
                 KEY:{
-                    'line-height':'1.22em'
+                    'line-height':'auto'
                 }
             },
             Behaviors:{
+                HoverEffected:{KEY:'KEY'},
                 onClick:function(profile, e, src){
                     var p=profile.properties;
                     if(p.disabled)return false;
@@ -21146,7 +23782,7 @@ new function(){
             _prepareData:function(profile,data){
                 data=arguments.callee.upper.call(this, profile,data);
                 if(_.isStr(data.overflow))
-                    data._overflow = data.overflow.indexOf(':')!=-1?(data.overflow):("overflow:"+data.overflow);
+                    data._overflow = data.overflow.indexOf(':')!=-1?(data.overflow):(data.overflow?("overflow:"+data.overflow):"");
                 return data;
             }
         }
@@ -21161,9 +23797,9 @@ new function(){
         },
         Static:{
             $initRootHidden:true,
-            _objectProp:{tagVar:1,propBinder:1,normalStatus:1,hoverStatus:1,activeStatus:1,focusStatus:1},
+            _objectProp:{normalStatus:1,hoverStatus:1,activeStatus:1,focusStatus:1},
             Templates:{
-                style:'left:'+xui.Dom.HIDE_VALUE+';top:'+xui.Dom.HIDE_VALUE+';width:150px;height:60px;visibility:hidden;display:none;position:absolute;z-index:0;',
+                style:'padding:6px;left:'+xui.Dom.HIDE_VALUE+';top:'+xui.Dom.HIDE_VALUE+';width:150px;height:60px;visibility:hidden;display:none;position:absolute;z-index:0;',
                 className:'{_className}',
                 text:'{_html}'
             },
@@ -21210,7 +23846,12 @@ new function(){
                 height:null,
                 right:null,
                 bottom:null,
+                rotate:null,
+                activeAnim:null,
+                hoverPop:null,
+                hoverPopType:null,
                 dock:null,
+                dockStretch:null,
                 renderer:null,
                 display:null,
                 html:null,
@@ -21223,17 +23864,25 @@ new function(){
                 disableTips:null,
                 disabled:null,
                 defaultFocus:null,
-                doc:null,
+                dockStretch:null,
                 dockIgnore:null,
                 dockOrder:null,
                 dockMargin:null,
                 dockFloat:null,
                 dockMinW:null,
                 dockMinH:null,
+                dockMaxW:null,
+                dockMaxH:null,
                 tips:null
             },
-            $adjustProp:function(profile){
-                profile.properties.className=profile.properties.className||('xui-css-'+profile.$xid);
+            $adjustProp:function(profile,force){
+                var cls = (!force && profile.properties.className) || ('xui-css-'+profile.$xid),
+                    ko,i=1,hash={};
+                profile.box.getAll().each(function(prf){
+                    if(prf!==profile)hash[prf.properties.className]=1;                        
+                });
+                while(hash[cls])cls = cls + (i++);
+                profile.properties.className=cls;
             },
             RenderTrigger:function(){
                 var prf=this;
@@ -21272,12 +23921,14 @@ new function(){
             },
             EventHandlers:{
                 onContextmenu:null,
+                onClick:null,
                 onDock:null,
                 onLayout:null,
                 onMove:null,
                 onRender:null,
                 onResize:null,
                 onShowTips:null,
+                beforeHoverEffect:null,
                 beforeAppend:null,
                 afterAppend:null,
                 beforeRender:null,
@@ -21298,7 +23949,7 @@ new function(){
                    // overflow:(xui.browser.gek && !xui.browser.gek3)?'auto':null,
                     outline:xui.browser.gek?'none':null,
                     zoom:(xui.browser.ie && xui.browser.ver<9)?'1':null,
-                    'line-height':'1.22em',
+                    'line-height':'normal',
                     background:xui.browser.ie?'url('+xui.ini.img_bg+') no-repeat left top':null
                 }
             },
@@ -21314,14 +23965,12 @@ new function(){
                 iframeAutoLoad:{
                     ini:"",
                     action:function(){
-                        this.getSubNode("PANEL").html("",false);
                         this.box._applyAutoLoad(this);
                     }
                 },
                 ajaxAutoLoad:{
                     ini:"",
                     action:function(){
-                        this.getSubNode("PANEL").html("",false);
                         this.box._applyAutoLoad(this);
                     }
                 },
@@ -21335,7 +23984,7 @@ new function(){
                     }
                 },
                 overflow:{
-                    ini:xui.browser.isTouch?'auto':undefined,
+                    ini:xui.browser.deviceType=="touchOnly"?'auto':undefined,
                     combobox:['','visible','hidden','scroll','auto','overflow-x:auto;overflow-y:auto'],
                     action:function(v){
                         var node=this.getContainer();
@@ -21360,10 +24009,22 @@ new function(){
                     if(ns.properties.iframeAutoLoad||ns.properties.ajaxAutoLoad)
                         ns.box._applyAutoLoad(this);
             },
+            Behaviors:{
+                HoverEffected:{KEY:'KEY'},
+                onClick:function(profile, e, src){
+                    var p=profile.properties;
+                    if(p.disabled)return false;
+                    if(profile.onClick)
+                        return profile.boxing().onClick(profile, e, src);
+                }
+            },
+            EventHandlers:{
+                onClick:function(profile, e, value){}
+            },
             _prepareData:function(profile,data){
                 data=arguments.callee.upper.call(this, profile,data);
                 if(_.isStr(data.overflow))
-                    data._overflow = data.overflow.indexOf(':')!=-1?(data.overflow):("overflow:"+data.overflow);
+                    data._overflow = data.overflow.indexOf(':')!=-1?(data.overflow):(data.overflow?("overflow:"+data.overflow):"");
                 return data;
             },
             _applyAutoLoad:function(prf){
@@ -21383,7 +24044,6 @@ new function(){
 
                     if(!_if.query)_if.query={};
                     _if.query._rand=_();                    
-                    ifr.src=_if.url;
                     ifr.frameBorder='0';
                     ifr.marginWidth='0';
                     ifr.marginHeight='0';
@@ -21392,8 +24052,13 @@ new function(){
                     ifr.allowTransparency='true';
                     ifr.width='100%';
                     ifr.height='100%';
+                    ins.getContainer().html("",false);
                     ins.append(ifr);
-                    xui.Dom.submit(_if.url, _if.query, _if.method, id, _if.enctype);
+    
+                    if((_if.method||"").toLowerCase()=="post")
+                        xui.Dom.submit(_if.url, _if.query, "post", id, _if.enctype);
+                    else
+                        ifr.src=_if.url;
                 }else if(prop.ajaxAutoLoad){
                     var _ajax=typeof prop.ajaxAutoLoad=='string'?{url:prop.ajaxAutoLoad}:_.clone(prop.ajaxAutoLoad,true),
                         options={rspType:"text"};
@@ -21413,63 +24078,7 @@ new function(){
             }
         }
     });
-    Class(u+".Tag", u+".Div",{
-        Static:{
-            Templates:{
-                tagName:'div',
-                className:'{_className}',
-                style:'overflow:auto;border:dashed blue 1px;text-align:center;background-color:#EBEADB;{_style};{_panelstyle};{_overflow};',
-                text:'{tagKey}'+xui.UI.$childTag
-            },
-            DataModel:{
-                html:null,
-                tagKey:{
-                    action:function(v){
-                        this.getRoot().html(v);
-                    }
-                }
-            },
-            _l:_.toArr('left,top,bottom,right,width,height,zIndex,tabindex,position,dock,dockFloat,dockMinW,dockMinH,dockOrder,dockMargin'),
-            //replace tag profile with other UI profile
-            replace:function(tagProfile, profile, com){
-                //reset properties
-                _.arr.each(this._l,function(s){
-                    if(s in tagProfile.properties)profile.properties[s]=tagProfile.properties[s];
-                });
-                _.merge(profile.CS,tagProfile.CS,'all');
-                _.merge(profile.CC,tagProfile.CC,'all');
-                _.merge(profile.CA,tagProfile.CA,'all');
-                if(typeof tagProfile.theme =="string")
-                    profile.theme=tagProfile.theme;
-
-                //if parent exist, replace
-                if(tagProfile.parent){
-                    //get tag link
-                    var clink = tagProfile.parent.children,
-                        linkObj = clink['$'+tagProfile.$xid],
-                        index = _.arr.indexOf(clink,linkObj);
-                    tagProfile.parent.boxing().append(profile, linkObj[1]);
-                    // set to tag index
-                    clink[index] = clink.pop();
-
-                    //detach tag from parent
-                    tagProfile.unLink('$parent');
-                    delete tagProfile.parent;
-                //for _nodes in com
-                }else if(com){
-                    _.arr.each(com._nodes,function(o,i){
-                        if(o===tagProfile){
-                            com._nodes[i]=profile;
-                            return false;
-                        }
-                    });
-                }
-
-                if(tagProfile.renderId)
-                    profile.boxing().renderOnto(tagProfile.getRootNode());
-            }
-        }
-    });
+    
     Class(u+".Pane", u+".Div",{
         Static:{
             Behaviors:{
@@ -21478,7 +24087,7 @@ new function(){
             },
             Appearances:{
                 KEY:{
-                    'line-height':'1.22em'
+                    'line-height':'auto'
                 }
             },
             RenderTrigger:function(){
@@ -21487,11 +24096,168 @@ new function(){
                 if(ns.box.KEY=="xui.UI.Pane")
                     if(ns.properties.iframeAutoLoad||ns.properties.ajaxAutoLoad)
                         ns.box._applyAutoLoad(ns);
+            },
+            DataModel:{
+                rotate:null
+            }
+        }
+    }); 
+
+    Class(u+".MoudluePlaceHolder", u+".Div",{
+        Instance:{
+            destroy:function(ignoreEffects, purgeNow){
+                var o=this.get(0);
+                if(!o)return;
+                (o.$afterDestroy=(o.$afterDestroy||{}))["destroyAttachedModule"]=function(){
+                    if(!this._replaced && this._module){
+                        this._module.destroy();
+                    }
+                };   
+                return arguments.callee.upper.apply(this,[ignoreEffects, purgeNow]);
+            },
+            adjustDock:null,
+            draggable:null,
+            busy:null,
+            free:null,
+            // for Module
+            setProperties:function(key,value){
+                var self=this.get(0);
+                if(!self._properties)self._properties={};
+                if(!key)self._properties={};
+                else if(typeof key=='string') self._properties[key]=value;
+                else _.merge(self._properties, key, 'all');
+                return this;
+            },
+            getProperties:function(key){
+                var self=this.get(0);
+                if(!self._properties)self._properties={};
+                return key?self._properties[key]:self._properties;
+            },
+            setEvents:function(key,value){
+                var self=this.get(0);
+                if(!self._events)self._events={};
+                if(!key)
+                    self._events={};
+                else if(typeof key=='string')
+                    self._events[key]=value;
+                else
+                    _.merge(self._events, key, 'all');
+                return this;
+            },
+            getEvents:function(key){
+                var self=this.get(0);
+                if(!self._events)self._events={};
+                return key?this._events[key]:this._events;
+            },
+            replaceWithModule:function(module){
+                var self=this, 
+                    prf=self.get(0), 
+                    m,t,parent,subId;
+                
+                if(!prf || prf.destroyed || prf._replaced || !prf.getRootNode())return;
+                prf._replaced=1;
+
+                if(prf.$beforeReplaced)prf.$beforeReplaced.call(module);
+                // host and alias
+                if(prf.host || prf.alias)module.setHost(prf.host, prf.alias);
+                if(t=prf._events)module.setEvents(t);
+                if(t=prf._properties)module.setProperties(t);
+                // maybe in other module
+                if(prf.moduleClass && prf.moduleXid){
+                    if(m = xui.Module.getInstance(prf.moduleClass, prf.moduleXid)){
+                        m.AddComponents(module);
+                    }
+                }
+                if(parent = prf.parent){
+                    subId = prf.childrenId;
+                    module.show(function(){
+                        if(prf.$afterReplaced)prf.$afterReplaced.call(module);
+                        // Avoid being removed from host 
+                        prf.alias=null;
+                        prf._module=null;
+                        if(prf.box)prf.boxing().destroy();
+                    },parent,subId);
+                }else if(prf.rendered && (parent = prf.getRoot().parent()) && !parent.isEmpty()){
+                    module.show(function(){
+                        if(prf.$afterReplaced)prf.$afterReplaced.call(module);
+                        // Avoid being removed from host 
+                        prf.alias=null;
+                        prf._module=null;
+                        if(prf.box)prf.boxing().destroy();
+                    },parent);
+                }
+
+                if(prf.$afterReplaced)prf.$afterReplaced.call(module);
+                // Avoid being removed from host 
+                prf.alias=null;
+                prf._module=null;
+                self.destroy();
+            }
+        },
+        Static:{
+            Templates:{
+                tagName:'div',
+                style:'left:0px;top:0px;width:0px;height:0px;visibility:hidden;display:none;position:absolute;z-index:0;'
+            },
+            DataModel:{
+                showEffects:null,
+                hideEffects:null,
+                activeAnim:null,
+                hoverPop:null,
+                hoverPopType:null,
+                dock:null,
+                dockStretch:null,
+                renderer:null,
+                html:null,
+                disableClickEffect:null,
+                disableHoverEffect:null,
+                disableTips:null,
+                disabled:null,
+                defaultFocus:null,
+                dockStretch:null,
+                dockIgnore:null,
+                dockOrder:null,
+                dockMargin:null,
+                dockFloat:null,
+                dockMinW:null,
+                dockMinH:null,
+                dockMaxW:null,
+                dockMaxH:null,
+                tips:null
+            },
+            EventHandlers:{
+                onContextmenu:null,
+                onDock:null,
+                onLayout:null,
+                onMove:null,
+                onRender:null,
+                onResize:null,
+                onShowTips:null,
+                beforeAppend:null,
+                afterAppend:null,
+                beforeRender:null,
+                afterRender:null,
+                beforeRemove:null,
+                afterRemove:null,
+                onHotKeydown:null,
+                onHotKeypress:null,
+                onHotKeyup:null
+            },
+            // for parent UIProfile toHtml case
+            RenderTrigger:function(){
+                var prf=this;
+                if(prf && !prf._replaced && prf._module){
+                    prf.boxing().replaceWithModule(prf._module);
+                }
             }
         }
     });
-};
-Class("xui.UI.Image", "xui.UI",{
+};Class("xui.UI.Image", "xui.UI",{
+    Initialize:function(){
+        var ns=this;
+        ns._adjustItems = xui.absList._adjustItems;
+        ns.prototype._prepareItems  = function(a){return a;};
+    },
     Instance:{
         getRate:function(){
             return parseFloat(this.get(0)._rate) || 1;
@@ -21519,14 +24285,14 @@ Class("xui.UI.Image", "xui.UI",{
                 if(path!=xui.ini.img_bg2){
                     var i=new Image();
                     i.onload=function(){
-                        if(!profile||profile.destroyed)return;
+                        if(!profile||profile.isDestroyed)return;
                         var prop=profile.properties,
                             size=profile.box._adjust(profile, _.isFinite(prop.width)?prop.width:i.width,_.isFinite(prop.height)?prop.height:i.height);
                         if(profile.$afterLoad)profile.$afterLoad.apply(profile.host, [profile, path, size[0], size[1]]);
-                        profile.boxing().afterLoad(profile, path, size[0], size[1]);                    
+                        profile.boxing().afterLoad(profile, path, size[0], size[1]);
                         if(prop.dock!='none')
                             profile.boxing().adjustDock();
-                       i.onload=null;                       
+                       i.onload=null;
                     }
                     // must after onload for IE<8 fix
                     i.src=path;
@@ -21547,10 +24313,11 @@ Class("xui.UI.Image", "xui.UI",{
             }
         },
         RenderTrigger:function(){
-            var self=this, pro=self.properties, v=pro.src;
-            if(v){
-                self.boxing().setSrc(v, v!=xui.ini.img_bg);
-            }
+            var self=this, pro=self.properties,
+                  v=pro.src, v2=pro.activeItem;
+            if(v2 && -1!=_.arr.subIndexOf(pro.items,"id",v2)){
+                self.boxing().setActiveItem(v2, true);
+            }else if(v)self.boxing().setSrc(v, v!=xui.ini.img_bg);
         },
         EventHandlers:{
             onClick:function(profile, e, src){},
@@ -21611,17 +24378,43 @@ Class("xui.UI.Image", "xui.UI",{
             src:{
                 format:'image',
                 ini:xui.ini.img_bg,
+                linkage:["activeItem"],
                 //use asyn mode
                 action:function(v){
                     var self=this;
                     if(false!==self.boxing().beforeLoad(this))
                         _.asyRun(function(){self.getRoot().attr({width:'0',height:'0',src:xui.adjustRes(v)})});
+                    if(!self.$inner)
+                        self.properties.activeItem="";
                 }
             },
             alt:{
                 ini:"",
                 action:function(v){
                     this.getRoot().attr('alt',v);
+                }
+            },
+            items:{
+                ini:[]
+            },
+            activeItem:{
+                ini:"",
+                linkage:["src","alt","tips"],
+                action:function(v){
+                    var items=this.properties.items,
+                        i=_.arr.subIndexOf(items,"id",""+v),
+                        item,ins=this.boxing(),
+                        src,alt,tips;
+                    if((i!=-1) && (item=items[i])){
+                        src=item.image||xui.ini.img_bg;
+                        alt=item.alt||"";
+                        tips=item.tips||"";
+                    }
+                    this.$inner=1;
+                    ins.setSrc(src||xui.ini.img_bg, true);
+                    delete this.$inner;
+                    ins.setAlt(alt||"");
+                    ins.setTips(tips||"");
                 }
             },
             cursor:{
@@ -21809,6 +24602,180 @@ Class("xui.UI.Image", "xui.UI",{
                     profile.getSubNode('COVER').cssSize(size,true);
                 }
                 profile.boxing().refreshFlash();
+            }
+        }
+    }
+});Class("xui.UI.Audio", "xui.UI",{
+    Instance:{
+        play:function(){
+            var v = this.getSubNode("H5"), vn = v.get(0);if(vn)vn.play();
+        },
+        pause:function(){
+            var v = this.getSubNode("H5"), vn = v.get(0);if(vn)vn.pause();
+        },
+        load:function(){
+            var v = this.getSubNode("H5"), vn = v.get(0);if(vn)vn.load();
+        },
+        canPlayType:function(type){
+            var v = this.getSubNode("H5"), vn = v.get(0);if(vn) return vn.canPlayType(type);
+        }
+    },
+    Static:{
+        Appearances:{
+            KEY:{
+                'font-size':xui.browser.ie?0:null,
+                'line-height':xui.browser.ie?0:null,
+                overflow:'hidden'
+            },
+            H5:{
+                position:'absolute',
+                left:0,
+                top:0,
+                'z-index':1
+            }
+        },
+        Templates:{
+            tagName:'div',
+            className:'{_className}',
+            style:'{_style}',
+            H5:{
+                tagName:'audio'
+            }
+        },
+        Behaviors:{
+            HotKeyAllowed:false,
+            onSize:xui.UI.$onSize
+        },
+        DataModel:{
+            selectable:true,
+            width:200,
+            height:50,
+            src:{
+                ini:'',
+                action:function(v){
+                    this.getSubNode("H5").attr("src",v||null);
+                }
+            },
+            controls:{
+                ini: true,
+                action:function(v){
+                    this.getSubNode("H5").attr("controls", v||null);
+                }
+            },
+            preload:{
+                ini: false,
+                action:function(v){
+                    this.getSubNode("H5").attr("preload", v||null);
+                }
+            },
+            loop:{
+                ini: false,
+                action:function(v){
+                    this.getSubNode("H5").attr("loop", v||null);
+                }
+            },
+            muted:{
+                ini: false,
+                action:function(v){
+                    this.getSubNode("H5").attr("muted", v||null);
+                }
+            },
+            volume:{
+                ini: 1,
+                action:function(v){
+                    this.getSubNode("H5").attr("volume", v);
+                }
+            },
+            autoplay:{
+                ini: false,
+                action:function(v){
+                    this.getSubNode("H5").attr("autoplay", v||null);
+                }
+            }
+        },
+        RenderTrigger:function(){
+            var prf = this,
+                H5 = prf.getSubNode('H5'),
+                prop = prf.properties,
+                ef = function(){
+                    if(prf.onMediaEvent){
+                        prf.boxing().onMediaEvent(prf, event,  arguments);
+                    }
+                },t;
+   
+            "loadstart progress durationchange seeked seeking timeupdate playing canplay canplaythrough volumechange ratechange loadedmetadata loadeddata play pause ended".split(" ").forEach(function(event, i){
+                if(H5&&H5.get(0))H5.get(0).addEventListener(event, ef, false);  
+            });
+            
+            (prf.$beforeDestroy=(prf.$beforeDestroy||{}))["detachEvents"]=function(){
+                "loadstart progress durationchange seeked seeking timeupdate playing canplay canplaythrough volumechange ratechange loadedmetadata loadeddata play pause ended".split(" ").forEach(function(event, i){
+                    if(H5&&H5.get(0))H5.get(0).removeEventListener(event, ef, false);  
+                });
+            };
+
+            if(t=prop.src)H5.attr("src",t);
+            if(t=prop.controls)H5.attr("controls",t);
+            if(t=prop.preload)H5.attr("preload",t);
+            if(t=prop.loop)H5.attr("loop",t);
+            if(t=prop.muted)H5.attr("muted",t);
+            if(t=prop.autoplay)H5.attr("autoplay",t);
+            if((t=prop.volume) !== 1)H5.attr("volume",t);
+        },
+        EventHandlers:{
+            onMediaEvent:function(profile, eventType, params){}
+        },
+        _onresize:function(profile,width,height){
+            var H5=profile.getSubNode('H5'), size = H5.cssSize(),prop=profile.properties;
+            if( (width && size.width!=width) || (height && size.height!=height) ){
+                // reset here
+                if(width)prop.width=width;
+                if(height)prop.height=height;
+
+                size={width:width,height:height};
+                H5.cssSize(size,true);
+            }
+        }
+    }
+});Class("xui.UI.Video", "xui.UI.Audio",{
+    Instance:{
+    },
+    Static:{
+        Templates:{
+            tagName:'div',
+            className:'{_className}',
+            style:'{_style}',
+            H5:{
+                tagName:'video',
+                width:'{width}',
+                height:'{height}'
+            }
+        },
+        DataModel:{
+            width:400,
+            height:300,
+            poster:{
+                format:'image',
+                ini: '',
+                action:function(v){
+                    this.getSubNode("H5").attr("poster", v||null);
+                }
+            }
+        },
+        RenderTrigger:function(){
+            var prf=this,
+                H5 = prf.getSubNode('H5'),
+                prop = prf.properties,
+                t;
+            if(t=prop.poster)H5.attr("poster",t);
+        },
+        _onresize:function(profile,width,height){
+            var H5=profile.getSubNode('H5'), size = H5.cssSize(), prop=profile.properties;
+            if( (width && size.width!=width) || (height && size.height!=height) ){
+                // reset here
+                if(width)prop.width=width;
+                if(height)prop.height=height;
+                if(width)H5.attr("width", width);
+                if(height)H5.attr("height", height);
             }
         }
     }
@@ -22293,7 +25260,7 @@ Class("xui.UI.Resizer","xui.UI",{
         }
     },
     Initialize:function(){
-        this.addTemplateKeys(['HANDLER','HIDDEN','MOVE','CONF1','CONF2','L','R','T','B','LT','RT','LB','RB','REGION']);
+        this.addTemplateKeys(['HANDLER','HIDDEN','MOVE','CONF1','CONF2','ROTATE','L','R','T','B','LT','RT','LB','RB','REGION']);
         _.each({
             // add resizer to xui.Dom plugin
             addResizer:function(properties, onUpdate, onChange){
@@ -22429,6 +25396,7 @@ Class("xui.UI.Resizer","xui.UI",{
     Static:{
         Templates:{
             tagName:'div',
+            className:'{_disabled}',
             style:'{_style};'
         },
         Appearances:{
@@ -22445,6 +25413,30 @@ Class("xui.UI.Resizer","xui.UI",{
                 'z-index':60,
                 cursor:'move'
             },
+            "KEY.disabled":{
+                background: "url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' version='1.1' preserveAspectRatio='none' viewBox='0 0 200 200'><rect x='0' y='0' width='200' height='200' stroke='black' fill='transparent' stroke-width='1'></rect><path d='M200 0 L0 200 ' stroke='black' stroke-width='1'/><path d='M0 0 L200 200 ' stroke='black' stroke-width='1'/></svg>\")",
+                'background-repeat':'no-repeat',
+                'background-position':'center center',
+                'background-size':'100% 100%, auto',
+                'background-color':'#bbb',
+                 opacity: '0.3'
+            },
+            "KEY.disabled.active":{
+                'background-color':'#eee'
+            },
+            /*
+            "KEY.disabled":{
+                background: (xui.browser.isWebKit?"-webkit-linear-gradient(135deg, transparent 22px, #d9ecff 22px, #d9ecff 24px, transparent 24px, transparent 67px, #d9ecff 67px, #d9ecff 69px, transparent 69px), -webkit-linear-gradient(225deg, transparent 22px, #d9ecff 22px, #d9ecff 24px, transparent 24px, transparent 67px, #d9ecff 67px, #d9ecff 69px, transparent 69px)0 64px"
+                                   :xui.browser.isFF?"-moz-linear-gradient(135deg, transparent 22px, #d9ecff 22px, #d9ecff 24px, transparent 24px, transparent 67px, #d9ecff 67px, #d9ecff 69px, transparent 69px), -moz-linear-gradient(225deg, transparent 22px, #d9ecff 22px, #d9ecff 24px, transparent 24px, transparent 67px, #d9ecff 67px, #d9ecff 69px, transparent 69px)0 64px"
+                                   :xui.browser.opr?"-o-linear-gradient(135deg, transparent 22px, #d9ecff 22px, #d9ecff 24px, transparent 24px, transparent 67px, #d9ecff 67px, #d9ecff 69px, transparent 69px), -o-linear-gradient(225deg, transparent 22px, #d9ecff 22px, #d9ecff 24px, transparent 24px, transparent 67px, #d9ecff 67px, #d9ecff 69px, transparent 69px)0 64px"
+                                   :"")
+                                 + ";linear-gradient(135deg, transparent 22px, #d9ecff 22px, #d9ecff 24px, transparent 24px, transparent 67px, #d9ecff 67px, #d9ecff 69px, transparent 69px), linear-gradient(225deg, transparent 22px, #d9ecff 22px, #d9ecff 24px, transparent 24px, transparent 67px, #d9ecff 67px, #d9ecff 69px, transparent 69px)0 64px",
+                'background-size': "64px 64px",
+                border:"solid 1px #d9ecff"
+            },*/
+            "KEY.disabled div":{
+                display:'none'
+            },
             MOVE:{
                 position:'absolute',
                 display:'block',
@@ -22456,7 +25448,7 @@ Class("xui.UI.Resizer","xui.UI",{
                 'font-size':0,
                 'line-height':0
             },
-            'CONF1, CONF2':{
+            'CONF1, CONF2, ROTATE':{
                 position:'absolute',
                 display:'block',
                 'z-index':100,
@@ -22475,6 +25467,11 @@ Class("xui.UI.Resizer","xui.UI",{
                 $order:3,
                 'background-position':'-112px -284px'
              },
+            ROTATE:{
+                $order:4,
+                cursor: "crosshair",
+                'background-position':'-160px -280px'
+            },
              HANDLER:{
                 $order:0,
                 position:'absolute',
@@ -22535,32 +25532,35 @@ Class("xui.UI.Resizer","xui.UI",{
         },
         Behaviors:{
             beforeMousedown:function(profile, e, src){
-                profile.box._onMousedown(profile, e, src, {move:true});
+                profile.box._onMousedown(profile, e, src, "move");
             },
             onDragbegin:function(profile, e, src){
-                profile.box._onDragbegin(profile, e, src);
+                profile.box._onDragbegin(profile, e, src,"move");
             },
             onDrag:function(profile, e, src){
-                profile.box._onDrag(profile, e, src, {move:true});
+                profile.box._onDrag(profile, e, src, "move");
             },
             onDragstop:function(profile, e, src){
-                profile.box._onDragstop(profile, e, src, {move:true} );
+                profile.box._onDragstop(profile, e, src, "move");
             },
             onDblclick:function(profile, e, src){
                 if(profile.onDblclick)profile.boxing().onDblclick(profile, e, src);
             },
             CONF1:{
                 onMouseover:function(profile, e, src){
+                    if(profile.properties.disabled)return false;
                     if(profile.onConfig)
                         return profile.boxing().onConfig(profile,e,src, 'left','mouseover');
                     return false;
                 },
                 onMousedown:function(profile, e, src){
+                    if(profile.properties.disabled)return false;
                     if(profile.onConfig)
                         return profile.boxing().onConfig(profile,e,src,'left','mousedown');
                     return false;
                 },
                 onClick:function(profile,e,src){
+                    if(profile.properties.disabled)return false;
                     if(profile.onConfig)
                         return profile.boxing().onConfig(profile,e,src,'left','click');
                     return false;
@@ -22568,139 +25568,157 @@ Class("xui.UI.Resizer","xui.UI",{
             },
             CONF2:{
                 onMouseover:function(profile, e, src){
+                    if(profile.properties.disabled)return false;
                     if(profile.onConfig)
                         return profile.boxing().onConfig(profile,e,src,'right','mouseover');
                     return false;
                 },
                 onMousedown:function(profile, e, src){
+                    if(profile.properties.disabled)return false;
                     if(profile.onConfig)
                         return profile.boxing().onConfig(profile,e,src,'right','mousedown');
                     return false;
                 },
                 onClick:function(profile,e,src){
+                    if(profile.properties.disabled)return false;
                     if(profile.onConfig)
                         return profile.boxing().onConfig(profile,e,src,'right','click');
                     return false;
                 }
             },
-            LT:{
+            ROTATE:{
                 beforeMousedown:function(profile, e, src){
-                    profile.box._onMousedown(profile, e, src, {left:true, top:true});
+                    profile.box._onMousedown(profile, e, src, "rotate");
                     return false;
                 },
                 onDragbegin:function(profile, e, src){
-                    profile.box._onDragbegin(profile, e, src);
+                    profile.box._onDragbegin(profile, e, src, "rotate");
                 },
                 onDrag:function(profile, e, src){
-                    profile.box._onDrag(profile, e, src, {left:true, top:true});
+                    profile.box._onDrag(profile, e, src, "rotate");
                 },
                 onDragstop:function(profile, e, src){
-                    profile.box._onDragstop(profile, e, src, {left:true, top:true});
+                    profile.box._onDragstop(profile, e, src, "rotate");
+                } 
+            },
+            LT:{
+                beforeMousedown:function(profile, e, src){
+                    profile.box._onMousedown(profile, e, src,'nw');
+                    return false;
+                },
+                onDragbegin:function(profile, e, src){
+                    profile.box._onDragbegin(profile, e, src,'nw');
+                },
+                onDrag:function(profile, e, src){
+                    profile.box._onDrag(profile, e, src, 'nw');
+                },
+                onDragstop:function(profile, e, src){
+                    profile.box._onDragstop(profile, e, src, 'nw');
                 }
             },
             RT:{
                 beforeMousedown:function(profile, e, src){
-                    profile.box._onMousedown(profile, e, src, {right:true, top:true});
+                    profile.box._onMousedown(profile, e, src, 'ne');
                     return false;
                 },
                 onDragbegin:function(profile, e, src){
-                    profile.box._onDragbegin(profile, e, src);
+                    profile.box._onDragbegin(profile, e, src, 'ne');
                 },
                 onDrag:function(profile, e, src){
-                    profile.box._onDrag(profile, e, src, {right:true, top:true});
+                    profile.box._onDrag(profile, e, src, 'ne');
                 },
                 onDragstop:function(profile, e, src){
-                    profile.box._onDragstop(profile, e, src, {right:true, top:true});
+                    profile.box._onDragstop(profile, e, src, 'ne');
                 }
             },
             LB:{
                 beforeMousedown:function(profile, e, src){
-                    profile.box._onMousedown(profile, e, src, {left:true, bottom:true});
+                    profile.box._onMousedown(profile, e, src, 'sw');
                     return false;
                 },
                 onDragbegin:function(profile, e, src){
-                    profile.box._onDragbegin(profile, e, src);
+                    profile.box._onDragbegin(profile, e, src, 'sw');
                 },
                 onDrag:function(profile, e, src){
-                    profile.box._onDrag(profile, e, src, {left:true, bottom:true});
+                    profile.box._onDrag(profile, e, src, 'sw');
                 },
                 onDragstop:function(profile, e, src){
-                    profile.box._onDragstop(profile, e, src, {left:true, bottom:true});
+                    profile.box._onDragstop(profile, e, src, 'sw');
                 }
             },
             RB:{
                 beforeMousedown:function(profile, e, src){
-                    profile.box._onMousedown(profile, e, src, {right:true, bottom:true});
+                    profile.box._onMousedown(profile, e, src, 'se');
                     return false;
                 },
                 onDragbegin:function(profile, e, src){
-                    profile.box._onDragbegin(profile, e, src);
+                    profile.box._onDragbegin(profile, e, src,'se');
                 },
                 onDrag:function(profile, e, src){
-                    profile.box._onDrag(profile, e, src, {right:true, bottom:true});
+                    profile.box._onDrag(profile, e, src, 'se');
                 },
                 onDragstop:function(profile, e, src){
-                    profile.box._onDragstop(profile, e, src, {right:true, bottom:true});
+                    profile.box._onDragstop(profile, e, src, 'se');
                 }
             },
             L:{
                 beforeMousedown:function(profile, e, src){
-                    profile.box._onMousedown(profile, e, src, {left:true});
+                    profile.box._onMousedown(profile, e, src, 'w');
                     return false;
                 },
                 onDragbegin:function(profile, e, src){
-                    profile.box._onDragbegin(profile, e, src);
+                    profile.box._onDragbegin(profile, e, src,'w');
                 },
                 onDrag:function(profile, e, src){
-                    profile.box._onDrag(profile, e, src, {left:true});
+                    profile.box._onDrag(profile, e, src,'w');
                 },
                 onDragstop:function(profile, e, src){
-                    profile.box._onDragstop(profile, e, src, {left:true});
+                    profile.box._onDragstop(profile, e, src,'w');
                 }
             },
             T:{
                 beforeMousedown:function(profile, e, src){
-                    profile.box._onMousedown(profile, e, src, {top:true});
+                    profile.box._onMousedown(profile, e, src,'n');
                     return false;
                 },
                 onDragbegin:function(profile, e, src){
-                    profile.box._onDragbegin(profile, e, src);
+                    profile.box._onDragbegin(profile, e, src,'n');
                 },
                 onDrag:function(profile, e, src){
-                    profile.box._onDrag(profile, e, src, {top:true});
+                    profile.box._onDrag(profile, e, src,'n');
                 },
                 onDragstop:function(profile, e, src){
-                    profile.box._onDragstop(profile, e, src, {top:true});
+                    profile.box._onDragstop(profile, e, src,'n');
                 }
             },
             R:{
                 beforeMousedown:function(profile, e, src){
-                    profile.box._onMousedown(profile, e, src, {right:true});
+                    profile.box._onMousedown(profile, e, src,'e');
                     return false;
                 },
                 onDragbegin:function(profile, e, src){
-                    profile.box._onDragbegin(profile, e, src);
+                    profile.box._onDragbegin(profile, e, src,'e');
                 },
                 onDrag:function(profile, e, src){
-                    profile.box._onDrag(profile, e, src, {right:true});
+                    profile.box._onDrag(profile, e, src,'e');
                 },
                 onDragstop:function(profile, e, src){
-                    profile.box._onDragstop(profile, e, src, {right:true});
+                    profile.box._onDragstop(profile, e, src,'e');
                 }
             },
             B:{
                 beforeMousedown:function(profile, e, src){
-                    profile.box._onMousedown(profile, e, src, {bottom:true});
+                    profile.box._onMousedown(profile, e, src,'s');
                     return false;
                 },
                 onDragbegin:function(profile, e, src){
-                    profile.box._onDragbegin(profile, e, src);
+                    profile.box._onDragbegin(profile, e, src,'s');
                 },
                 onDrag:function(profile, e, src){
-                    profile.box._onDrag(profile, e, src, {bottom:true});
+                    profile.box._onDrag(profile, e, src,'s');
                 },
                 onDragstop:function(profile, e, src){
-                    profile.box._onDragstop(profile, e, src, {bottom:true});
+                    profile.box._onDragstop(profile, e, src,'s');
                 }
             }
         },
@@ -22728,6 +25746,13 @@ Class("xui.UI.Resizer","xui.UI",{
 
             handlerSize:4,
             handlerOffset:0,
+            disabled:{
+                ini:false,
+                action:function(v){
+                     if(v)this.getRoot().addClass("disabled");
+                     else this.getRoot().removeClass("disabled");
+                }
+            },
             leftConfigBtn:{
                 ini:false,
                 action:function(v){
@@ -22738,6 +25763,14 @@ Class("xui.UI.Resizer","xui.UI",{
                 ini:false,
                 action:function(v){
                     this.getSubNode('CONF2').css('display',v?'':'none');
+                }
+            },
+            rotatable:{
+                ini:false,
+                action:function(v){
+                    if(v && xui.browser.ie&&xui.browser.ver<=8)
+                        v = false;
+                    this.getSubNode('ROTATE').css('display',v?'':'none');
                 }
             },
 //>>
@@ -22751,7 +25784,7 @@ Class("xui.UI.Resizer","xui.UI",{
         },
         EventHandlers:{
             onDblclick:function(profile, e, src){},
-            onUpdate:function(profile, target, size, cssPos){},
+            onUpdate:function(profile, target, size, cssPos, rotate){},
             onChange:function(profile, proxy){},
             onConfig:function(profile, e, src,pos,type){}
         },
@@ -22772,6 +25805,7 @@ Class("xui.UI.Resizer","xui.UI",{
                 MOVE: {tagName:'div', style:'top:50%;left:50%;margin-left:-6px;margin-top:-6px;width:13px;height:13px;'},
                 CONF1:{tagName:'div', style:'top:0px;left:-16px;width:16px;height:16px;{_leftCofigBtn};'},
                 CONF2:{tagName:'div', style:'top:0px;left:auto;right:-16px;width:16px;height:16px;{_rightCofigBtn};'},
+                ROTATE:{tagName:'div', style:'top:-18px;left:50%;margin-left:-8px;width:16px;height:16px;{_rotateBtn};'},
                 T:{tagName:'div', style:'top:-{extend}px;margin-left:-{extend}px;width:{handlerSize}px;height:{handlerSize}px;'},
                 RT:{tagName:'div', style:'top:-{extend}px;right:-{extend}px;width:{handlerSize}px;height:{handlerSize}px;'},
                 R:{tagName:'div', style:'right:-{extend}px;margin-top:-{extend}px;width:{handlerSize}px;height:{handlerSize}px;'},
@@ -22809,6 +25843,7 @@ Class("xui.UI.Resizer","xui.UI",{
 
                 template.CONF1 = map.CONF1;
                 template.CONF2 = map.CONF2;
+                template.ROTATE = map.ROTATE;
 
                 // change height only
                 if(pro.vertical){
@@ -22887,13 +25922,20 @@ Class("xui.UI.Resizer","xui.UI",{
 
             t._leftCofigBtn = t.leftConfigBtn?'':'display:none';       
             t._rightCofigBtn = t.rightConfigBtn?'':'display:none';
+            
+            var r=t.rotatable;
+            if(r && xui.browser.ie&&xui.browser.ver<=8)
+                r=false;
+            t._rotateBtn = r?'':'display:none';
+            t._disabled = t.disabled?"disabled":"";
             return arguments.callee.upper.call(this, profile);
         },
         RenderTrigger:function(){
             var self=this;
-            xui.setNodeData(self.renderId,'zIndexIgnore',1)
+            xui.setNodeData(self.renderId,'zIndexIgnore',1);
+            self.box._tryCursors(self);
         },
-        _onUpdate:function(profile, target, size, cssPos){
+        _onUpdate:function(profile, target, size, cssPos, rotate){
             if(target){
                 if(size)target.widthBy(size.width,true).heightBy(size.height,true);
                 if(cssPos){
@@ -22903,10 +25945,67 @@ Class("xui.UI.Resizer","xui.UI",{
                     if(t.top=='auto'&&(parseInt(t.bottom,10)>=0)){}else
                     target.topBy(cssPos.top);
                 }
+                if(_.isDefined(rotate)){
+                    target.rotate(rotate);
+                }
             }
         },
         //
-        _onMousedown:function(profile, e, src, ddparas){
+        _switchAxis : function (axis, angle, dir4) {
+            var a = (angle + 360 ) % 360,
+                axisArray = ["n", "ne", "e", "se", "s", "sw", "w", "nw"],
+                // 0 .. 7
+                octant = Math.round(a /45),
+                oindex = _.arr.indexOf(axisArray, axis),
+                index = oindex + octant,
+                naxis = axisArray[index % 8];
+            if(dir4 && index%2 == 1){
+                if(a < octant*45){
+                    naxis = axisArray[(index-1) % 8];
+                }else{
+                    naxis = axisArray[(index+1) % 8];
+                }
+            }
+            return naxis;
+        },
+        _tryCursors : function(profile){
+               var a = (profile.getRoot().rotate() + 360 ) % 360,
+                    f = this._switchAxis,
+                    hash = {T:"n", RT:"ne", R:"e", RB:"se", B:"s", LB:"sw", L:"w", LT:"nw"},n;
+                _.each(hash,function(k,i){
+                    if((n=profile.getSubNode(i)).get(0)){
+                        n.css('cursor', f(k, a)+"-resize");
+                    }
+                });
+        },
+        _getDDParas:function(angle, axis, switched){
+            switch(axis){
+            case "move":
+                return {move:true};
+            case "rotate":
+                return {rotate:true};
+            case "nw":
+                return {left:true, top:true};
+            case "ne":
+                return {right:true, top:true};
+            case "sw":
+                return {left:true, bottom:true};
+            case "se":
+                return {right:true, bottom:true};
+            case "w":
+                return {left:true};
+            case "n":
+                return {top:true};
+            case "e":
+                return {right:true};
+            case "s":
+                return  {bottom:true};
+            }
+        },
+        _onMousedown:function(profile, e, src, axis){
+            if(profile.properties.disabled)return false;
+
+            var ddparas=this._getDDParas(0, axis);
             if(xui.Event.getBtn(e)!="left")return;
             var puip=profile.$parentUIProfile;
             if(puip && puip['xui.UIProfile'] && puip.beforeResizerDrag && false=== _.tryF(puip.beforeResizerDrag,[puip,profile,ddparas],puip.boxing()))
@@ -22922,133 +26021,306 @@ Class("xui.UI.Resizer","xui.UI",{
                 targetTop:pos.top
             });
         },
-        _onDragbegin:function(profile, e){
+        _onDragbegin:function(profile, e, src, axis){
             var prop=profile.properties,
-            //set target to specific target
-            //or, set target to resizer
-            o = profile.properties._attached?profile._target:xui([profile.renderId]),
-            w = o.width(),
-            h = o.height();
+                rotatable = prop.rotatable,
+                //set target to specific target
+                //or, set target to resizer
+                o = profile.properties._attached?profile._target:xui([profile.renderId]),
+                w = o.width(),
+                h = o.height(),
+                pos = o.offset(),
+                rotate;
+            if(rotatable){
+                rotate = o.rotate();
+                if(o.get(0).getBoundingClientRect){
+                    var rect = o.get(0).getBoundingClientRect();
+                    profile.o_center = {
+                        x : (rect.right + rect.left)/2,
+                        y : (rect.bottom + rect.top)/2
+                    };
+                }else{
+                    profile.o_center = {
+                        x : pos.left +  w/2,
+                        y : pos.top + w/2
+                    };
+                }
+            }
+
             if(profile.properties._attached){
-                var pos =o.offset();
                 //custom proxy
                 profile.proxy = xui.Dom.getEmptyDiv();
                 profile.proxy
-                .html(' ',false)
-                .css({border:'1px dashed',visibility:'visible'})
-                .offset(pos)
-                .width(w)
-                .height(h)
-                .css('zIndex',xui.Dom.TOP_ZINDEX+20);
+                    .html(' ',false)
+                    .css({border:'1px dashed',visibility:'visible',position:'absolute'})
+                    .offset(pos)
+                    .width(w)
+                    .height(h)
+                    .css('zIndex',xui.Dom.TOP_ZINDEX+20);
+                if(rotate)
+                    profile.proxy.rotate(rotate);
             }else
                 //set proxy to itself
                 profile.proxy = o;
 
-            //get pos for target and proxy
-            profile.o_pos = profile.proxy.cssPos();
 
             //get current w h from target
             profile.o_w2 =profile.o_w =w;
             profile.o_h2 =profile.o_h = h;
+            //get pos for target and proxy
+            profile.o_pos = profile.proxy.cssPos();
+            profile.o_size = {width:w, height:h};
+            profile.o_rotate = rotate;
+            if(profile.regions){
+                profile.o_regions=[];
+                profile.regions.each(function(n){
+                    profile.o_regions.push(xui(n).cssSize());
+                });
+            }
 
             profile.$onDrag = true;
         },
-        _onDrag:function(profile, e,src, ddparas){
-            var o=ddparas;
+        _onDrag:function(profile, e, src, axis){
+            var args=this._getDDParas(profile.o_rotate, axis);
+
             //get dragdop off set
             profile.oos = profile.oos ||{};
-            var os = xui.DragDrop.getProfile().offset;
-            if(os.x == profile.oos.width && os.y == profile.oos.height)return;
-            profile.oos=os;
+            var dd = xui.DragDrop.getProfile(),
+                t=profile.properties,
+                elemAngle = profile.o_rotate,
+                cs = profile.o_size, 
+                sp = profile.o_pos,    
+                os = dd.offset,
+                dx = os.x,
+                dy = os.y,
+                x,y,w,h,rotate,
+                data={};
 
-            var x,y,w,h,t=profile.properties;
+            // no move
+            if(dx===0 && dy===0)return;
+            // for rotate
+            if(elemAngle && !(args.move || args.rotate)){
+                var adjustAngle = function(a){return (a + 360 ) % 360;},
+                    distance = Math.pow(Math.pow(dx, 2)+ Math.pow(dy,2),.5),
+                    mouseAngle = adjustAngle(Math.atan2(dx, -dy) * 180 /Math.PI),
+                    offAngle = elemAngle  + 90 - mouseAngle,
+                    flagX = (adjustAngle(mouseAngle - elemAngle) <  180) ? 1 : -1,
+                    flagY = (adjustAngle(mouseAngle - elemAngle) < 90 || adjustAngle(mouseAngle - elemAngle) > 270) ? -1 : 1;
 
-            if(o.left){
+                dx = distance * Math.abs(Math.cos(offAngle * Math.PI/180)) * flagX;
+                dy = distance * Math.abs(Math.sin(offAngle* Math.PI/180)) * flagY;
+            } 
+            // no data
+            if(dx == profile.oos.width && dy == profile.oos.height)return;
+            profile.oos={width:dx, height:dy};
+
+            // pos and size
+            if(args.left){
                 // width of proxy
-                w = profile.o_w - os.x;
+                w = profile.o_w - dx;
                 // left of proxy
-                x = profile.o_pos.left + os.x;
+                x = sp.left + dx;
                 if(w<t.minWidth){
                     w=t.minWidth;
-                    x = profile.o_w+profile.o_pos.left - w;
+                    x = profile.o_w+sp.left - w;
                 }else if(w>t.maxWidth){
                     w=t.maxWidth;
-                    x= profile.o_w+profile.o_pos.left - w;
+                    x= profile.o_w+sp.left - w;
                 }
-                profile.proxy.width(w).left(x);
-                if(profile.onChange)profile.boxing().onChange(profile,profile.proxy);
-            }else if(o.right){
-                w = profile.o_w + os.x;
+                _.merge(data,{width:w,left:x});
+            }else if(args.right){
+                w = profile.o_w + dx;
                 if(w<t.minWidth)w=t.minWidth;
                 else if(w>t.maxWidth)w=t.maxWidth;
-                profile.proxy.width(w);
-                if(profile.onChange)profile.boxing().onChange(profile,profile.proxy);
+                _.merge(data,{width:w});
             }
-            if(o.left || o.right){
-                //resize inner region block
-                var byw = w-profile.o_w2;
-                if(profile.regions && byw!==0){
-                    profile.regions.widthBy(byw);
-                    profile.o_w2=w;
-                }
-            }
-
-            if(o.top){
-                h = profile.o_h - os.y;
-                y = profile.o_pos.top + os.y;
+            if(args.top){
+                h = profile.o_h - dy;
+                y = sp.top + dy;
                 if(h<t.minHeight){
                     h=t.minHeight;
-                    y=profile.o_h+profile.o_pos.top - h;
+                    y=profile.o_h+sp.top - h;
                 }else if(h>t.maxHeight){
                     h=t.maxHeight;
-                    y=profile.o_h+profile.o_pos.top - h;
+                    y=profile.o_h+sp.top - h;
                 }
-                profile.proxy.height(h).top(y);
-                if(profile.onChange)profile.boxing().onChange(profile,profile.proxy);
-            }else if(o.bottom){
-                h= profile.o_h + os.y;
+                _.merge(data,{height:h,top:y});
+            }else if(args.bottom){
+                h= profile.o_h + dy;
                 if(h<t.minHeight)h=t.minHeight;
                 else if(h>t.maxHeight)h=t.maxHeight;
-                profile.proxy.height(h);
-                if(profile.onChange)profile.boxing().onChange(profile,profile.proxy);
+                _.merge(data,{height:h});
             }
-            if(o.top || o.bottom){
+
+            if(elemAngle && !(args.move || args.rotate)){
+                delete data.left;
+                delete data.top;
+
+               var xRate = Math.abs (Math.cos(elemAngle * Math.PI/180)),
+                    yRate = Math.abs(Math.sin(elemAngle * Math.PI/180)),
+                    // old bbox
+                    oldBBoxCX = sp.left + cs.width/2,
+                    oldBBoxCY = sp.top + cs.height/2,
+                    oldBboxW = cs.width * xRate + cs.height * yRate,
+                    oldBboxH = cs.width * yRate + cs.height * xRate,
+                    oldBboxL = oldBBoxCX - oldBboxW/2,
+                    oldBboxT = oldBBoxCY - oldBboxH/2,
+                    
+                    // new bbox
+                    newBboxCX = (data.left||sp.left) +  (data.width||cs.width)/2,
+                    newBboxCY = (data.top||sp.top) +  (data.height||cs.height)/2,
+                    newBboxW = (data.width||cs.width) * xRate + (data.height||cs.height) * yRate,
+                    newBboxH = (data.width||cs.width) * yRate + (data.height||cs.height) * xRate,
+                    newBboxL = newBboxCX - newBboxW/2,
+                    newBboxT = newBboxCY - newBboxH/2,
+                    offW = (newBboxW-oldBboxW)/2,
+                    offH =  (newBboxH-oldBboxH)/2,
+                    //two original points offset
+                    offCX =  newBboxCX - oldBBoxCX,
+                    offCY =  newBboxCY - oldBBoxCY;
+
+                //Alignment by origin point
+                data.left =  sp.left - offCX;
+                data.top =  sp.top - offCY;
+
+                // find the direction
+                var naxis = this._switchAxis (axis, elemAngle,true);
+
+                switch(naxis){
+                    case "e":
+                        if(elemAngle < 90 ){
+                            data.top -= ((data.height||cs.height)*xRate - newBboxH/2) - (cs.height* xRate - oldBboxH/2);
+                        }else if(elemAngle > 90 && (elemAngle < 180)){
+                            data.top -= ((data.width||cs.width)*yRate - newBboxH/2) - (cs.width* yRate - oldBboxH/2);
+                        }else if(elemAngle > 180 && (elemAngle < 270)){
+                            data.top += ((data.width||cs.width)*yRate - newBboxH/2) - (cs.width* yRate - oldBboxH/2);
+                        }else{
+                            data.top += ((data.height||cs.height)*xRate - newBboxH/2) - (cs.height* xRate - oldBboxH/2);
+                        }
+                        data.left += offW;
+                        break;
+                    case "s":
+                        if(elemAngle < 90 ){
+                            data.left -= ((data.height||cs.height)*yRate - newBboxW/2) - (cs.height* yRate - oldBboxW/2);
+                        }else if(elemAngle > 90 && (elemAngle < 180)){
+                            data.left -= ((data.width||cs.width)*xRate - newBboxW/2) - (cs.width* xRate - oldBboxW/2);
+                        }else if(elemAngle > 180 && (elemAngle < 270)){
+                            data.left += ((data.width||cs.width)*xRate - newBboxW/2) - (cs.width* xRate - oldBboxW/2);
+                        }else{
+                            data.left += ((data.height||cs.height)*yRate - newBboxW/2) - (cs.height* yRate - oldBboxW/2);
+                        }
+                        data.top += offH;
+                        break;
+                    case "w":
+                        if(elemAngle < 90 ){
+                            data.top += ((data.height||cs.height)*xRate - newBboxH/2) - (cs.height* xRate - oldBboxH/2);
+                        }else if(elemAngle > 90 && (elemAngle < 180)){
+                            data.top += ((data.width||cs.width)*yRate - newBboxH/2) - (cs.width* yRate - oldBboxH/2);
+                        }else if(elemAngle > 180 && (elemAngle < 270)){
+                            data.top -= ((data.width||cs.width)*yRate - newBboxH/2) - (cs.width* yRate - oldBboxH/2);
+                        }else{
+                            data.top -= ((data.height||cs.height)*xRate - newBboxH/2) - (cs.height* xRate - oldBboxH/2);
+                        }
+                        data.left -= offW;
+                        break;
+                    case "n":
+                        if(elemAngle < 90 ){
+                            data.left += ((data.height||cs.height)*yRate - newBboxW/2) - (cs.height* yRate - oldBboxW/2);
+                        }else if(elemAngle > 90 && (elemAngle < 180)){
+                            data.left += ((data.width||cs.width)*xRate - newBboxW/2) - (cs.width* xRate - oldBboxW/2);
+                        }else if(elemAngle > 180 && (elemAngle < 270)){
+                            data.left -= ((data.width||cs.width)*xRate - newBboxW/2) - (cs.width* xRate - oldBboxW/2);
+                        }else{
+                            data.left -= ((data.height||cs.height)*yRate - newBboxW/2) - (cs.height* yRate - oldBboxW/2);
+                        }
+                        data.top -= offH;
+                        break;
+                }
+            }
+            // for inner region
+            if(args.left || args.right){
                 //resize inner region block
-                var byh = h-profile.o_h2;
-                if(profile.regions && byh!==0){
-                    profile.regions.heightBy(byh);
-                    profile.o_h2=h;
+                if(profile.regions && "width" in data && data.width!==cs.width){
+                    var offw=data.width-cs.width;
+                    profile.regions.each(function(n,i){
+                        xui(n).width(profile.o_regions[i].width + offw);
+                    });
                 }
             }
 
-            if(o.move){
-                x = profile.o_pos.left + os.x;
-                y = profile.o_pos.top + os.y;
-                profile.proxy.top(y).left(x);
-                if(profile.onChange)profile.boxing().onChange(profile,profile.proxy);
+            if(args.top || args.bottom){
+                //resize inner region block
+                if(profile.regions && "height" in data && data.height!==cs.height){
+                    var offh=data.height-cs.height;
+                    profile.regions.each(function(n,i){
+                        xui(n).height(profile.o_regions[i].height + offh);
+                    });
+                }
+            }
+
+            if(args.move){
+                x = sp.left + dx;
+                y = sp.top + dy;
+                _.merge(data,{top:y,left:x});
+            }
+            if(args.rotate){
+                rotate =  (180 - Math.atan2( dd.x - profile.o_center.x, dd.y - profile.o_center.y ) * 180 / Math.PI );
+                if(rotate<0)rotate+=360;
+                _.merge(data,{rotate:rotate});
+            }
+            
+            if(!_.isEmpty(data)){
+                _.each(data,function(o,i){
+                    data[i]=o+"px";
+                });
+                profile.proxy.css(data);
+
+                if(profile.onChange)
+                    profile.boxing().onChange(profile,profile.proxy);
             }
         },
-        _onDragstop:function(profile, e, src, args){
-            var cssPos,size,pos,o=profile.proxy;
+        _onDragstop:function(profile, e, src, axis){
+            var cssSize, cssPos,
+                offsize, offpos,
+                rotate,
+                cs = profile.o_size, 
+                sp = profile.o_pos,    
+                o = profile.proxy,
+                args = this._getDDParas(profile.o_rotate, axis);
 
-            if(!args.move)
-                size = { width :o.width()-profile.o_w, height :o.height()-profile.o_h};
-
-            if(args.left || args.top || args.move){
-                cssPos = o.cssPos();
-                pos = {left :cssPos.left-profile.o_pos.left,  top :cssPos.top-profile.o_pos.top};
+            if(!args.move && !args.rotate){
+                cssSize = o.cssSize();
+                offsize = {
+                    width : cssSize.width - cs.width, 
+                    height : cssSize.height - cs.height
+                };
+               if(offsize.width===0 && offsize.height===0)offsize=null;
             }
-            if(profile.onUpdate && false===profile.boxing().onUpdate(profile, profile._target, size, pos)){}
+            
+            cssPos = o.cssPos();
+            offpos = {
+                left : cssPos.left - sp.left,  
+                top : cssPos.top - sp.top
+            };
+           if(offpos.left===0 && offpos.top===0)offpos=null;
+            
+            if(args.rotate)
+                rotate=o.rotate();
+
+            if(profile.onUpdate && false===profile.boxing().onUpdate(profile, profile._target, offsize, offpos, rotate)){}
             else{
-                profile.box._onUpdate(profile, profile._target, size, pos);
+                profile.box._onUpdate(profile, profile._target, offsize, offpos, rotate);
             }
 
             if(profile.properties._attached){
                 if(xui.browser.ie6)profile._target.ieRemedy();
-                profile.proxy.html('',false).css({visibility:'hidden',border:'none',zIndex:'0',width:'0',height:'0'});
+                profile.proxy.html('',false).css({visibility:'hidden',border:'none',zIndex:'0',width:'0',height:'0',rotate:0});
             }
             //profile.boxing().active();
             profile.$onDrag = false;
+            delete profile.o_rotate;
+            
+            profile.box._tryCursors(profile);
         }
     }
 });Class("xui.UI.Block", "xui.UI.Widget",{
@@ -23083,23 +26355,33 @@ Class("xui.UI.Resizer","xui.UI",{
     Static:{
         Behaviors:{
             DroppableKeys:['PANEL'],
-            PanelKeys:['PANEL']
+            PanelKeys:['PANEL'],
+            PANEL:{
+                onClick:function(profile, e, src){
+                    var p=profile.properties;
+                    if(p.disabled)return false;
+                    if(profile.onClickPanel)
+                        return profile.boxing().onClickPanel(profile, e, src);
+                }
+            }
+        },
+        EventHandlers:{
+            onClickPanel:function(profile, e, src){}
         },
         DataModel:{
             //delete those properties
             disabled:null,
             tips:null,
+            rotate:null,
             iframeAutoLoad:{
                 ini:"",
                 action:function(){
-                    this.getSubNode("PANEL").html("",false);
                     xui.UI.Div._applyAutoLoad(this);
                 }
             },
             ajaxAutoLoad:{
                 ini:"",
                 action:function(){
-                    this.getSubNode("PANEL").html("",false);
                     xui.UI.Div._applyAutoLoad(this);
                 }
             },
@@ -23161,7 +26443,7 @@ Class("xui.UI.Resizer","xui.UI",{
         },
         Appearances:{
             KEY:{
-                'line-height':'1.22em'
+                'line-height':'auto'
             }
         },
         RenderTrigger:function(){
@@ -23185,7 +26467,7 @@ Class("xui.UI.Resizer","xui.UI",{
             var data=arguments.callee.upper.call(this, profile);
             data.background= data.background?'background:'+data.background:'';
             if(_.isStr(data.overflow))
-                data._overflow = data.overflow.indexOf(':')!=-1?(data.overflow):("overflow:"+data.overflow);
+                data._overflow = data.overflow.indexOf(':')!=-1?(data.overflow):(data.overflow?("overflow:"+data.overflow):"");
             return data;
         },        
         _onresize:function(profile,width,height){
@@ -23410,7 +26692,13 @@ Class("xui.UI.Label", "xui.UI.Widget",{
     Instance:{
         _setCtrlValue:function(value){
             return this.each(function(profile){
-                profile.getSubNode('FILL').width(value+"%");
+                var type=profile.properties.type,
+                    inn=profile.getSubNode('FILL');
+               if(type=="horizontal"){
+                    inn.width(value+"%");
+                }else{
+                    inn.top((100-value)+"%").height(value+"%");
+                }
                 profile.getSubNode('CAP').text(profile.properties.captionTpl.replace(/\{value\}|\*/g,value));
             });
         }
@@ -23423,7 +26711,7 @@ Class("xui.UI.Label", "xui.UI.Widget",{
             className:"xui-uiborder-flat xui-uibg-base",
             FILL:{
                 tagName:'div',
-                style:'width:{value}%;{fillBG}',
+                style:'{fillBG}',
                 text:'{html}'+xui.UI.$childTag
             },
             INN:{
@@ -23459,15 +26747,14 @@ Class("xui.UI.Label", "xui.UI.Widget",{
             },
             FILL:{
                 position:'relative',
-                width:'1px',
+                width:0,
+                height:0,
                 left:0,
                 top:0,
-                height:'100%',
                 'background-image':xui.UI.$bg('bar.gif', ''),
                 'background-repeat':'repeat-x',
                 'background-position':'left top',
-                'background-color':'#96E115',
-                width:0
+                'background-color':'#96E115'
             }
         });
         //set back
@@ -23482,6 +26769,15 @@ Class("xui.UI.Label", "xui.UI.Widget",{
                 ini:'* %',
                 action:function(){
                     this.boxing()._setCtrlValue(this.properties.$UIvalue);
+                }
+            },
+            type:{
+                listbox:['vertical', 'horizontal'],
+                ini:'horizontal',
+                action:function(v){
+                    var w=this.properties.width,h=this.properties.height;
+                    this.properties.height=w;this.properties.width=h;
+                    this.boxing().refresh();
                 }
             },
             fillBG:{
@@ -23503,10 +26799,17 @@ Class("xui.UI.Label", "xui.UI.Widget",{
             return parseInt(value,10)||0;
         },
         _onresize:function(profile,width,height){
-            var size = arguments.callee.upper.apply(this,arguments),h;
-            if(size.height){
-                h=size.height+'px';
-                profile.getSubNodes(['INN','CAP','FILL']).css({height:h,'line-height':h});
+            var size = arguments.callee.upper.apply(this,arguments),v,
+                type=profile.properties.type,
+                node=profile.getSubNodes(['INN','CAP','FILL']);
+            if(type=="horizontal"){
+                if(size.height){
+                    v=size.height+'px';
+                    node.css({height:v,'line-height':v});
+                }
+            }else{
+                if(size.width)node.css({width:size.width+'px'});                
+                if(size.height)node.css({'line-height':size.height+'px'});
             }
         }
     }
@@ -24049,6 +27352,11 @@ Class("xui.UI.Slider", ["xui.UI","xui.absValue"],{
         Templates:{
             style:'{_style}',
             className:'{_className}',
+            LABEL:{
+                className:'{_required}',
+                style:'{labelShow};width:{labelSize}px;{labelHAlign}',
+                text:'{labelCaption}'
+            },
             BOX:{
                 tagName:'div',
                 className:'{_cls}',
@@ -24088,8 +27396,16 @@ Class("xui.UI.Slider", ["xui.UI","xui.absValue"],{
                 'line-height':0,
                 position:'absolute'
             },
+            LABEL:{
+               'z-index':1,
+               top:0,
+               left:0,
+               position:'absolute',
+               'padding-top':'4px',
+               'font-size':'12px'
+            },
             BOX:{
-                position:'relative',
+                position:'absolute',
                 left:0,
                 top:0,
                 width:'100%',
@@ -24460,6 +27776,24 @@ Class("xui.UI.Slider", ["xui.UI","xui.absValue"],{
                     if(profile.properties.disabled || profile.properties.readonly)return;
                     xui.Thread.abort(profile.$xid+':auto');
                 }
+            },
+            LABEL:{
+                onClick:function(profile, e, src){
+                    if(profile.properties.disabled)return false;
+                    if(profile.onLabelClick)
+                        profile.boxing().onLabelClick(profile, e, src);
+                },
+                onDblClick:function(profile, e, src){
+                    if(profile.properties.disabled)return false;
+                    if(profile.onLabelDblClick)
+                        profile.boxing().onLabelDblClick(profile, e, src);
+                },
+                onMousedown:function(profile, e, src){
+                    if(xui.Event.getBtn(e)!='left')return;
+                    if(profile.properties.disabled)return false;
+                     if(profile.onLabelActive)
+                        profile.boxing().onLabelActive(profile, e, src);
+                }
             }
         },
         DataModel:{
@@ -24496,7 +27830,47 @@ Class("xui.UI.Slider", ["xui.UI","xui.absValue"],{
                 action:function(v){
                     this.boxing().refresh();
                 }
+            },
+            // label
+            labelSize:{
+                ini:0,
+                action: function(v){
+                    this.getSubNode('LABEL').css({display:v?'':'none',width:(v||0)+"px"});
+                    xui.UI.$doResize(this,this.properties.width,this.properties.height,true);
+                }
+            },
+            labelPos:{
+                ini:"left",
+                listbox:['left','top', 'right', 'bottom'],
+                action: function(v){
+                    xui.UI.$doResize(this,this.properties.width,this.properties.height,true);
+                }                
+            },
+            labelGap:{
+                ini:4,
+                action: function(v){
+                    xui.UI.$doResize(this,this.properties.width,this.properties.height,true);
+                }
+            },
+            labelCaption:{
+                ini:"",
+                action: function(v){
+                    v=(_.isSet(v)?v:"")+"";
+                    this.getSubNode('LABEL').html(xui.adjustRes(v,true));
+                }
+            },
+            labelHAlign:{
+                ini:'right',
+                listbox:['','left','center','right'],
+                action: function(v){
+                    this.getSubNode('LABEL').css('textAlign',v);
+                }
             }
+        },
+        EventHandlers:{
+            onLabelClick:function(profile, e, src){},
+            onLabelDblClick:function(profile, e, src){},
+            onLabelActive:function(profile, e, src){}
         },
         _prepareData:function(profile){
             var d=arguments.callee.upper.call(this, profile),
@@ -24505,6 +27879,11 @@ Class("xui.UI.Slider", ["xui.UI","xui.absValue"],{
             d._showIns=d.showIncreaseHandle?'':N,
             d._showD2=d.isRange?'':N;
             d._cls=profile.getClass('BOX',d.type=='vertical'?'-v':'-h');
+            d.labelHAlign=d.labelHAlign?("text-align:" + d.labelHAlign):"";
+            d.labelShow=d.labelSize?"":("display:none");
+            // adjustRes for labelCaption
+            if(d.labelCaption)
+                d.labelCaption=xui.adjustRes(d.labelCaption,true);
             return d;
         },
         _adjustValue:function(profile,value){
@@ -24575,22 +27954,43 @@ Class("xui.UI.Slider", ["xui.UI","xui.absValue"],{
         },
         _onresize:function(profile, width, height){
             var p=profile.properties,
-            type=p.type,
-            f=function(k){return profile.getSubNode(k)},
+                type=p.type,
+                f=function(k){return profile.getSubNode(k)},
+                ruler = f('RULER'),
+                ind = f('IND'),
+                ru1 = f('RULERLEFT'),
 
-            ruler=f('RULER'),
-            ind=f('IND'),
+                o = f('BOX'),
+                label = profile.getSubNode('LABEL'),
+                labelSize = p.labelSize||0,
+                labelGap = p.labelGap||0,
+                labelPos = p.labelPos || 'left',
+                ll, tt, ww, hh;
 
-            ru1=f('RULERLEFT');
+            o.cssRegion({
+                left : ll = labelPos=='left'?labelSize:0,
+                top : tt = labelPos=='top'?labelSize:0,
+                width : ww = width===null?null:Math.max(0,(width - ((labelPos=='left'||labelPos=='right')?labelSize:0))),
+                height : hh = height===null?null:Math.max(0,(height - ((labelPos=='top'||labelPos=='bottom')?labelSize:0)))
+            });
+
+            if(labelSize)
+                label.cssRegion({
+                    left: width===null?null:Math.max(0,labelPos=='right'?(width-labelSize+labelGap):0),
+                    top:  height===null?null:Math.max(0,labelPos=='bottom'?(height-labelSize+labelGap):0), 
+                    width: width===null?null:Math.max(0,((labelPos=='left'||labelPos=='right')?(labelSize-labelGap):width)),
+                    height: height===null?null:Math.max(0,((labelPos=='top'||labelPos=='bottom')?(labelSize-labelGap):height))
+                });
+
             if(type=='vertical'){
                 var w=ru1.height(),
                 w1=p.showDecreaseHandle?f('DECREASE').height():0,
                 w2=p.showIncreaseHandle?f('INCREASE').height():0,
                 w3=f('IND1').height();
     
-                if(height){
-                    ruler.top(w1+w).height(height-w1-w2-2*w);
-                    ind.top(w1).height(profile._size=height-w1-w2-w3);
+                if(hh){
+                    ruler.top(w1+w).height(hh-w1-w2-2*w);
+                    ind.top(w1).height(profile._size=hh-w1-w2-w3);
                 }
             }else{
                 var w=ru1.width(),
@@ -24598,9 +27998,9 @@ Class("xui.UI.Slider", ["xui.UI","xui.absValue"],{
                 w2=p.showIncreaseHandle?f('INCREASE').width():0,
                 w3=f('IND1').width();
     
-                if(width){
-                    ruler.left(w1+w).width(width-w1-w2-2*w);
-                    ind.left(w1).width(profile._size=width-w1-w2-w3);
+                if(ww){
+                    ruler.left(w1+w).width(ww-w1-w2-2*w);
+                    ind.left(w1).width(profile._size=ww-w1-w2-w3);
                 }
             }
         }
@@ -24622,7 +28022,7 @@ Class("xui.UI.Slider", ["xui.UI","xui.absValue"],{
             }
             if(ot!==profile.tips && xui.Tips && xui.Tips.getTips())xui.Tips.setTips(profile.tips);
         },
-        activate:function(){
+        activate:function(select){
             var profile = this.get(0);
             if(profile&&profile.renderId){
                 var node=profile.getSubNode('INPUT').get(0);
@@ -24630,7 +28030,10 @@ Class("xui.UI.Slider", ["xui.UI","xui.absValue"],{
                     try{
                         node.focus(); 
                         if(!xui.browser.isTouch){
-                            node.tagName.toLowerCase()=="input" && node.select();
+                            try{
+                                if(node.tagName.toLowerCase()=="input" || !/[\n\r]/.test(node.value))node.select();
+                                else xui(node).caret(0,0);
+                            }catch(e){}
                         }
                     }catch(e){}
                     delete profile._justFocus;
@@ -24713,6 +28116,7 @@ Class("xui.UI.Slider", ["xui.UI","xui.absValue"],{
         _.merge(t.FRAME.BORDER,{
             style:'',
             LABEL:{
+                className:'{_required}',
                 style:'{labelShow};width:{labelSize}px;{labelHAlign}',
                 text:'{labelCaption}'
             },
@@ -24815,7 +28219,7 @@ Class("xui.UI.Slider", ["xui.UI","xui.absValue"],{
                 'background-position':'left -244px',
                 'z-index':'50'
             },
-//border<<<
+            //border<<<
             '.setting-xui-input':{
                 'border-style':'solid',
                 'border-top-width':'1px',
@@ -24899,7 +28303,7 @@ Class("xui.UI.Slider", ["xui.UI","xui.absValue"],{
                 $order:1,
                 'background-image': xui.UI.$bg('corner_mouseover.gif','','Input')
             }
-//border>>>
+            //border>>>
         },
         Behaviors:{
             HoverEffected:{BOX:['BOX']},
@@ -24927,16 +28331,18 @@ Class("xui.UI.Slider", ["xui.UI","xui.absValue"],{
                     if(profile.$_onedit||profile.$_inner||profile.destroyed||!profile.box)return;
                     var p=profile.properties,b=profile.box,
                         o=profile._inValid,
+                        instance=profile.boxing(),
                         value=xui.use(src).get(0).value;
                     
                     if(profile.$Mask && profile.$Mask==value){
                         value="";
                     }
+
                     // trigger events
-                    profile.boxing().setUIValue(value,null,null,'onchange');
+                    instance.setUIValue(value,null,null,'onchange');
                     // input/textarea is special, ctrl value will be set before the $UIvalue
-                    p.$UIvalue=value;
-                    if(o!==profile._inValid) if(profile.renderId)profile.boxing()._setDirtyMark();
+                    if(p.$UIvalue!==value)instance._setCtrlValue(p.$UIvalue);
+                    if(o!==profile._inValid) if(profile.renderId)instance._setDirtyMark();
 
                     b._asyCheck(profile);
                 },
@@ -24998,9 +28404,7 @@ Class("xui.UI.Slider", ["xui.UI","xui.absValue"],{
                     var p=profile.properties,b=profile.box;
                     // must be key up event
                     if(xui.Event.getKey(e).key=='esc'){
-                        profile.$_inner=true;
                         profile.boxing()._setCtrlValue(p.$UIvalue);
-                        profile.$_inner=false;
                         if(profile.onCancel)
                             profile.boxing().onCancel(profile);
                     }
@@ -25023,7 +28427,7 @@ Class("xui.UI.Slider", ["xui.UI","xui.absValue"],{
                             profile.$mouseupDelayFun=_.asyRun(function(){
                                 delete profile.$mouseupDelayFun;
                                 if(!xui.browser.isTouch){
-                                    try{node.tagName.toLowerCase()=="input" && node.select();}catch(e){}
+                                    if(node.tagName.toLowerCase()=="input" || !/[\n\r]/.test(node.value))node.select();
                                 }
                             })
                         }
@@ -25032,7 +28436,7 @@ Class("xui.UI.Slider", ["xui.UI","xui.absValue"],{
                     if(profile._activedonmousedown){
                         delete profile._activedonmousedown;
                         var node=xui.use(src).get(0);
-                         try{node.select()}catch(e){}
+                        if(node.tagName.toLowerCase()=="input" || !/[\n\r]/.test(node.value))node.select();
                     }
                 },
                 onFocus:function(profile, e, src){
@@ -25063,12 +28467,12 @@ Class("xui.UI.Slider", ["xui.UI","xui.absValue"],{
                             profile.$focusDelayFun2=_.asyRun(function(){
                                 delete profile.$focusDelayFun2;
                                 if(!xui.browser.isTouch){
-                                    try{node.tagName.toLowerCase()=="input" && node.select();}catch(e){}
+                                    if(node.tagName.toLowerCase()=="input" || !/[\n\r]/.test(node.value))node.select();
                                 }
                             });
                         }else{
                             if(!xui.browser.isTouch){
-                                try{node.tagName.toLowerCase()=="input" && node.select();}catch(e){}
+                                if(node.tagName.toLowerCase()=="input" || !/[\n\r]/.test(node.value))node.select();
                             }
                         }
                         // if focus was triggerred by mousedown, try to stop mouseup's caret
@@ -25116,17 +28520,18 @@ Class("xui.UI.Slider", ["xui.UI","xui.absValue"],{
 
             dynCheck:false,
             selectOnFocus:true,
+            placeholder: {
+                ini: '',
+                action: function (value) {
+                    this.getSubNode('INPUT').attr('placeholder', value);
+                }
+            },
+            // label
             labelSize:{
                 ini:0,
                 action: function(v){
                     this.getSubNode('LABEL').css({display:v?'':'none',width:(v||0)+"px"});
                     xui.UI.$doResize(this,this.properties.width,this.properties.height,true);
-                }
-            },
-            placeholder: {
-                ini: '',
-                action: function (value) {
-                    this.getSubNode('INPUT').attr('placeholder', value);
                 }
             },
             labelPos:{
@@ -25555,10 +28960,12 @@ Class("xui.UI.Slider", ["xui.UI","xui.absValue"],{
 
                 var t = profile.properties,
                     o = profile.getSubNode('BOX'),
+
                     label = profile.getSubNode('LABEL'),
                     labelSize=t.labelSize||0,
                     labelGap=t.labelGap||0,
                     labelPos=t.labelPos || 'left',
+
                     v1=profile.getSubNode('INPUT'),
                     ww=width,
                     hh=height,
@@ -25604,11 +29011,115 @@ Class("xui.UI.Slider", ["xui.UI","xui.absValue"],{
                 if((profile.$border||profile.$shadow||profile.$resizer) && xui.browser.ie)o.ieRemedy();
         }
     }
+});Class("xui.UI.HiddenInput", ["xui.UI", "xui.absValue"] ,{
+    Instance:{
+        activate:function(){
+            return this;
+        },
+        _setCtrlValue:function(value){
+            if(_.isNull(value) || !_.isDefined(value))value='';
+            return this.each(function(profile){
+                profile.getSubNode('KEY').attr('value',value+"");
+            });
+        },
+        _getCtrlValue:function(){
+            var node=this.getSubNode('KEY');
+            if(v.indexOf("\r")!=-1)v=v.replace(/(\r\n|\r)/g, "\n");
+            return v;
+        }
+    },
+    Static:{
+        $initRootHidden:true,
+        Templates:{
+            className:'xui-display-none',
+            style:'display:none',
+            tagName:'input',
+            type:'hidden'
+        },
+        DataModel:{
+            locked:null,
+            required:null,
+            dataBinder:null,
+            dataField:null,
+            display:null,
+            visibility:null,
+            position:null,
+            left:null,
+            top:null,
+            right:null,
+            bottom:null,
+            width:null,
+            height:null,
+            rotate:null,
+            showEffects:null,
+            hideEffects:null,
+            activeAnim:null,
+            tabindex:null,
+            zIndex:null,
+            defaultFocus:null,
+            hoverPop:null,
+            hoverPopType:null,
+            disabled:null,
+            readonly:null,
+            disableClickEffect:null,
+            disableHoverEffect:null,
+            dock:null,
+            dockOrder:null,
+            dockMargin:null,
+            dockMinW:null,
+            dockMinH:null,
+            dockMaxW:null,
+            dockMaxH:null,
+            dockFloat:null,
+            dockIgnore:null,
+            dirtyMark:null,
+            showDirtyMark:null,
+            selectable:null,
+            autoTips:null,
+            tips:null,
+            disableTips:null,
+            renderer:null,
+            className:null
+        },
+        EventHandlers:{
+            beforeDirtyMark:null,
+            onContextmenu:null,
+            onDock:null,
+            onLayout:null,
+            onMove:null,
+            onRender:null,
+            onResize:null,
+            onShowTips:null,
+            beforeAppend:null,
+            afterAppend:null,
+            beforeRender:null,
+            afterRender:null,
+            beforeRemove:null,
+            afterRemove:null,
+            onHotKeydown:null,
+            onHotKeypress:null,
+            onHotKeyup:null
+        },
+        _ensureValue:function(profile, value){
+            // ensure return string
+            return ""+(_.isSet(value)?value:"");
+        }
+    }
 });Class("xui.UI.RichEditor", ["xui.UI","xui.absValue"],{
     Initialize:function(){
         this.addTemplateKeys(['TOOLBARBTN']);
     },
     Instance:{
+        getEditorWin:function(){
+            return this.get(0).$win;
+        },
+        getEditorDoc:function(){
+            return this.get(0).$doc;
+        },
+        getEditorBody:function(){
+            var doc=this.get(0).$doc;
+            return doc && (doc.body||doc.documentElement);
+        },
         _setCtrlValue:function(value){
             if(!_.isSet(value))value='';
             return this.each(function(profile){
@@ -25641,6 +29152,10 @@ Class("xui.UI.Slider", ["xui.UI","xui.absValue"],{
             }else{
                 return profile.getSubNode("EDITOR").html();
             }
+        },
+        //update UI face
+        _setDirtyMark:function(){
+            return arguments.callee.upper.apply(this,['MARK']);
         }
     },
     Static:{
@@ -25648,10 +29163,19 @@ Class("xui.UI.Slider", ["xui.UI","xui.absValue"],{
             tagName:'div',
             style:'{_style}',
             className:'{_className} xui-ui-selectable',
-            EDITOR:{
-                tagName:'div'
+            LABEL:{
+                className:'{_required}',
+                style:'{labelShow};width:{labelSize}px;{labelHAlign}',
+                text:'{labelCaption}'
             },
-            POOL:{}
+            BOX:{
+                EDITOR:{
+                    tagName:'div'
+                },
+                MARK:{
+                },
+                POOL:{}
+            }
         },
         DataModel:{
             selectable:true,
@@ -25662,11 +29186,24 @@ Class("xui.UI.Slider", ["xui.UI","xui.absValue"],{
             width:400,
             height:300,
             frameTemplate:{
-                ini:'<html style="overflow: auto; -webkit-overflow-scrolling: touch;padding:0;margin:0;"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" /><meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0\"> <style type="text/css">body{height: 100%;overflow: auto; -webkit-overflow-scrolling: touch;border:0;margin:0;padding:0;margin:0;cursor:text;background:#fff;color:#000;font-family:arial,helvetica,clean,sans-serif;font-style:normal;font-weight:normal;font-size:12px;}p{margin:0;padding:0;} div{margin:0;padding:0;}</style></head><body scroll="auto" spellcheck="false"></body></html>',
+                ini:'<html style="-webkit-overflow-scrolling: touch;padding:0;margin:0;">'+
+                        '<head>'+
+                            '<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />'+
+                            '<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0\">'+
+                            '<style type="text/css">'+
+                                'body{height: 100%;-webkit-overflow-scrolling: touch;border:0;padding:0;margin:6px;cursor:text;background:#fff;color:#000;font-family:sans-serif,Arial,Verdana,"Trebuchet MS";font-style:normal;font-weight:normal;font-size:12px;line-height:1.6}'+
+                                'div, p{margin:0;padding:0;} '+
+                                'body, p, div{word-wrap: break-word;} '+
+                                'img, input, textarea{cursor:default;}'+
+                            '</style>'+
+                        '</head>'+
+                        '<body scroll="auto" spellcheck="false"></body>'+
+                    '</html>',
                 action:function(){
                     this.boxing().refresh();
                 }
             },
+            frameStyle:"",
             cmdList:{
                 ini:'font1;font2;align;list;font4;font3;insert;clear;html',
                 action:function(v){
@@ -25674,6 +29211,9 @@ Class("xui.UI.Slider", ["xui.UI","xui.absValue"],{
                     if(!ns.properties.disabled && !ns.properties.readonly)
                         ns.box._iniToolBar(ns);
                 }
+            },
+            cmdFilter:{
+                ini:''
             },
             disabled:{
                 ini:false,
@@ -25695,15 +29235,73 @@ Class("xui.UI.Slider", ["xui.UI","xui.absValue"],{
                 action: function(v){
                     this.boxing().setDisabled(v);
                 }
+            },
+           // label
+            labelSize:{
+                ini:0,
+                action: function(v){
+                    this.getSubNode('LABEL').css({display:v?'':'none',width:(v||0)+"px"});
+                    xui.UI.$doResize(this,this.properties.width,this.properties.height,true);
+                }
+            },
+            labelPos:{
+                ini:"left",
+                listbox:['left','top', 'right', 'bottom'],
+                action: function(v){
+                    xui.UI.$doResize(this,this.properties.width,this.properties.height,true);
+                }                
+            },
+            labelGap:{
+                ini:4,
+                action: function(v){
+                    xui.UI.$doResize(this,this.properties.width,this.properties.height,true);
+                }
+            },
+            labelCaption:{
+                ini:"",
+                action: function(v){
+                    v=(_.isSet(v)?v:"")+"";
+                    this.getSubNode('LABEL').html(xui.adjustRes(v,true));
+                }
+            },
+            labelHAlign:{
+                ini:'right',
+                listbox:['','left','center','right'],
+                action: function(v){
+                    this.getSubNode('LABEL').css('textAlign',v);
+                }
             }
         },
         Appearances:{
+            KEY:{
+                overflow:"hidden"
+            },
+            BOX:{
+                left:0,
+                top:0,
+                width:'100%',
+                position:'absolute',
+                overflow:'hidden'
+            },
             POOL:{
                 position:'absolute',
                 display:'none'
             },
+            MARK:{
+                position:'absolute',
+                width:"12px",
+                height:"12px"
+            },
             TOOLBARBTN:{
                 background:xui.UI.$bg('toolbar.gif', 'no-repeat')
+            },
+            LABEL:{
+               'z-index':1,
+               top:0,
+               left:0,
+               position:'absolute',
+               'padding-top':'4px',
+               'font-size':'12px'
             },
             EDITOR:{
                 position:'absolute',
@@ -25720,7 +29318,34 @@ Class("xui.UI.Slider", ["xui.UI","xui.absValue"],{
             }
         },
         Behaviors:{
-            onSize:xui.UI.$onSize
+            onSize:xui.UI.$onSize,
+            LABEL:{
+                onClick:function(profile, e, src){
+                    if(profile.properties.disabled)return false;
+                    if(profile.onLabelClick)
+                        profile.boxing().onLabelClick(profile, e, src);
+                },
+                onDblClick:function(profile, e, src){
+                    if(profile.properties.disabled)return false;
+                    if(profile.onLabelDblClick)
+                        profile.boxing().onLabelDblClick(profile, e, src);
+                },
+                onMousedown:function(profile, e, src){
+                    if(xui.Event.getBtn(e)!='left')return;
+                    if(profile.properties.disabled)return false;
+                     if(profile.onLabelActive)
+                        profile.boxing().onLabelActive(profile, e, src);
+                }
+            }
+        },
+        EventHandlers:{
+            onInnerEvent : function(profile, type, node, e){},
+            onUpdateToolbar : function(profile, etype, doc){},
+            onReady : function(profile){},
+            
+            onLabelClick:function(profile, e, src){},
+            onLabelDblClick:function(profile, e, src){},
+            onLabelActive:function(profile, e, src){}
         },
         $cmds:{
             //font style
@@ -25768,7 +29393,16 @@ Class("xui.UI.Slider", ["xui.UI","xui.absValue"],{
                 {id:'html',command:'custom', imagePos:"-234px 0"}
             ]
         },
-        _updateToolbar:function(domId, clear){
+        _prepareData:function(profile){
+            var d=arguments.callee.upper.call(this, profile);            
+            d.labelHAlign=d.labelHAlign?("text-align:" + d.labelHAlign):"";
+            d.labelShow=d.labelSize?"":("display:none");
+            // adjustRes for labelCaption
+            if(d.labelCaption)
+                d.labelCaption=xui.adjustRes(d.labelCaption,true);
+            return d;
+        },
+        _updateToolbar:function(domId, clear,etype){
             var profile=xui.$cache.profileMap[domId],toolbar;
             if(!profile)return;
 
@@ -25792,6 +29426,9 @@ Class("xui.UI.Slider", ["xui.UI","xui.absValue"],{
                 tb.updateItem('subscript', {value:subscript})
                 tb.updateItem('superscript', {value:superscript})
 
+                if(profile.onUpdateToolbar){
+                    profile.boxing().onUpdateToolbar(profile, etype, doc);
+                }
                 doc=null;
             }
         },
@@ -25805,7 +29442,11 @@ Class("xui.UI.Slider", ["xui.UI","xui.absValue"],{
                 var div=self.getSubNode('EDITOR').get(0),
                     domId=self.$domId,
                     htmlTpl=self.properties.frameTemplate,
+                    style=self.properties.frameStyle,
                     id=div.id;
+                if(style){
+                    htmlTpl = htmlTpl.replace(/<\s*\/\s*head\s*>/,"<style>" + (style||"") + "</style></head>");
+                }
                 // rendered already
                 if(!self.$once){
                     self.$once=true;
@@ -25816,18 +29457,43 @@ Class("xui.UI.Slider", ["xui.UI","xui.absValue"],{
                     }
                     //_updateToolbar event
                     var kprf=this,
+                        eventOutput =self._eventOutput=function(e){
+                            if(kprf && (kprf.properties.disabled||kprf.properties.readonly))return;
+                            if(kprf.onInnerEvent)
+                                return kprf.boxing().onInnerEvent(kprf, e.type, xui.Event.getSrc(e), e);
+                        },
                         event=self._event=function(e){
                             if(kprf && (kprf.properties.disabled||kprf.properties.readonly))return;
     
-                            _.resetRun('RichEditor:'+domId, function(){
-                                // destroyed
-                                if(!kprf.box)return;
-                                xui.UI.RichEditor._updateToolbar(domId)
-                            },100);
-    
-                            //for BlurTrigger
-                            if(e.type=='mousedown')
-                                xui.doc.onMousedown(true);
+                            if(e.type !== "mouseover" && e.type !== "mouseout"){
+                                _.resetRun('RichEditor:'+domId, function(){
+                                    // destroyed
+                                    if(!kprf.box)return;
+                                    xui.UI.RichEditor._updateToolbar(domId, false,e.type)
+                                },100);
+                                 if(e.type=='mousedown'){
+                                    if(xui.browser.applewebkit && e.target.tagName=="IMG"){
+                                            var sel = self.$win.getSelection(), range = self.$doc.createRange();
+                                            range.selectNode(e.target);
+                                            sel.removeAllRanges();
+                                            sel.addRange(range);
+                                    }
+
+                                    //for BlurTrigger
+                                    xui.doc.onMousedown(true);
+                                 }  
+                            }
+                            if(kprf.onInnerEvent)
+                                return kprf.boxing().onInnerEvent(kprf, e.type, xui.Event.getSrc(e), e);
+                        },
+                        event2=self._event2=function(e){
+                            if(kprf && (kprf.properties.disabled||kprf.properties.readonly))return;
+                            if(kprf.onInnerEvent){
+                                _.resetRun(kprf.$xid+":frmInnerAsyEvent", function(){
+                                    if(kprf && !kprf.destroyed)
+                                        kprf.boxing().onInnerEvent(kprf, e.type, xui.Event.getSrc(e), e);
+                                });
+                            }
                         },
                         _focus=function(e){
                             if(!kprf)return;
@@ -25841,7 +29507,7 @@ Class("xui.UI.Slider", ["xui.UI","xui.absValue"],{
                             _.resetRun('RichEditor:'+domId, function(){
                                 // destroyed
                                 if(!kprf.box)return;
-                                xui.UI.RichEditor._updateToolbar(domId, true)
+                                xui.UI.RichEditor._updateToolbar(domId, true, 'blur')
                             },100);
 
                             if(kprf._onchangethread){
@@ -25851,6 +29517,9 @@ Class("xui.UI.Slider", ["xui.UI","xui.absValue"],{
                                 if(kprf && kprf.box)
                                     kprf.box._checkc(kprf);
                             }
+                            
+                            var v=kprf.boxing()._getCtrlValue(); 
+                            kprf.boxing().setUIValue(v,null,null,'blur');
                         },
                         gekfix=function(e){
                             // to fix firefox appendChid's bug: refresh iframe's document
@@ -25909,14 +29578,21 @@ Class("xui.UI.Slider", ["xui.UI","xui.absValue"],{
                                             doc.attachEvent("onmousedown",event);
                                             doc.attachEvent("ondblclick",event);
                                             doc.attachEvent("onclick",event);
+                                            doc.attachEvent("oncontextmenu",eventOutput);
                                             doc.attachEvent("onkeyup",event);
                                             doc.attachEvent("onkeydown",event);
+                                            
+                                            doc.attachEvent("onmouseover",event);
+                                            doc.attachEvent("onmouseout",event);
+                                            doc.attachEvent("onmousemove",event2);
+                                            
                                             win.attachEvent("onfocus",_focus);
                                             win.attachEvent("onblur",_blur);
                                             (self.$beforeDestroy=(self.$beforeDestroy||{}))["ifmClearMem"]=function(){
                                                 var win=this.$win,
                                                     doc=this.$doc,
-                                                    event=this._event;
+                                                    event=this._event,
+                                                    event2=this._event2;
                                                 if(this._onchangethread){
                                                     clearInterval(this._onchangethread);
                                                     this._onchangethread=null;
@@ -25939,12 +29615,18 @@ Class("xui.UI.Slider", ["xui.UI","xui.absValue"],{
                                                     doc.detachEvent("onmousedown",event);
                                                     doc.detachEvent("ondblclick",event);
                                                     doc.detachEvent("onclick",event);
+                                                    doc.detachEvent("oncontextmenu",eventOutput);
                                                     doc.detachEvent("onkeyup",event);
                                                     doc.detachEvent("onkeydown",event);
+
+                                                    doc.detachEvent("onmouseover",event);
+                                                    doc.detachEvent("onmouseout",event);
+                                                    doc.detachEvent("onmousemove",event2);
+
                                                     win.detachEvent("onfocus",_focus);
                                                     win.detachEvent("onblur",_blur);
                                                 }
-                                                win=doc=event=null;
+                                                win=doc=event=event2=null;
                                             };
                                         }
                                     }else{
@@ -25966,7 +29648,13 @@ Class("xui.UI.Slider", ["xui.UI","xui.absValue"],{
                                             doc.addEventListener("mousedown",event,false);
                                             doc.addEventListener("dblclick",event,false);
                                             doc.addEventListener("click",event,false);
+                                            doc.addEventListener("contextmenu",eventOutput,false);
                                             doc.addEventListener("keyup",event,false);
+
+                                            doc.addEventListener("mouseover",event,false);
+                                            doc.addEventListener("mouseout",event,false);
+                                            doc.addEventListener("mousemove",event2,false);
+
                                             if(xui.browser.gek || !win.addEventListener){
                                                 doc.addEventListener("focus",_focus,false);
                                                 doc.addEventListener("blur",_blur,false);
@@ -25983,7 +29671,8 @@ Class("xui.UI.Slider", ["xui.UI","xui.absValue"],{
                                             var win=this.$win,
                                                 doc=this.$doc,
                                                 ifr=this.$ifr,
-                                                event=this._event;
+                                                event=this._event,
+                                                event2=this._event2;
                                             // for opera
                                             if(xui.browser.opr)
                                                 if(prf.$repeatT)prf.$repeatT.abort();
@@ -26005,7 +29694,13 @@ Class("xui.UI.Slider", ["xui.UI","xui.absValue"],{
                                                 doc.removeEventListener("mousedown",event,false);
                                                 doc.removeEventListener("dblclick",event,false);
                                                 doc.removeEventListener("click",event,false);
+                                                doc.removeEventListener("contextmenu",eventOutput,false);
                                                 doc.removeEventListener("keyup",event,false);
+
+                                                doc.removeEventListener("mouseover",event,false);
+                                                doc.removeEventListener("mouseout",event,false);
+                                                doc.removeEventListener("mousemove",event2,false);
+
                                                 if(xui.browser.gek || !win.removeEventListener){
                                                     doc.removeEventListener("focus",_focus,false);
                                                     doc.removeEventListener("blur",_blur,false);
@@ -26016,13 +29711,16 @@ Class("xui.UI.Slider", ["xui.UI","xui.absValue"],{
                                                     doc.removeEventListener("keydown",event,false);
                                                 }
                                             }
-                                            prf=gekfix=event=win=doc=null;
+                                            prf=gekfix=event=event2=win=doc=null;
                                         };
                                     }
                                     
                                     self.boxing()._setCtrlValue(self.properties.$UIvalue||"");
                                     
                                     iframe.style.visibility='';
+                                    iframe.style.overflow='auto';
+
+                                    if(self.onReady)self.boxing().onReady(self);
                                 }
                             });
                         };
@@ -26032,7 +29730,7 @@ Class("xui.UI.Slider", ["xui.UI","xui.absValue"],{
                     iframe.src="about:blank";
                     iframe.frameBorder=0;
                     iframe.border=0;
-                    iframe.scrolling='no';
+                    iframe.scrolling='yes';
                     iframe.marginWidth=0;
                     iframe.marginHeight=0;
                     iframe.tabIndex=-1;
@@ -26084,6 +29782,7 @@ Class("xui.UI.Slider", ["xui.UI","xui.absValue"],{
         _iniToolBar:function(profile, flag){
             var self=profile,
                 pro=self.properties,
+                cmdFilter=(pro.cmdFilter||'').split(/[\s,;]+/),
                 tbH;
             if(self.$toolbar){
                 self.$toolbar.boxing().destroy(true);
@@ -26094,23 +29793,24 @@ Class("xui.UI.Slider", ["xui.UI","xui.absValue"],{
             if(flag!==false){
                 var t,v,o,items=[],
                     imageClass=self.getClass('TOOLBARBTN'),
-                    arr=pro.cmdList.split(';'),
+                    arr=pro.cmdList.split(/[\s,;]+/),
                     h={};
                 _.arr.each(arr,function(i){
                     //filter
                     if((o=self.box.$cmds[i]) && !h[i]){
                         h[i]=1;
-                        items.push({id:i,sub:o});
-                        _.arr.each(o,function(v){
+                        _.filter(o,function(v){
+                            if(_.arr.indexOf(cmdFilter,v.id)!==-1)return false;
                             if(v.imagePos)
                                 v.imageClass=imageClass;
                             v.tips=xui.wrapRes('editor.'+v.id);
                         });
+                        items.push({id:i,sub:o});
                     }
                 });
     
                 //compose
-                self.getRoot().prepend(
+                self.getSubNode('BOX').prepend(
                     t=new xui.UI.ToolBar({selectable:false,handler:false,items:items,disabled:pro.disabled||pro.readonly})
                 );
                 t.render(true);
@@ -26118,7 +29818,7 @@ Class("xui.UI.Slider", ["xui.UI","xui.absValue"],{
                 profile.$_tbH=tbH=t.getRoot().height();
 
                 if(xui.browser.ie)
-                    t.getRoot().query('*').attr('unselectable','on');
+                    t.getSubNode('BOX').query('*').attr('unselectable','on');
 
                 t = self._$tb = t.get(0);
     
@@ -26234,10 +29934,18 @@ Class("xui.UI.Slider", ["xui.UI","xui.absValue"],{
 
                     o.setValue('',true,'clear');
                     node=o.reBoxing();
-                    node.popToTop(src);
+
+                    if(editor.$htmlEditor==o){
+                        var root=editor.getRoot(),ifr=editor.getSubNode("EDITOR");
+                        o.setLeft(ifr.left()).setTop(ifr.top()).setWidth(ifr.offsetWidth()).setHeight(ifr.offsetHeight());
+                        o.setZIndex(10);
+                        root.append(node);
+                    }else{
+                        node.popToTop(src);
+                    }
 
                     if(first && xui.browser.ie)
-                        o.getRoot().query('*').attr('unselectable','on');
+                        o.getSubNode('BOX').query('*').attr('unselectable','on');
                     
                     _.tryF(o.activate,[],o);
 
@@ -26245,8 +29953,8 @@ Class("xui.UI.Slider", ["xui.UI","xui.absValue"],{
                     node.setBlurTrigger(editor.$xid, function(){
                         //force to trigger beforeUIValueSet event
                         if(o==editor.$htmlEditor)
-                            o.setUIValue(o._getCtrlValue(),null,null,'blur');
-
+                            var v=o._getCtrlValue(); 
+                            o.setUIValue(v,null,null,'blur');
                          _clear();
                     });
                     //for esc
@@ -26378,7 +30086,9 @@ Class("xui.UI.Slider", ["xui.UI","xui.absValue"],{
                         });
                         break;
                      case 'html':
-                         o.setValue(editor.boxing().getUIValue(),true,'editor');
+                         var v=editor.boxing().getUIValue();
+                         if(xui.Coder)v=xui.Coder.formatText(v,'html');
+                         o.setValue(v,true,'editor');
                          o.beforeUIValueSet(function(p,o,v){
                             _clear();
                             editor.boxing().setUIValue(v,null,null,'html');
@@ -26389,7 +30099,7 @@ Class("xui.UI.Slider", ["xui.UI","xui.absValue"],{
                 editor.$doc.execCommand(item.command,false,item.commandArgs);
 
                 if(item.id=='removeformat')
-                    xui.UI.RichEditor._updateToolbar(editor.$domId,true)
+                    xui.UI.RichEditor._updateToolbar(editor.$domId,true,'none')
             }
         },
         _ensureValue:function(profile, value){
@@ -26400,10 +30110,41 @@ Class("xui.UI.Slider", ["xui.UI","xui.absValue"],{
             return value;
         },
         _onresize:function(profile,width,height){
-            var size={},_top=0;
-            if(width || height){                
+            if(width || height){
+                if(!height)
+                    height=profile.properties.height;
+
+                var size={},
+                    _top=0,
+                    t = profile.properties,
+
+                    o = profile.getSubNode('BOX'),
+                    label = profile.getSubNode('LABEL'),
+
+                    labelSize=t.labelSize||0,
+                    labelGap=t.labelGap||0,
+                    labelPos=t.labelPos || 'left',
+                    ll, tt, ww, hh;
+
+                o.cssRegion({
+                    left : ll = labelPos=='left'?labelSize:0,
+                    top : tt = labelPos=='top'?labelSize:0,
+                    width : ww = width===null?null:Math.max(0,(width - ((labelPos=='left'||labelPos=='right')?labelSize:0))),
+                    height : hh = height===null?null:Math.max(0,(height - ((labelPos=='top'||labelPos=='bottom')?labelSize:0)))
+                });
+                if(labelSize)
+                    label.cssRegion({
+                        left: width===null?null:Math.max(0,labelPos=='right'?(width-labelSize+labelGap):0),
+                        top:  height===null?null:Math.max(0,labelPos=='bottom'?(height-labelSize+labelGap):0), 
+                        width: width===null?null:Math.max(0,((labelPos=='left'||labelPos=='right')?(labelSize-labelGap):width)),
+                        height: height===null?null:Math.max(0,((labelPos=='top'||labelPos=='bottom')?(labelSize-labelGap):height))
+                    });
+
+                // calculate toolbar's height
                 var itb=profile._$tb,tbh;
                 if(itb){
+                    // here, do resize first
+                    itb.getRoot().width(ww);
                     tbh=itb.getRoot().height();
                     if(tbh)
                         profile.$_tbH=tbh;
@@ -26411,17 +30152,20 @@ Class("xui.UI.Slider", ["xui.UI","xui.absValue"],{
                         tbh=profile.$_tbH;
                 }
                 _top=(itb?(tbh-1):0);
-                if(!height)
-                    height=profile.properties.height;
-                size.height=height-_top-2;
                 
-                if(width)
-                    size.width=width-2;
+                size.height=hh - _top -2;
+                if(ww) size.width = ww - 2;
+
+                if(size.width<0)size.width=0;
+                if(size.height<0)size.height=0;
+
+                if(ww||hh){
+                    if(profile&&profile.renderId){
+                        profile.getSubNode('EDITOR').top(_top).cssSize(size,true);
+                        profile.getSubNode('MARK').left(1).top(_top+1);
+                    }
+                }
             }
-            if(size.width<0)size.width=0;
-            if(size.height<0)size.height=0;
-            
-            profile.getSubNode('EDITOR').top(_top).cssSize(size,true);
         }
     }
 });
@@ -26629,6 +30373,20 @@ Class("xui.UI.ComboInput", "xui.UI.Input",{
                 return o;
             }
         },
+        popFileSelector:function(){
+            var profile=this.get(0),prop=profile.properties;
+            if(profile.renderId && (prop.type=='upload'||prop.type=='file')){
+                var fileInput = profile.getSubNode('FILE').get(0);
+                if (!!window.ActiveXObject || "ActiveXObject" in window)  {
+                  var label=document.createElement( "div" );
+                  fileInput.appendChild(label);
+                  label.click();
+                  fileInput.removeChild(label);
+                }else{
+                  fileInput.click();
+                }
+            }
+        },
         resetValue:function(value){
             this.each(function(p){
                 if(p.properties.type=='upload'||p.properties.type=='file')
@@ -26649,14 +30407,11 @@ Class("xui.UI.ComboInput", "xui.UI.Input",{
                 if(profile.$poplink)return;
 
                 var o,v,
-                box = profile.boxing(),
-                main = profile.getRoot(),
-                pos = main.offset(),
-                size = main.cssSize()
-                ;
-                size.width += 2;
+                    box = profile.boxing(),
+                    main = profile.getRoot(),
+                    pos = main.offset(),
+                    size = main.cssSize();
                 pos.top += main.offsetHeight();
-
 
                 //special cmd type: getter, 'cmdbox' and 'popbox'
                 if((profile.beforeComboPop && false===box.beforeComboPop(profile, pos, e, src))||type=='getter'||type=='cmdbox'||type=='popbox')
@@ -26708,7 +30463,7 @@ Class("xui.UI.ComboInput", "xui.UI.Input",{
                         case 'helpinput':
                             o = xui.create('List');
                             o.setHost(profile).setDirtyMark(false).setItems(_.copy(pro.items)).setListKey(pro.listKey||'');
-                            o.setWidth(pro.dropListWidth || (pro.width-(pro.labelSize||0)));
+                            o.setWidth(pro.dropListWidth>=2?pro.dropListWidth:(size.width - (pro.labelSize||0) - (pro.borderType!='none'?2:0)));
                             if(pro.dropListHeight)
                                 o.setHeight(pro.dropListHeight);
                             else
@@ -26902,6 +30657,7 @@ Class("xui.UI.ComboInput", "xui.UI.Input",{
         this.setTemplate(t);
 
         this._adjustItems=xui.absList._adjustItems;
+        this.prototype.getItems=xui.absList.prototype.getItems;
     },
     Static:{
         _beforeResetValue:function(profile){
@@ -26920,6 +30676,9 @@ Class("xui.UI.ComboInput", "xui.UI.Input",{
 
             if(type=='listbox'||type=='upload'||type=='file'||type=='cmdbox'||type=='cmd')
                 profile.$inputReadonly=true;
+
+            if(type=='upload'||type=='file')
+                profile.$xuiFileCtrl=true;
 
             if(type!='listbox' && type!='combobox' && type!='helpinput')
                 pro.items=[];
@@ -27235,7 +30994,7 @@ Class("xui.UI.ComboInput", "xui.UI.Input",{
             }
         },
 
-        _objectProp:{tagVar:1,propBinder:1,dockMargin:1,popCtrlProp:1,popCtrlEvents:1},
+        _objectProp:{popCtrlProp:1,popCtrlEvents:1},
         Behaviors:{
             HoverEffected:{BOX:'BOX',BTN:'BTN',SBTN:'SBTN',R1:'R1',R2:'R2'},
             ClickEffected:{BTN:'BTN',SBTN:'SBTN',R1:'R1',R2:'R2'},
@@ -27287,14 +31046,11 @@ Class("xui.UI.ComboInput", "xui.UI.Input",{
                 onChange:function(profile, e, src){
                     if(profile.$_onedit||profile.$_inner||profile.destroyed||!profile.box)return;
                     var o=profile._inValid,
-                        b=profile.box,
+                        p=profile.properties,b=profile.box,
                         instance=profile.boxing(),
                         v = instance._fromEditor(xui.use(src).get(0).value),
-                        uiv=profile.properties.$UIvalue;
+                        uiv=p.$UIvalue;
                     if(!instance._compareValue(uiv,v)){
-                        profile.$_inner=1;
-                        delete profile.$_inner;
-
                         //give a invalid value in edit mode
                         if(v===null)
                             instance._setCtrlValue(uiv);
@@ -27302,7 +31058,7 @@ Class("xui.UI.ComboInput", "xui.UI.Input",{
                             // trigger events
                             instance.setUIValue(v,null,null,'onchange');
                             // input/textarea is special, ctrl value will be set before the $UIvalue
-                            profile.properties.$UIvalue=v;
+                            if(p.$UIvalue!==v)instance._setCtrlValue(p.$UIvalue);
                             if(o!==profile._inValid) if(profile.renderId)instance._setDirtyMark();
                         }
                     }
@@ -27320,9 +31076,7 @@ Class("xui.UI.ComboInput", "xui.UI.Input",{
                             return;
                         }
                         
-                        profile.$_inner=true;
                         profile.boxing()._setCtrlValue(p.$UIvalue);
-                        profile.$_inner=false;
                         if(profile.onCancel)
                             profile.boxing().onCancel(profile);
                     }
@@ -27351,7 +31105,7 @@ Class("xui.UI.ComboInput", "xui.UI.Input",{
                         if(!node.readOnly && node.select){
                             profile.$mouseupDelayFun=_.asyRun(function(){
                                 delete profile.$mouseupDelayFun;
-                                try{node.select()}catch(e){}
+                                if(node.tagName.toLowerCase()=="input" || !/[\n\r]/.test(node.value))node.select();
                             })
                         }
                         delete profile._stopmouseupcaret;
@@ -27396,10 +31150,10 @@ Class("xui.UI.ComboInput", "xui.UI.Input",{
                         if(xui.browser.kde){
                             profile.$focusDelayFun2=_.asyRun(function(){
                                 delete profile.$focusDelayFun2;
-                                try{node.select()}catch(e){}
+                                if(node.tagName.toLowerCase()=="input" || !/[\n\r]/.test(node.value))node.select();
                             });
                         }else{
-                            try{node.select()}catch(e){}
+                            if(node.tagName.toLowerCase()=="input" || !/[\n\r]/.test(node.value))node.select();
                         }
                         // if focus was triggerred by mousedown, try to stop mouseup's caret
                         if(profile._mousedownmark)profile._stopmouseupcaret=1;
@@ -27747,12 +31501,18 @@ Class("xui.UI.ComboInput", "xui.UI.Input",{
                 t.BOX.WRAP.INPUT.tagName='input';
                 t.BOX.WRAP.INPUT.type='text';
                 switch(properties.type){
+                case "none":
+                case "input":
+                case "number":
+                case "currency":
+                break;
                 case 'cmd':
                     t.BOX.WRAP.INPUT.type='button';
                 break;
                 case 'password':
                     t.BOX.WRAP.INPUT.type='password';
                 break;
+                // spin has spin buttons
                 case 'spin':
                     t.RBTN={
                         $order:20,
@@ -27768,6 +31528,7 @@ Class("xui.UI.ComboInput", "xui.UI.Input",{
                         }
                     };
                 break;
+                // following have BTN button
                 case 'upload':
                 case 'file':
                     t.FILE={
@@ -27889,13 +31650,14 @@ Class("xui.UI.ComboInput", "xui.UI.Input",{
 
             var t = profile.properties,
                 o = profile.getSubNode('BOX'),
+
                 label = profile.getSubNode('LABEL'),
                 labelSize=t.labelSize||0,
                 labelGap=t.labelGap||0,
                 labelPos=t.labelPos || 'left',
                 px='px',
                 commandbtn=f(t.commandBtn!='none'?'SBTN':null),
-                functionbtn=f(t.type=='spin'?'RBTN':(t.type=='none'||t.type=='input'||t.type=='password')?null:'BTN'),
+                functionbtn=f(t.type=='spin'?'RBTN':(t.type=='none'||t.type=='input'||t.type=='password'||t.type=='currency'||t.type=='number'||t.type=='cmd')?null:'BTN'),
                 ww=width,
                 hh=height,
                 bw1=0,
@@ -28003,8 +31765,13 @@ Class("xui.UI.ComboInput", "xui.UI.Input",{
         },
         iniPanelView:function(){
             return this.each(function(profile){
-                profile.$ini=true;
-                if(profile.onIniPanelView)profile.boxing().onIniPanelView(profile);
+                if(!profile.$ini){
+                    profile.$ini=true;
+                    var p=profile.properties;
+                    if(profile.onIniPanelView)profile.boxing().onIniPanelView(profile);
+                    if(p.iframeAutoLoad||p.ajaxAutoLoad)
+                        xui.UI.Div._applyAutoLoad(profile);
+                }
             });
         }
     },
@@ -28028,6 +31795,14 @@ Class("xui.UI.ComboInput", "xui.UI.Input",{
                     if(xui.Event.getKey(e).key=='enter')
                         xui(src).onClick();
                 }
+            },
+            PANEL:{
+                onClick:function(profile, e, src){
+                    var p=profile.properties;
+                    if(p.disabled)return false;
+                    if(profile.onClickPanel)
+                        return profile.boxing().onClickPanel(profile, e, src);
+                }
             }
         },
         Templates:{
@@ -28039,6 +31814,7 @@ Class("xui.UI.ComboInput", "xui.UI.Input",{
                 className: ' {toggleCls}',
                 LEGEND:{
                     tagName : 'legend',
+                    style:'{_align}',
                     HANDLE:{
                         tabindex: '{tabindex}',
                         TOGGLE:{
@@ -28092,7 +31868,7 @@ Class("xui.UI.ComboInput", "xui.UI.Input",{
             PANEL:{
                 position:'relative',
                 overflow:'auto',
-                'line-height':'1.22em',
+                'line-height':'auto',
                  background:xui.browser.ie?'url('+xui.ini.img_bg+') no-repeat left top':null
             },
             'FIELDSET-checked PANEL':{
@@ -28108,6 +31884,7 @@ Class("xui.UI.ComboInput", "xui.UI.Input",{
         },
 
         DataModel:{
+            rotate:null,
             selectable:true,
             caption:{
                 ini:undefined,
@@ -28147,19 +31924,32 @@ Class("xui.UI.ComboInput", "xui.UI.Input",{
                     this.getSubNode('ICON')
                         .css('backgroundPosition', value);
                 }
+            },
+            hAlign:{
+                ini:'left',
+                listbox:['left','center','right'],
+                action: function(v){
+                    this.getSubNode("LEGEND").css('textAlign',v);
+                }
             }
         },
         LayoutTrigger:function(){
-            var self=this, t=self.properties, b=self.box;
-            if(t.toggle)
-                b._toggle(self,t.toggle);
-        },        
+            var self=this, t=self.properties;
+            // for expand
+            if(!t.toggle){
+                self.box._toggle(self,false,true);
+            }else{
+                // for default expand container
+                self.boxing().iniPanelView();
+            }
+        },
         EventHandlers:{
             onIniPanelView:function(profile){},
             beforeFold:function(profile){},
             beforeExpand:function(profile){},
             afterFold:function(profile){},
-            afterExpand:function(profile){}
+            afterExpand:function(profile){},
+            onClickPanel:function(profile, e, src){}
         },
         _prepareData:function(profile){
             var data={};
@@ -28172,10 +31962,63 @@ Class("xui.UI.ComboInput", "xui.UI.Input",{
             data.panelDisplay = data.toggleBtn&&!data.toggle?nodisplay:'';
             data.toggleCls = data.toggleBtn&&!data.toggle?profile.getClass('FIELDSET','-checked'):'';
             data.toggleCls2 = data.toggleBtn&&data.toggle?'xui-uicmd-toggle2-checked':'';
-            
+
             profile._toggle = !!data.toggle;
-            
+
+            data._align = 'text-align:'+data.hAlign+';';
+
             return data;
+        },
+        _toggle:function(profile, value, ignoreEvent){
+            var p=profile.properties, ins=profile.boxing();
+
+            //event
+            if(value){
+                ins.iniPanelView();
+            }
+            if(ignoreEvent || profile._toggle !== !!value){
+                //set toggle mark
+                profile._toggle = p.toggle = !!value;
+
+                if(!ignoreEvent){
+                    if(value){
+                        if(ins.beforeExpand && false===ins.beforeExpand(profile))return;
+                    }else{
+                        if(ins.beforeFold && false===ins.beforeFold(profile))return;
+                    }
+                }
+                //show/hide/panel
+                profile.getSubNode('PANEL').css('display',value?'':'none');
+                //chang toggle button
+                if(p.toggleBtn)
+                    profile.getSubNode('TOGGLE').tagClass('-checked', !!value);
+
+                profile.getSubNode('FIELDSET').tagClass('-checked',!value);
+
+                var h=profile.getSubNode('LEGEND').height();
+                // same to ***
+                // for expand status:
+                //    adjust ctrl's height to p.height
+                // for fold status:
+                //    if display => adjust ctrl's height to legend's
+                //    if non-display => adjust ctrl's height to 'auto'
+                profile.getRoot().height(p.toggle?p.height:h?h:'auto');
+
+                if(!ignoreEvent){
+                    if(value){
+                        if(ins.afterExpand)
+                            ins.afterExpand(profile);
+                    }else{
+                        if(ins.afterFold)
+                            ins.afterFold(profile);
+                    }
+
+                    // try redock
+                    if(p.dock && p.dock!='none'){
+                        ins.adjustDock(true);
+                    }
+                }
+            }
         },
         _onresize:function(profile,width,height){
             if(profile._toggle){
@@ -28183,50 +32026,17 @@ Class("xui.UI.ComboInput", "xui.UI.Input",{
                     profile.getSubNode('FIELDSET').height(height);
                     profile.getSubNode('PANEL').height(height-(profile.getSubNode('LEGEND').height()||18));
                 }
+            }else{
+                // same to ***
+                // for expand status:
+                //    height is set in upper function
+                // for fold status:
+                //    if display => adjust ctrl's height to legend's
+                //    if non-display => adjust ctrl's height to 'auto'
+                profile.getRoot().height(profile.getSubNode('LEGEND').height() || 'auto');
             }
             if(width && width!='auto')
                 profile.getSubNode('PANEL').width(width-2);
-        },
-        _toggle:function(profile, value){
-            var p=profile.properties, ins=profile.boxing();
-
-            //event
-            if(_.isSet(value) &&!profile.$ini){
-                profile.$ini=true;
-                if(profile.onIniPanelView)ins.onIniPanelView(profile);
-                if(p.iframeAutoLoad||p.ajaxAutoLoad)
-                    xui.UI.Div._applyAutoLoad(profile);
-            }
-            if(profile._toggle !== !!value){
-                //set toggle mark
-                profile._toggle = p.toggle = !!value;
-    
-                if(value){
-                    if(ins.beforeExpand && false===ins.beforeExpand(profile))return;
-                }else{
-                    if(ins.beforeFold && false===ins.beforeFold(profile))return;
-                }
-    
-                //show/hide/panel
-                profile.getSubNode('PANEL').css('display',value?'':'none');
-                //chang toggle button
-                if(p.toggleBtn)
-                    profile.getSubNode('TOGGLE').tagClass('-checked', !!value);
-    
-                profile.getSubNode('FIELDSET').tagClass('-checked',!value);
-
-                // display-none => adjust ctrl's height to p.height(expand) or 'auto'(fold)
-                profile.getRoot().height(p.toggle?p.height:'auto');
-                profile.getSubNode("FIELDSET").height(p.toggle?p.height:'auto');
-                
-                if(value){
-                    if(ins.afterExpand)
-                        ins.afterExpand(profile);
-                }else{
-                    if(ins.afterFold)
-                        ins.afterFold(profile);
-                }
-            }
         }
     }
 });Class('xui.UI.ColorPicker', ['xui.UI',"xui.absValue"], {
@@ -28649,10 +32459,10 @@ Class("xui.UI.ComboInput", "xui.UI.Input",{
             'ADVMARK1, ADVMARK2':{
                 background:xui.browser.ie6?null:xui.UI.$bg('picker.png', 'no-repeat left top'),
                 _filter: xui.UI.$ieBg('picker.png'),
-                height:'17px',
+                height:'16px',
                 margin:'-8px 0pt 0pt -8px',
                 overflow:'hidden',
-                width:'17px'
+                width:'16px'
             },
             'LIST span':{
                 height: '12px',
@@ -29119,7 +32929,7 @@ Class("xui.UI.ComboInput", "xui.UI.Input",{
                   left: Math.round(Math.sin(angle)*cls._radius+cls._bigRadius),
                   top: Math.round(-Math.cos(angle)*cls._radius+cls._bigRadius)
                 });
-                h=Math.floor((angle/6.28)*360);
+                h=Math.floor((angle/Math.PI)*180);
                 if(h<0)h +=360;
                 hsv=[h, profile.$hsv[1], profile.$hsv[2]];
                 rgb = cls.hsv2rgb(hsv);
@@ -29263,7 +33073,7 @@ Class("xui.UI.ComboInput", "xui.UI.Input",{
         _onresize:function(){}
     }
 });Class('xui.UI.DatePicker', ['xui.UI',"xui.absValue"], {
-    Dependency:['xui.Date'],
+    Dependencies:['xui.Date'],
     Instance:{
         activate:function(){
             this.getSubNode('PRE').focus();
@@ -30120,7 +33930,7 @@ Class("xui.UI.ComboInput", "xui.UI.Input",{
         _onresize:function(){}
     }
 });Class('xui.UI.TimePicker', ['xui.UI',"xui.absValue"], {
-    Dependency:['xui.Date'],
+    Dependencies:['xui.Date'],
     Instance:{
         activate:function(){
             this.getSubNode('PRE').focus();
@@ -30826,6 +34636,11 @@ Class("xui.UI.ComboInput", "xui.UI.Input",{
             tagName : 'div',
             style:'{_style}',
             className:'{_className}',
+            LABEL:{
+                className:'{_required}',
+                style:'{labelShow};width:{labelSize}px;{labelHAlign}',
+                text:'{labelCaption}'
+            },
             ITEMS:{
                $order:10,
                tagName:'div',
@@ -30838,6 +34653,11 @@ Class("xui.UI.ComboInput", "xui.UI.Input",{
                         className:'xui-uitembg {_itemRow} {itemClass} {disabled} {readonly}',
                         style:'{itemStyle}{_itemDisplay}',
                         tabindex:'{_tabindex}',
+                        LTAGCMDS:{
+                            $order:2,
+                            tagName:'span',
+                            text:"{ltagCmds}"
+                        },
                         MARK:{
                             $order:5,
                             style:"{_cbDisplay}"
@@ -30861,13 +34681,17 @@ Class("xui.UI.ComboInput", "xui.UI.Input",{
                         TAGCMDS:{
                             $order:60,
                             tagName:'span',
-                            text:"{tagCmds}"
-                        }
+                            text:"{rtagCmds}"
+                        }    
                     }
                 },
-                'items.tagCmds':function(profile,template,v,tag,result){
+                'items.ltagCmds':function(profile,template,v,tag,result){
                     var me=arguments.callee,map=me._m||(me._m={'text':'.text','button':'.button','image':'.image'});
-                    xui.UI.$doTemplate(profile,template,v,tag+(map[v.type]||'.button'),result)
+                    xui.UI.$doTemplate(profile,template,v,"items.tagCmds"+(map[v.type]||'.button'),result)
+                },
+                'items.rtagCmds':function(profile,template,v,tag,result){
+                    var me=arguments.callee,map=me._m||(me._m={'text':'.text','button':'.button','image':'.image'});
+                    xui.UI.$doTemplate(profile,template,v,"items.tagCmds"+(map[v.type]||'.button'),result)
                 },
                 'items.tagCmds.text':{
                     CMD:{
@@ -30886,7 +34710,7 @@ Class("xui.UI.ComboInput", "xui.UI.Input",{
                         tagName:"button",
                         title:"{tips}",
                         style:'{_style}{itemStyle}',
-                        className:'xui-list-cmd {itemClass}',
+                        className:'xui-uiborder-outset xui-list-cmd {itemClass}',
                         tabindex: '{_tabindex}',
                         text:"{caption}"
                     }
@@ -30908,6 +34732,14 @@ Class("xui.UI.ComboInput", "xui.UI.Input",{
         Appearances:{
             KEY:{
                 'font-size':'12px'
+            },
+            LABEL:{
+               'z-index':1,
+               top:0,
+               left:0,
+               position:'absolute',
+               'padding-top':'4px',
+               'font-size':'12px'
             },
             EXTRA:{
                 display:'none'
@@ -30985,25 +34817,25 @@ Class("xui.UI.ComboInput", "xui.UI.Input",{
                 $order:30,
                 'background-position':'-130px -264px'
             },
-            TAGCMDS:{
+            LTAGCMDS:{
+                "padding-left":'4px',
                 "padding-right":'4px',
-                'vertical-align':'middle',
-                position:(xui.browser.ie&&xui.browser.ver<8)?'absolute':'relative',
-                left:(xui.browser.ie&&xui.browser.ver<8)?'auto':null,
-                right:(xui.browser.ie&&xui.browser.ver<8)?'2px':null,
-                zoom:xui.browser.ie?1:null,
-                "float":(xui.browser.ie&&xui.browser.ver<8)?null:'right'
+                'vertical-align':'middle'
+            },
+            RTAGCMDS:{
+                "padding-left":'4px',
+                'vertical-align':'middle'
             },
             CMD:{
                 "margin-left":'2px',
-                padding:'0 2px',
+                "padding": "0 2px",
                 'vertical-align':'middle',
                 cursor:'pointer'
             }
         },
         Behaviors:{
-            HoverEffected:{ITEM:'ITEM', OPT:'OPT'},
-            ClickEffected:{ITEM:'ITEM', OPT:'OPT'},
+            HoverEffected:{ITEM:'ITEM', OPT:'OPT',CMD:'CMD'},
+            ClickEffected:{ITEM:'ITEM', OPT:'OPT',CMD:'CMD'},
             DraggableKeys:["ITEM"],
             DroppableKeys:["ITEM","ITEMS"],
             onSize:xui.UI.$onSize,
@@ -31020,7 +34852,7 @@ Class("xui.UI.ComboInput", "xui.UI.Input",{
                         box = profile.boxing(),
                         ks=xui.Event.getKey(e);
 
-                    if(profile.beforeClick && false===o.boxing().beforeClick(profile,item,e,src))return false;
+                    if(profile.beforeClick && false===box.beforeClick(profile,item,e,src))return false;
 
                     if(properties.disabled|| item.disabled)return false;
 
@@ -31170,9 +35002,25 @@ Class("xui.UI.ComboInput", "xui.UI.Input",{
                     if(profile.onCmd)
                         profile.boxing().onCmd(profile,item, xui.use(src).id().split('_')[1],e,src);
                     return false;
+                }
+            },
+            LABEL:{
+                onClick:function(profile, e, src){
+                    if(profile.properties.disabled)return false;
+                    if(profile.onLabelClick)
+                        profile.boxing().onLabelClick(profile, e, src);
                 },
-                beforeMousedown:function(){return false;},
-                beforeMouseup:function(){return false;}
+                onDblClick:function(profile, e, src){
+                    if(profile.properties.disabled)return false;
+                    if(profile.onLabelDblClick)
+                        profile.boxing().onLabelDblClick(profile, e, src);
+                },
+                onMousedown:function(profile, e, src){
+                    if(xui.Event.getBtn(e)!='left')return;
+                    if(profile.properties.disabled)return false;
+                     if(profile.onLabelActive)
+                        profile.boxing().onLabelActive(profile, e, src);
+                }
             }
         },
         DataModel:{
@@ -31218,6 +35066,41 @@ Class("xui.UI.ComboInput", "xui.UI.Input",{
                 action:function(){
                     this.boxing().refresh();
                 }
+            },
+            // label
+            labelSize:{
+                ini:0,
+                action: function(v){
+                    this.getSubNode('LABEL').css({display:v?'':'none',width:(v||0)+"px"});
+                    xui.UI.$doResize(this,this.properties.width,this.properties.height,true);
+                }
+            },
+            labelPos:{
+                ini:"left",
+                listbox:['left','top', 'right', 'bottom'],
+                action: function(v){
+                    xui.UI.$doResize(this,this.properties.width,this.properties.height,true);
+                }                
+            },
+            labelGap:{
+                ini:4,
+                action: function(v){
+                    xui.UI.$doResize(this,this.properties.width,this.properties.height,true);
+                }
+            },
+            labelCaption:{
+                ini:"",
+                action: function(v){
+                    v=(_.isSet(v)?v:"")+"";
+                    this.getSubNode('LABEL').html(xui.adjustRes(v,true));
+                }
+            },
+            labelHAlign:{
+                ini:'right',
+                listbox:['','left','center','right'],
+                action: function(v){
+                    this.getSubNode('LABEL').css('textAlign',v);
+                }
             }
         },
         EventHandlers:{
@@ -31227,7 +35110,11 @@ Class("xui.UI.ComboInput", "xui.UI.Input",{
             afterClick:function(profile, item, e, src){},
             onDblclick:function(profile, item, e, src){},
             onShowOptions:function(profile, item, e, src){},
-            onItemSelected:function(profile, item, e, src, type){}
+            onItemSelected:function(profile, item, e, src, type){},
+
+            onLabelClick:function(profile, e, src){},
+            onLabelDblClick:function(profile, e, src){},
+            onLabelActive:function(profile, e, src){}
         },
         _onStartDrag:function(profile, e, src, pos){
             var pos=xui.Event.getPos(e);
@@ -31274,35 +35161,61 @@ Class("xui.UI.ComboInput", "xui.UI.Input",{
             return false;
         },
         _prepareData:function(profile){
-            var data=arguments.callee.upper.call(this, profile);
-            data._bordertype='xui-uiborder-'+data.borderType;
-            return data;
+            var d=arguments.callee.upper.call(this, profile);
+            d._bordertype='xui-uiborder-'+d.borderType;
+            d.labelHAlign=d.labelHAlign?("text-align:" + d.labelHAlign):"";
+            d.labelShow=d.labelSize?"":("display:none");
+            // adjustRes for labelCaption
+            if(d.labelCaption)
+                d.labelCaption=xui.adjustRes(d.labelCaption,true);
+            return d;
         },
         _prepareItem:function(profile, item){
             item._cbDisplay = (profile.properties.selMode=='multibycheckbox')?'':'display:none;';
             item._itemRow = profile.properties.itemRow?'xui-item-row':'';
             this._prepareCmds(profile, item);
         },
-        _prepareCmds:function(profile, item){
+        _prepareCmds:function(profile, item, filter){
             var p=profile.properties,
                 cmds = item.tagCmds || _.clone(p.tagCmds,true);
             if(cmds && cmds.length){
                 var sid=xui.UI.$tag_subId,
-                    a=[],c;
+                    a=[],b=[],c;
                 for(var i=0,t=cmds,l=t.length;i<l;i++){
                     if(typeof t[i]=='string')t[i]={id:t[i]};
                     c=t[i];
+
+                    if(filter && _.isFun(filter)){
+                        if(!filter(c)){
+                            continue;
+                        }
+                    }else{
+                        if(item.tag && item.tag.match((new RegExp("\\b" + "no~" + c.id + "\\b"))) )
+                            continue;
+                    }
+
+                    if('id' in c)c.id+='';else c.id='cmds'+profile.$xid+i;
+
                     if(!c.caption)c.caption=c.id;
+                    if(!('tips' in c))c.tips=c.caption;
+
                     c.id=c.id.replace(/[^0-9a-zA-Z]/g,'');
                     if(!c.type)c.type="button";
+                    
+                    if(c.caption)c.caption=xui.adjustRes(c.caption);
+                    if(c.tips)c.tips=xui.adjustRes(c.tips);
                     if(c.image)c.image=xui.adjustRes(c.image)||xui.ini.img_bg;
                     c._style="";
                     if('width' in c)c._style+=c.width + (_.isFinite(c.width) &&"px") + ";";
                     if('height' in c)c._style+=c.height + (_.isFinite(c.height) &&"px")+ ";";
-                    a.push(c);
-                    c[sid]=(item[sid]?( item[sid] + '_'):"") + c.id;
+                    c[sid]=(item[sid]?item[sid] :"") + '_' + c.id;
+                    if(c["location"]=="left")
+                        b.push(c);
+                    else
+                        a.push(c);
                 }
-                item.tagCmds=a;
+                item.ltagCmds=b;
+                item.rtagCmds=a;
             }
         },
         RenderTrigger:function(){
@@ -31312,21 +35225,46 @@ Class("xui.UI.ComboInput", "xui.UI.Input",{
             xui.UI.$doResize(this,p.width,p.height);
         },
         _onresize:function(profile,width,height){
-            var pp=profile.properties,
-                size=pp.borderType!='none'?2:0,
-                dock=pp.dock,
-                max=pp.maxHeight;
-            if(height){
-                profile.getSubNode('ITEMS').height(height=='auto'?height:(height-size));
+            var p=profile.properties,
+                border=p.borderType!='none'?2:0,
+                dock=p.dock,
+                max=p.maxHeight,
+
+                f=function(k){return profile.getSubNode(k)},
+                o = f('ITEMS'),
+                label = f('LABEL'),
+                root = profile.getRoot(),
+                labelSize = p.labelSize||0,
+                labelGap = p.labelGap||0,
+                labelPos = p.labelPos || 'left',
+                ll, tt, ww, hh;
+
+            o.cssRegion({
+                left : ll = labelPos=='left'?labelSize:0,
+                top : tt = labelPos=='top'?labelSize:0,
+                width : ww = width===null?null:width=='auto'?width:Math.max(0,(width - ((labelPos=='left'||labelPos=='right')?labelSize:0) - border)),
+                height : hh = height===null?null:height=='auto'?height:Math.max(0,(height - ((labelPos=='top'||labelPos=='bottom')?labelSize:0)- border))
+            });
+
+
+            if(height=="auto"){
                 if(dock!="fill"&&dock!="cover"&&dock!="height"&&dock!="left"&&dock!="right"){
-                    if(profile.getSubNode('ITEMS').height()>max){
-                        profile.getSubNode('ITEMS').height(max);
-                        profile.getRoot().height('auto');
+                    if(o.height()>max){
+                        o.height(max);
+                        root.height('auto');
                     }
                 }
             }
-            if(width)
-                profile.getSubNode('ITEMS').width(width=='auto'?width:(width-size));
+            if(labelSize){
+                if(width=='auto')ww=o.offsetWidth();
+                if(height=='auto')hh=o.offsetHeight();
+                profile.getSubNode('LABEL').cssRegion({
+                    left: width===null?null:Math.max(0,labelPos=='right'?((width=='auto'?ww:(width-labelSize))+labelGap):0),
+                    top:  height===null?null:Math.max(0,labelPos=='bottom'?((height=='auto'?hh:(height-labelSize))+labelGap):0), 
+                    width: width===null?null:Math.max(0,((labelPos=='left'||labelPos=='right')?(labelSize-labelGap):(width=='auto'?ww:width))),
+                    height: height===null?null:Math.max(0,((labelPos=='top'||labelPos=='bottom')?(labelSize-labelGap):(height=='auto'?hh:height)))
+                });
+            }
         }
     }
 });Class("xui.UI.Gallery", "xui.UI.List",{
@@ -31772,8 +35710,13 @@ Class("xui.UI.Panel", "xui.UI.Div",{
         },
         iniPanelView:function(){
             return this.each(function(profile){
-                profile.$ini=true;
-                if(profile.onIniPanelView)profile.boxing().onIniPanelView(profile);
+                if(!profile.$ini){
+                    profile.$ini=true;
+                    var p=profile.properties;
+                    if(profile.onIniPanelView)profile.boxing().onIniPanelView(profile);
+                    if(p.iframeAutoLoad||p.ajaxAutoLoad)
+                        xui.UI.Div._applyAutoLoad(profile);
+                }
             });
         }
     },
@@ -31912,7 +35855,7 @@ Class("xui.UI.Panel", "xui.UI.Div",{
                             }
                         }
                     }
-                }                
+                }
             }
         },
         Appearances:{
@@ -31928,7 +35871,7 @@ Class("xui.UI.Panel", "xui.UI.Div",{
                 left:0,
                 top:0,
                 overflow:'auto',
-                'line-height':'1.22em',
+                'line-height':'auto',
                 zoom:xui.browser.ie6?1:null
             },
             CAPTION:{
@@ -31993,7 +35936,7 @@ Class("xui.UI.Panel", "xui.UI.Div",{
 
                     if(profile.beforePop && false==profile.boxing().beforePop(profile,options,e,src))
                         return false;
-                        
+
                     var pro = _.copy(xui.UI.Dialog.$DataStruct),
                         events={};
                     _.merge(pro, properties, 'with');
@@ -32012,10 +35955,10 @@ Class("xui.UI.Panel", "xui.UI.Div",{
                         _.merge(events, options.events, 'all');
 
                     var dialog = new xui.UI.Dialog(pro,events,options.host||profile.host,options.CS||null,options.CC||null,options.CB||null,options.CF||null);
-                    
+
                     if(_.isFun(options.init) && false===options.init(dialog,profile,options)){
                     }else{
-                        dialog.show(options.parent||xui('body'));    
+                        dialog.show(options.parent||xui('body'));
                         var arr=[];
                         _.arr.each(profile.children,function(o){
                             arr.push(o[0]);
@@ -32026,9 +35969,18 @@ Class("xui.UI.Panel", "xui.UI.Div",{
                         profile.boxing().removeChildren().destroy(true);
                     }
                 }
+            },
+            PANEL:{
+                onClick:function(profile, e, src){
+                    var p=profile.properties;
+                    if(p.disabled)return false;
+                    if(profile.onClickPanel)
+                        return profile.boxing().onClickPanel(profile, e, src);
+                }
             }
         },
         DataModel:{
+            rotate:null,
             selectable:true,
             position:'absolute',
             zIndex:0,
@@ -32126,7 +36078,7 @@ Class("xui.UI.Panel", "xui.UI.Div",{
                     var ns=this,root=ns.getRoot();
                     ns.getSubNode('BBAR').css('display',v?'none':'');
                     ns.getSubNode('MAIN').css('paddingLeft',v?'0':'');
-                    ns.getSubNode('MAINI').css('paddingRight',v?'0':'');
+                    ns.getSubNode('MAINI').css('paddingRight',v?'0':'').css('backgroundImage',v?'none':'');
                     //force to resize
                     xui.UI.$tryResize(ns,root.get(0).style.width,root.get(0).style.height,true);
                 }
@@ -32143,12 +36095,18 @@ Class("xui.UI.Panel", "xui.UI.Div",{
             afterExpand:function(profile){},
             onShowInfo:function(profile, e, src){},
             onShowOptions:function(profile, e, src){},
-            onClickBar:function(profile, src){}
+            onClickBar:function(profile, src){},
+            onClickPanel:function(profile, e, src){}
         },
-        LayoutTrigger:function(){
-            var self=this, t=self.properties, b=self.box;
-            if(t.toggle)
-                b._toggle(self,t.toggle);
+        LayoutTrigger:function(ns){
+            var self=this, t=self.properties;
+            // for fold
+            if(!t.toggle){
+                self.box._toggle(self,false,true);
+            }else{
+                // for default expand container
+                self.boxing().iniPanelView();
+            }
         },
         _prepareData:function(profile){
             var data=arguments.callee.upper.call(this, profile);
@@ -32163,37 +36121,34 @@ Class("xui.UI.Panel", "xui.UI.Div",{
             data.closeDisplay = data.closeBtn?'':nodisplay;
             data.popDisplay = data.popBtn?'':nodisplay;
             data.refreshDisplay= data.refreshBtn?'':nodisplay;
-            
+
             data._bordertype='xui-uiborder-'+data.borderType;
-            
+
             data._bbarDisplay=data.noFrame?nodisplay:"";
             data._leftp=data.noFrame?"padding-left:0;":"";
-            data._rightp=data.noFrame?"padding-right:0;":"";
+            data._rightp=data.noFrame?"padding-right:0;background-image:none;":"";
 
             profile._toggle = !!data.toggle;
             return data;
         },
-        _toggle:function(profile, value){
+        _toggle:function(profile, value, ignoreEvent){
             var p=profile.properties, ins=profile.boxing();
 
             //event
-            if(_.isSet(value) &&!profile.$ini){
-                profile.$ini=true;
-                if(ins.onIniPanelView)ins.onIniPanelView(profile);
-                if(p.iframeAutoLoad||p.ajaxAutoLoad)
-                    xui.UI.Div._applyAutoLoad(profile);
+            if(value){
+                ins.iniPanelView();
             }
 
-            if(profile._toggle !== !!value){
+            if(ignoreEvent || profile._toggle !== !!value){
                 //set toggle mark
                 profile._toggle = p.toggle = !!value;
-
-                if(value){
-                    if(ins.beforeExpand && false===ins.beforeExpand(profile))return;
-                }else{
-                    if(ins.beforeFold && false===ins.beforeFold(profile))return;
+                if(!ignoreEvent){
+                    if(value){
+                        if(ins.beforeExpand && false===ins.beforeExpand(profile))return;
+                    }else{
+                        if(ins.beforeFold && false===ins.beforeFold(profile))return;
+                    }
                 }
-
                 //show/hide/panel
                 profile.getSubNode('PANEL').css('display',value?'':'none');
                 //chang toggle button
@@ -32201,16 +36156,26 @@ Class("xui.UI.Panel", "xui.UI.Div",{
                     profile.getSubNode('TOGGLE').tagClass('-checked', !!value);
 
                 var h=profile.getSubNode('BORDER').height();
-                // display => adjust ctrl's height to border's
-                // display-none => adjust ctrl's height to p.height(expand) or 'auto'(fold)
-                profile.getRoot().height(h?h:p.toggle?p.height:'auto');
+                // same to ***
+                // for expand status:
+                //    adjust ctrl's height to p.height
+                // for fold status:
+                //    if display => adjust ctrl's height to border's
+                //    if non-display => adjust ctrl's height to 'auto'
+                profile.getRoot().height(p.toggle?p.height:(h||'auto'));
 
-                if(value){
-                    if(ins.afterExpand)
-                        ins.afterExpand(profile);
-                }else{
-                    if(ins.afterFold)
-                        ins.afterFold(profile);
+                if(!ignoreEvent){
+                    if(value){
+                        if(ins.afterExpand)
+                            ins.afterExpand(profile);
+                    }else{
+                        if(ins.afterFold)
+                            ins.afterFold(profile);
+                    }
+                    // try redock
+                    if(p.dock && p.dock!='none'){
+                        ins.adjustDock(true);
+                    }
                 }
             }
         },
@@ -32218,6 +36183,8 @@ Class("xui.UI.Panel", "xui.UI.Div",{
             var isize={},
                 p=profile.properties,
                 noFrame=p.noFrame,
+                root=profile.getRoot(),
+                bd=profile.getSubNode('BORDER'),
                 v1=profile.getSubNode('TBAR'),
                 v2=profile.getSubNode('PANEL'),
                 v4=profile.getSubNode('BBAR'),
@@ -32229,19 +36196,29 @@ Class("xui.UI.Panel", "xui.UI.Div",{
                 if(height=='auto')
                     isize.height=height;
                 else{
-                    h1=v1.height();
-                    h4=noFrame?0:v4.height();
-                    if((t=height-h1-h4)>0)
-                        isize.height=t-size;
+                    if(profile._toggle){
+                        h1=v1.height();
+                        h4=noFrame?0:v4.height();
+                        if((t=height-h1-h4)>0)
+                            isize.height=t-size;
+                    }else{
+                        // same to ***
+                        // for expand status:
+                        //    height is set in upper function
+                        // for fold status:
+                        //    if display => adjust ctrl's height to border's
+                        //    if non-display => adjust ctrl's height to 'auto'
+                        root.height(bd.height() || 'auto');
+                    }
                 }
             }
             if(width)
-                isize.width=width 
+                isize.width=width
                     -(noFrame?0:(parseInt(v6.css('paddingRight'),10)||0))
                     -(noFrame?0:(parseInt(v5.css('paddingLeft'),10)||0))
                     -v2._borderW();
             v2.cssSize(isize, true);
-        } 
+        }
     }
 });
 Class("xui.UI.PageBar",["xui.UI","xui.absValue"] ,{
@@ -32318,10 +36295,13 @@ Class("xui.UI.PageBar",["xui.UI","xui.absValue"] ,{
         },
         setPage:function(value){
             return this.each(function(o){
-                var v=o.properties.value,
-                    a=v.split(':');
-                a[1]=parseInt(value,10)||a[0];
-                o.boxing().setValue(a.join(':'),false,'page');
+                var v=(o.properties.$UIvalue||""),
+                    a=v.split(':'),
+                    b=a[1]||a[0];
+                a[1]=parseInt(value,10)||b;
+                o.boxing().setUIValue(a.join(':'),false,false,'page');
+
+                if(o.onPageSet)o.boxing().onPageSet(o, a[1], b);
             });
         }
     },
@@ -32544,6 +36524,8 @@ Class("xui.UI.PageBar",["xui.UI","xui.absValue"] ,{
             dataBinder:null,
             readonly:null,
             autoTips:false,
+            dirtyMark:false,
+            showDirtyMark:false,
             caption:{
                 ini:' Page: ',
                 action:function(v){
@@ -32559,7 +36541,8 @@ Class("xui.UI.PageBar",["xui.UI","xui.absValue"] ,{
             _moreStep:100
         },
         EventHandlers:{
-            onClick:function(profile, page){}
+            onClick:function(profile, page){},
+            onPageSet:function(profile, page, opage){}
         },
         _ensureValue:function(profile,value){
             value=value+'';
@@ -32590,10 +36573,17 @@ Class("xui.UI.PageBar",["xui.UI","xui.absValue"] ,{
         _click:function(profile, src){
             if(profile.properties.disabled)return false;
             var b=profile.boxing(),
-                v=b.getValue(),
-                a=v.split(':');
+                a=(profile.properties.$UIValue||"").split(':'),
+                nv=parseInt(xui(src).first(3).attr('href').split('#')[1],10)||a[1]||a[0];
 
-            var r = b.onClick(profile, parseInt(xui(src).first(3).attr('href').split('#')[1],10)||a[0]);
+            var r = b.onClick(nv);
+
+            // if didn't call setPage  in onclick event, setPage here
+            a=(profile.$UIValue||"").split(':');
+            if(!a.length || (nv+"")!==(a[1]+"")){
+                b.setPage(nv);
+            }
+
             return typeof r=="boolean"?r:false;
         },
         _show:function(profile, e, src, flag){
@@ -32852,9 +36842,11 @@ Class("xui.UI.Tabs", ["xui.UI", "xui.absList","xui.absValue"],{
         ////
         fireItemClickEvent:function(subId){
             var node=this.getSubNodeByItemId('ITEM', subId+''),ev=xui.Event;
-            if(ev.__realtouch)ev.__simulatedMousedown=1;
-            node.onMousedown(true).onMouseup(true);
-            if(ev.__realtouch)ev.__simulatedMousedown=0;
+            node.onClick(true);
+
+            //if(ev.__realtouch)ev.__simulatedMousedown=1;
+            //node.onMousedown(true).onMouseup(true);
+            //if(ev.__realtouch)ev.__simulatedMousedown=0;
             return this;
         },
         /* insert some views to pageView widgets
@@ -32901,8 +36893,11 @@ Class("xui.UI.Tabs", ["xui.UI", "xui.absList","xui.absValue"],{
 
             self.each(function(profile){
                 if(!profile.boxing().getUIValue()){
-                    var i;
-                    profile.boxing().fireItemClickEvent((i=profile.properties.items[0]) && i.id);
+                    _.asyRun(function(){
+                        if(!profile || !profile.renderId || !profile.properties || !profile.properties.items.length)return;
+                        var i;
+                        profile.boxing().fireItemClickEvent((i=profile.properties.items[0]) && i.id);
+                    });
                 }
                 if(!profile.box.$DataModel.hasOwnProperty("noPanel") || !profile.properties.noPanel){
                     var t=profile.getRootNode().style;
@@ -33217,15 +37212,6 @@ Class("xui.UI.Tabs", ["xui.UI", "xui.absList","xui.absValue"],{
             HoverEffected:{ITEM:'ITEM',OPT:'OPT',CLOSE:'CLOSE',POP:'POP',LEFT:"LEFT",RIGHT:"RIGHT",DROP:"DROP"},
             ClickEffected:{ITEM:'ITEM',OPT:'OPT',CLOSE:'CLOSE',POP:'POP'},
             onSize:xui.UI.$onSize,
-            OPT:{
-                onMousedown:function(){
-                    return false;
-                },
-                onClick:function(profile, e, src){
-                    profile.boxing().onShowOptions(profile, profile.getItemByDom(src), e, src);
-                    return false;
-                }
-            },
             CAPTION:{
                 onMousedown:function(profile, e, src){
                     if(xui.Event.getBtn(e)!='left')return;
@@ -33243,9 +37229,6 @@ Class("xui.UI.Tabs", ["xui.UI", "xui.absList","xui.absValue"],{
             },
             ITEM:{
                 onClick:function(profile, e, src){
-                    return false;
-                },
-                onMousedown:function(profile, e, src){
                     if(xui.Event.getBtn(e)!='left')return false;
                     var t;
                     if((t=xui.Event.getSrc(e).parentNode) && t.id && (profile.getKey(t.id))==profile.keys.CMDS)return false;
@@ -33260,7 +37243,7 @@ Class("xui.UI.Tabs", ["xui.UI", "xui.absList","xui.absValue"],{
                     if(prop.readonly || item.readonly)return false;
 
                     //for some input onblur event
-                    profile.getSubNode('HANDLE', itemId).focus();
+                    //profile.getSubNode('HANDLE', itemId).focus();
 
                     if(dm.hasOwnProperty("selMode") &&
                         dm.hasOwnProperty("noPanel") &&
@@ -33308,13 +37291,10 @@ Class("xui.UI.Tabs", ["xui.UI", "xui.absList","xui.absValue"],{
                 }
             },
             HANDLE:{
-                onClick:function(profile, e, src){
-                    return xui.Event.getKey(e).shiftKey;
-                },
                 onKeydown:function(profile, e, src){
                     var keys=xui.Event.getKey(e), key = keys.key, shift=keys.shiftKey;
                     if(key==' '||key=='enter'){
-                        profile.getSubNode('ITEM',profile.getSubId(src)).onMousedown();
+                        profile.getSubNode('ITEM',profile.getSubId(src)).onClick();
                         return false;
                     }
 
@@ -33358,10 +37338,13 @@ Class("xui.UI.Tabs", ["xui.UI", "xui.absList","xui.absValue"],{
                     }
                 }
             },
-            CLOSE:{
-                onMousedown:function(){
+            OPT:{
+                onClick:function(profile, e, src){
+                    profile.boxing().onShowOptions(profile, profile.getItemByDom(src), e, src);
                     return false;
-                },
+                }
+            },
+            CLOSE:{
                 onClick:function(profile, e, src){
                     var properties = profile.properties,
                         item = profile.getItemByDom(src),
@@ -33394,12 +37377,11 @@ Class("xui.UI.Tabs", ["xui.UI", "xui.absList","xui.absValue"],{
                     var t=profile.getRootNode().style;
                     xui.UI.$tryResize(profile, t.width, t.height,true);
                     t=null;
+
+                    return false;
                 }
             },
             POP:{
-                onMousedown:function(){
-                    return false;
-                },
                 onClick:function(profile, e, src){
                     var properties = profile.properties,
                         item = profile.getItemByDom(src),
@@ -33450,6 +37432,7 @@ Class("xui.UI.Tabs", ["xui.UI", "xui.absList","xui.absValue"],{
                         }
                         profile.boxing().removeChildren(id).removeItems(id);
                     }
+                    return false;
                 }
             },
             ITEMS:{
@@ -33595,14 +37578,22 @@ Class("xui.UI.Tabs", ["xui.UI", "xui.absList","xui.absValue"],{
                 onClick:function(p, e, src){
                     xui(src).onMouseover(true);
                 }
+            },
+            PANEL:{
+                onClick:function(profile, e, src){
+                    var p=profile.properties,
+                        item = profile.getItemByDom(src);
+                    if(p.disabled || item.disabled)return false;
+                    if(profile.onClickPanel)
+                        return profile.boxing().onClickPanel(profile, item, e, src);
+                }
             }
         },
         DataModel:{
+            rotate:null,
+
             selectable:true,
             dirtyMark:false,
-
-            dataBinder:null,
-            dataField:null,
 
             lazyAppend:true,
 
@@ -33655,7 +37646,8 @@ Class("xui.UI.Tabs", ["xui.UI", "xui.absList","xui.absValue"],{
             afterPageClose:function(profile, item){},
             onShowOptions:function(profile,item,e,src){},
             onItemSelected:function(profile, item,e,src,type){},
-            onCaptionActive:function(profile, item,e,src){}
+            onCaptionActive:function(profile, item,e,src){},
+            onClickPanel:function(profile, item, e, src){}
         },
         RenderTrigger:function(){
             var self=this,v,i,ins;
@@ -33698,9 +37690,9 @@ Class("xui.UI.Tabs", ["xui.UI", "xui.absList","xui.absValue"],{
                 item._bginfo+="background-attachment:"+t+";";
                 
             if(_.isStr(item.overflow))
-                item._overflow = item.overflow.indexOf(':')!=-1?(item.overflow):("overflow:"+item.overflow);
+                item._overflow = item.overflow.indexOf(':')!=-1?(item.overflow):(data.overflow?("overflow:"+data.overflow):"");
             else if(_.isStr(p.overflow))
-                item._overflow = p.overflow.indexOf(':')!=-1?(p.overflow):("overflow:"+p.overflow);
+                item._overflow = p.overflow.indexOf(':')!=-1?(p.overflow):(p.overflow?("overflow:"+p.overflow):"");
         },
         getDropKeys:function(profile,node){
             return profile.properties[profile.getKey(xui.use(node).id())==profile.keys.PANEL?'dropKeys':'dropKeysPanel'];
@@ -33781,7 +37773,6 @@ Class("xui.UI.Tabs", ["xui.UI", "xui.absList","xui.absValue"],{
 
                     if(!_if.query)_if.query={};
                     _if.query._rand=_();
-                    ifr.src=_if.url;
                     ifr.frameBorder='0';
                     ifr.marginWidth='0';
                     ifr.marginHeight='0';
@@ -33791,7 +37782,11 @@ Class("xui.UI.Tabs", ["xui.UI", "xui.absList","xui.absValue"],{
                     ifr.width='100%';
                     ifr.height='100%';
                     box.getPanel(item.id).html("").append(ifr);
-                    xui.Dom.submit(_if.url, _if.query, _if.method, id, _if.enctype);
+    
+                    if((_if.method||"").toLowerCase()=="post")
+                        xui.Dom.submit(_if.url, _if.query, "post", id, _if.enctype);
+                    else
+                        ifr.src=_if.url;
                 }else if(item.ajaxAutoLoad){
                     var _ajax=typeof item.ajaxAutoLoad=='string'?{url:item.ajaxAutoLoad}:_.clone(item.ajaxAutoLoad,true),
                         options={rspType:"text"};
@@ -33835,7 +37830,7 @@ Class("xui.UI.Tabs", ["xui.UI", "xui.absList","xui.absValue"],{
                 key=t.$UIvalue;
             item = profile.getItemByItemId(key);
             var o = profile.boxing().getPanel(key),
-                l=profile.getSubNode('LIST'),
+                list=profile.getSubNode('LIST'),
                 listH;
 
             if(!o || o.isEmpty())return;
@@ -33846,9 +37841,9 @@ Class("xui.UI.Tabs", ["xui.UI", "xui.absList","xui.absValue"],{
                 item._h=height;
                 if(height && height!='auto'){
                     if(!t.noHandler){
-                        listH = l.get(0).offsetHeight ||
+                        listH = list.get(0).offsetHeight ||
                             //for opear 9.0 get height bug, get offsetheight in firefox is slow
-                            l.offsetHeight();
+                            list.offsetHeight();
     
                         height = height-listH;
                     }
@@ -33857,7 +37852,7 @@ Class("xui.UI.Tabs", ["xui.UI", "xui.absList","xui.absValue"],{
             }
 
             if(width && item._w!=width){
-                l.width(item._w=width);
+                list.width(item._w=width);
                 if(!t.noHandler){
                     this._adjustScroll(profile);
                 }
@@ -34564,6 +38559,9 @@ Class("xui.UI.StatusButtons", ["xui.UI.List"],{
 });
 
 Class("xui.UI.TreeBar",["xui.UI","xui.absList","xui.absValue"],{
+    $Start:function(t){
+        if(t=this.Static.RenderTrigger)t.$order = -1;
+    },
     Instance:{
         _setCtrlValue:function(value, flag){
             return this.each(function(profile){
@@ -34622,7 +38620,6 @@ Class("xui.UI.TreeBar",["xui.UI","xui.absList","xui.absValue"],{
             });
         },
         insertItems:function(arr, pid, base ,before, toggle){
-            if(!arr || !_.isArr(arr) || arr.length<1)return this;
             var node,data,
                 b=this._afterInsertItems;
 
@@ -34805,34 +38802,39 @@ Class("xui.UI.TreeBar",["xui.UI","xui.absList","xui.absValue"],{
                                 text:'{innerIcons}'
                             },
                             TOGGLE:{
-                                $order:3,
+                                $order:4,
                                 className:'{togglemark}'
                             },
+                            LTAGCMDS:{
+                                $order:3,
+                                tagName:'span',
+                                text:"{ltagCmds}"
+                            },
                             MARK:{
-                                $order:4,
+                                $order:5,
                                 style:'{mark2Display}'
                             },
                             ITEMICON:{
-                                $order:5,
+                                $order:6,
                                 className:'xui-ui-icon {imageClass}',
                                 style:'{backgroundImage} {backgroundPosition} {backgroundRepeat} {imageDisplay}'
                             },
                             ITEMCAPTION:{
                                 text : '{caption}',
                                 className:"{disabled}  {readonly}",
-                                $order:6
+                                $order:7
                             },
                             EXTRA:{
                                 text : '{ext}',
-                                $order:7
-                            },
-                            OPT:{
                                 $order:8
                             },
-                            TAGCMDS:{
-                                $order:9,
+                            OPT:{
+                                $order:9
+                            },
+                            RTAGCMDS:{
+                                $order:10,
                                 tagName:'span',
-                                text:"{tagCmds}"
+                                text:"{rtagCmds}"
                             }
                         },
                         SUB:{
@@ -34842,9 +38844,13 @@ Class("xui.UI.TreeBar",["xui.UI","xui.absList","xui.absValue"],{
                         }
                     }
                 },
-                'items.tagCmds':function(profile,template,v,tag,result){
+                'items.ltagCmds':function(profile,template,v,tag,result){
                     var me=arguments.callee,map=me._m||(me._m={'text':'.text','button':'.button','image':'.image'});
-                    xui.UI.$doTemplate(profile,template,v,tag+(map[v.type]||'.button'),result)
+                    xui.UI.$doTemplate(profile,template,v,'items.tagCmds'+(map[v.type]||'.button'),result)
+                },
+                'items.rtagCmds':function(profile,template,v,tag,result){
+                    var me=arguments.callee,map=me._m||(me._m={'text':'.text','button':'.button','image':'.image'});
+                    xui.UI.$doTemplate(profile,template,v,'items.tagCmds'+(map[v.type]||'.button'),result)
                 },
                 'items.tagCmds.text':{
                     CMD:{
@@ -34863,7 +38869,7 @@ Class("xui.UI.TreeBar",["xui.UI","xui.absList","xui.absValue"],{
                         tagName:"button",
                         title:"{tips}",
                         style:'{_style}{itemStyle}',
-                        className:'xui-list-cmd {itemClass}',
+                        className:'xui-uiborder-outset xui-list-cmd {itemClass}',
                         tabindex: '{_tabindex}',
                         text:"{caption}"
                     }
@@ -34894,7 +38900,8 @@ Class("xui.UI.TreeBar",["xui.UI","xui.absList","xui.absValue"],{
                 left:0,
                 overflow: 'auto',
                 'overflow-x': 'hidden',
-                position:'relative'
+                position:'relative',
+                clear:"both"
             },
             ITEMS:{
                 overflow: 'hidden'
@@ -34941,7 +38948,7 @@ Class("xui.UI.TreeBar",["xui.UI","xui.absList","xui.absValue"],{
                 //1px for ie8
                 'line-height':'1px',
                 position:'relative',
-                'margin-left':'16px'
+                'margin-left':'22px'
             },
 
             MARK:{
@@ -34983,14 +38990,18 @@ Class("xui.UI.TreeBar",["xui.UI","xui.absList","xui.absValue"],{
                 $order:30,
                 'background-position':'-130px -264px'
             },
-            TAGCMDS:{
+            LTAGCMDS:{
+                "padding-left":'4px',
                 "padding-right":'4px',
-                'vertical-align':'middle',
-                position:(xui.browser.ie&&xui.browser.ver<8)?'absolute':'relative',
-                left:(xui.browser.ie&&xui.browser.ver<8)?'auto':null,
-                right:(xui.browser.ie&&xui.browser.ver<8)?'2px':null,
-                zoom:xui.browser.ie?1:null,
-                "float":(xui.browser.ie&&xui.browser.ver<8)?null:'right'
+                'vertical-align':'middle'
+            },
+            RTAGCMDS:{
+                "padding-left":'4px',
+                'vertical-align':'middle'
+            },
+            'BOX-tagcmdleft TAGCMDS':{
+                "padding-right":'4px',
+                "float":"left"
             },
             CMD:{
                 "margin-left":'2px',
@@ -35000,8 +39011,8 @@ Class("xui.UI.TreeBar",["xui.UI","xui.absList","xui.absValue"],{
             }
         },
         Behaviors:{
-            HoverEffected:{TOGGLE:'TOGGLE', BAR:'BAR',OPT:'OPT'},
-            ClickEffected:{TOGGLE:'TOGGLE', BAR:'BAR',OPT:'OPT'},
+            HoverEffected:{TOGGLE:'TOGGLE', BAR:'BAR',OPT:'OPT',CMD:'CMD'},
+            ClickEffected:{TOGGLE:'TOGGLE', BAR:'BAR',OPT:'OPT',CMD:'CMD'},
             DraggableKeys:["BAR"],
             NoDraggableKeys:['TOGGLE'],
             DroppableKeys:["BAR","TOGGLE","BOX"],
@@ -35073,9 +39084,7 @@ Class("xui.UI.TreeBar",["xui.UI","xui.absList","xui.absValue"],{
                     if(profile.onCmd)
                         profile.boxing().onCmd(profile,item, xui.use(src).id().split('_')[1],e,src);
                     return false;
-                },
-                beforeMousedown:function(){return false;},
-                beforeMouseup:function(){return false;}
+                }
             },
             BOX:{
                 onScroll:function(profile, e, src){
@@ -35148,6 +39157,17 @@ Class("xui.UI.TreeBar",["xui.UI","xui.absList","xui.absValue"],{
                 action:function(){
                     this.boxing().refresh();
                 }
+            },
+            tagCmdsAlign:{
+                ini:"right",
+                listbox:['left','right'],
+                action:function(v){
+                    var profile=this;
+                    if(v=="left")
+                        profile.getSubNode("BOX").addClass(profile.getClass('BOX','-tagcmdleft'));
+                    else
+                        profile.getSubNode("BOX").removeClass(profile.getClass('BOX','-tagcmdleft'));
+                }
             }
         },
         RenderTrigger:function(){
@@ -35163,7 +39183,7 @@ Class("xui.UI.TreeBar",["xui.UI","xui.absList","xui.absValue"],{
                 sk = profile.getKey(xui.Event.getSrc(e).id||""),
                 ignoreClick = sk==profile.keys.TOGGLE||sk==profile.keys.MARK;
 
-            if(!ignoreClick && profile.beforeClick && false===o.boxing().beforeClick(profile,item,e,src))return false;
+            if(!ignoreClick && profile.beforeClick && false===box.beforeClick(profile,item,e,src))return false;
                 
             if(properties.disabled|| item.disabled)return false;
 
@@ -35382,7 +39402,7 @@ Class("xui.UI.TreeBar",["xui.UI","xui.absList","xui.absValue"],{
 
             item.disabled = item.disabled?'xui-ui-disabled':'';
             item._itemDisplay=item.hidden?'display:none;':'';
-            item.mark2Display = (p.selMode=='multi'||p.selMode=='multibycheckbox')?'':'display:none;';
+            item.mark2Display = ('showMark' in item)?(item.showMark?'':'display:none;'):(p.selMode=='multi'||p.selMode=='multibycheckbox')?'':'display:none;';
             item._tabindex = p.tabindex;
             //change css class
             if(item.sub && (item.hasOwnProperty('group')?item.group:p.group)){
@@ -35412,7 +39432,7 @@ Class("xui.UI.TreeBar",["xui.UI","xui.absList","xui.absValue"],{
                         markNode.tagClass('-checked', false);
                         barNode.tagClass('-expand',false).tagClass('-fold');
                         item._checked = false;
-                        if(properties.dynDestory){
+                        if(properties.dynDestory || item.dynDestory){
                             var s=item.sub, arr=[];
                             for(var i=0,l=s.length;i<l;i++)
                                 arr.push(s[i].id);
@@ -35429,7 +39449,7 @@ Class("xui.UI.TreeBar",["xui.UI","xui.absList","xui.absValue"],{
                         }else onend();
                     }else onend();
                 }
-                if(recursive && item.sub && !properties.dynDestory){
+                if(recursive && item.sub && !properties.dynDestory && !item.dynDestory){
                     _.arr.each(item.sub,function(o){
                         if(o.sub && o.sub.length)
                             profile.box._setSub(profile, o, flag, recursive, true);
@@ -35443,7 +39463,21 @@ Class("xui.UI.TreeBar",["xui.UI","xui.absList","xui.absValue"],{
                     }
                     var onend=function(empty){
                         subNs.css({display:'',height:'auto'});
-                        markNode.css('background','');
+                        //markNode.css('background','');
+                        // compitable with IE<8
+                        if(xui.browser.ie && xui.browser.ver<=8){
+                            markNode.css({
+                                backgroundImage:'',
+                                backgroundRepeat:'',
+                                backgroundPositionX:'',
+                                backgroundPositionY:'',
+                                backgroundColor:'',
+                                backgroundAttachment:''
+                              });
+
+                        }else{
+                            markNode.css('background','');
+                        }
                         if(empty){
                             // markNode.css('background','none');
                             // do nothing
@@ -35496,12 +39530,12 @@ Class("xui.UI.TreeBar",["xui.UI","xui.absList","xui.absValue"],{
                             b._toggleNodes(item._pid?profile.getItemByItemId(item._pid).sub:p.items, false)
 
                         if(!stopanim){
-                            var h=0;
                             subNs.css("height","0px").css("display",'');
-                            subNs.children().each(function(o){
-                                h+=o.offsetHeight;
-                            });
                             if(p.animCollapse){
+                                var h=0;
+                                subNs.children().each(function(o){
+                                    h+=o.offsetHeight;
+                                });
                                 subNs.animate({'height':[0,h]},null,function(){
                                     onend(empty);
                                 },200, null, 'expoIn', profile.key+profile.id).start();
@@ -35713,8 +39747,9 @@ Class("xui.UI.TreeView","xui.UI.TreeBar",{
             }
         },
         DataModel:{
+            $subMargin:22,
             group:null,
-            noIcons:{
+            noIcon:{
                 ini:false,
                 action:function(v){
                     this.getSubNode("ITEMICON",true).css('display',v?'none':'');
@@ -35747,7 +39782,7 @@ Class("xui.UI.TreeView","xui.UI.TreeBar",{
                     arr=_.copy(pitem._icons);
                     arr.push(index==len-1?'last':index===0?'first':'middle');
                     oitem._icons=arr;
-                    item.rulerStyle='width:'+(oitem._deep*16)+'px;';
+                    item.rulerStyle='width:'+(oitem._deep*p.$subMargin)+'px;';
 
 
                     // build image html
@@ -35771,15 +39806,13 @@ Class("xui.UI.TreeView","xui.UI.TreeBar",{
                 item.togglemark = item.sub?(getType(item.sub, oitem._icons[0], cls, item._checked)):(p.togglePlaceholder?'xui-uicmd-empty':'xui-uicmd-none');
             }
             // show image
-            item.imageDisplay=p.noIcons?"display:none;":"";
+            item.imageDisplay=(item.noIcon||p.noIcon)?"display:none;":"";
             //
             item.cls_fold = item.sub?profile.getClass('BAR','-fold'):'';
 
-            item._noicon=p.onIcons?"":"";
-
             item.disabled = item.disabled?'xui-ui-disabled':'';
             item._itemDisplay=item.hidden?'display:none;':'';
-            item.mark2Display = p.selMode=='multibycheckbox'?'':'display:none;';
+            item.mark2Display = ('showMark' in item)?(item.showMark?'':'display:none;'):(p.selMode=='multi'||p.selMode=='multibycheckbox')?'':'display:none;';
             item._tabindex = p.tabindex;
             xui.UI.List._prepareCmds(profile, item);
         },
@@ -36822,6 +40855,7 @@ Class("xui.UI.PopMenu",["xui.UI.Widget","xui.absList"],{
             $submap:{
                 items:{
                     ITEM:{
+                        style:'{itemStyle}{_itemDisplay}',
                         ITEMI:{
                             ITEMC:{
                                 ITEMA:{
@@ -37099,8 +41133,10 @@ Class("xui.UI.PopMenu",["xui.UI.Widget","xui.absList"],{
             if(this.properties.disabled)this.boxing().setDisabled(true,true);
         },
         _prepareData:function(profile){
+            var none='display:none;';
             var data=arguments.callee.upper.call(this, profile);
-            data.handler = data.handler?'':'display:none';
+            data.handler = data.handler?'':none;
+            data._itemDisplay=data.hidden?none:'';
             return data;
         }
     }
@@ -37679,8 +41715,8 @@ Class("xui.UI.Layout",["xui.UI", "xui.absList"],{
                 if(!node.isEmpty()){
                     if(options.hasOwnProperty('size')){
                         options.size = parseInt(''+options.size,10);
-                        if(options.size!=item.size){
-                            item.size=options.size;
+                        if(options.size!=item._size){
+                            item._size=options.size;
                             if(vertical)
                                 node.height(options.size);
                              else
@@ -38037,18 +42073,29 @@ Class("xui.UI.Layout",["xui.UI", "xui.absList"],{
                     var t=profile.properties,
                         o=xui.use(src).parent(),
                         r=profile.getRoot(),
-                        item = profile.getItemByDom(src);
-
+                        item = profile.getItemByDom(src),
+                        sum=0, cur,
+                        innerW=null,innerH=null,mainItem;
+                    for (var i=0,l=t.items.length; i<l; i++){
+                        sum += t.items[i].size || 80;
+                        if(t.items[i].id=="main")mainItem=t.items[i];
+                    }
                     //add offset and refresh
                     if(t.type=='vertical'){
+                        innerH = r.height();
                         //use size to ignore onresize event once
-                        o.height(item.size =  profile._cur + (profile.pos=='before'?1:-1)*xui.DragDrop.getProfile().offset.y);
-                        xui.UI.$tryResize(profile,null,r.height(),true);
+                        o.height(item._size =  profile._cur + (profile.pos=='before'?1:-1)*xui.DragDrop.getProfile().offset.y);
+                        cur = sum * item._size / innerH;
                     }else{
-                        o.width(item.size = profile._cur + (profile.pos=='before'?1:-1)*xui.DragDrop.getProfile().offset.x);
-                        //use size to ignore onresize event once
-                        xui.UI.$tryResize(profile,r.width(),null,true);
+                        innerW = r.width();
+                        o.width(item._size = profile._cur + (profile.pos=='before'?1:-1)*xui.DragDrop.getProfile().offset.x);
+                        cur = sum * item._size / innerW;
                     }
+                    // always - main
+                    mainItem.size -= cur - item.size;
+                    item.size = cur;
+                    //use size to ignore onresize event once
+                    xui.UI.$tryResize(profile,innerW,innerH,true);
                     profile._limited=0;
                 }
             },
@@ -38069,9 +42116,9 @@ Class("xui.UI.Layout",["xui.UI", "xui.absList"],{
                     if(t.type=='vertical'){
                         // restore resize mode
                         if(item.folded){
-                           // if(item.size <= m.height() - main.min + _handlerSize){
+                           // if(item._size <= m.height() - main.min + _handlerSize){
                                 //restore h
-                                o.height(item.size);
+                                o.height(item._size);
                                 panel.show();
 
                                 item.folded=false;
@@ -38104,8 +42151,8 @@ Class("xui.UI.Layout",["xui.UI", "xui.absList"],{
                         xui.UI.$tryResize(profile,null,r.height(),true);
                     }else{
                         if(item.folded){
-                           // if(item.size <= m.width()-main.min + _handlerSize){
-                                o.width(item.size);
+                           // if(item._size <= m.width()-main.min + _handlerSize){
+                                o.width(item._size);
                                 panel.show();
                                 item.folded=false;
                                 if(item.pos=='before')
@@ -38136,9 +42183,19 @@ Class("xui.UI.Layout",["xui.UI", "xui.absList"],{
 
                     return false;
                 }
+            },
+            PANEL:{
+                onClick:function(profile, e, src){
+                    var p=profile.properties,
+                        item = profile.getItemByDom(src);
+                    if(p.disabled || item.disabled)return false;
+                    if(profile.onClickPanel)
+                        return profile.boxing().onClickPanel(profile, item, e, src);
+                }
             }
         },
         DataModel:{
+            rotate:null,
             selectable:true,
             disabled:null,
             position:'absolute',
@@ -38181,6 +42238,13 @@ Class("xui.UI.Layout",["xui.UI", "xui.absList"],{
             listKey:null,
             width:200,
             height:200,
+            flexSize:{
+                ini: false,
+                action:function(){
+                    var prf=this,r=prf.getRoot();
+                    xui.UI.$tryResize(prf, r.width(), r.height(), true);
+                }
+            },
             items:{
                 ini:[],
                 set:function(value){
@@ -38228,6 +42292,9 @@ Class("xui.UI.Layout",["xui.UI", "xui.absList"],{
                 }
             }
         },
+        EventHandlers:{
+            onClickPanel:function(profile, item, e, src){}
+        },
         _adjustItems2:function(items, pos){
             var arr=[];
             //arrage items
@@ -38242,7 +42309,7 @@ Class("xui.UI.Layout",["xui.UI", "xui.absList"],{
             _.arr.each(arr,function(o){
                 o.id = _.isStr(o.id)?o.id:_.id();
                 o.min = o.min || 10;
-                o.size = parseInt(o.size,10) || 80;
+                o._size = o.size = parseInt(o.size,10) || 80;
                 o.locked= typeof o.locked=='boolean'?o.locked:false;
                 o.folded = typeof o.folded=='boolean'?o.folded:false;
                 o.hidden = typeof o.hidden=='boolean'?o.hidden:false;
@@ -38255,8 +42322,9 @@ Class("xui.UI.Layout",["xui.UI", "xui.absList"],{
 
             //arrage items
             _.arr.each(items,function(o){
+                o=_.copy(o);
                 if(o.id=='main'){
-                    main=o
+                    main=o;
                 }else{
                     if(o.pos=='before')
                         before.push(o);
@@ -38270,6 +42338,8 @@ Class("xui.UI.Layout",["xui.UI", "xui.absList"],{
             main = main || {};
             main.id = 'main';
             main.min = main.min || 10;
+            // no _size in main
+            main.size = parseInt(main.size,10) || 80;
 
             //reset items
             items.length = 0;
@@ -38305,9 +42375,9 @@ Class("xui.UI.Layout",["xui.UI", "xui.absList"],{
                 data.cls3  = profile.getClass('CMD', '-main' );
             }else{
                 if(p.type=='vertical')
-                    data.size = 'height:'+data.size+'px';
+                    data._size = 'height:'+data._size+'px';
                 else
-                    data.size = 'width:'+data.size+'px';
+                    data._size = 'width:'+data._size+'px';
 
                 var pos;
                 if(p.type=='vertical'){
@@ -38344,9 +42414,9 @@ Class("xui.UI.Layout",["xui.UI", "xui.absList"],{
             if(t=data.panelBgImgAttachment||p.panelBgImgAttachment)
                 data._bginfo+="background-attachment:"+t+";";
             if(_.isStr(data.overflow))
-                data._overflow = data.overflow.indexOf(':')!=-1?(data.overflow):("overflow:"+data.overflow);
+                data._overflow = data.overflow.indexOf(':')!=-1?(data.overflow):(data.overflow?("overflow:"+data.overflow):"");
             else if(_.isStr(p.overflow))
-                data._overflow = p.overflow.indexOf(':')!=-1?(p.overflow):("overflow:"+p.overflow);
+                data._overflow = p.overflow.indexOf(':')!=-1?(p.overflow):(p.overflow?("overflow:"+p.overflow):"");
         },
         RenderTrigger:function(){
             var t, profile=this;
@@ -38366,7 +42436,8 @@ Class("xui.UI.Layout",["xui.UI", "xui.absList"],{
                 move=profile.getSubNode('MOVE',true),
                 main=profile.getItemByItemId('main'),
                 mainmin=main.min||10,
-                _handlerSize=xui.UI.$getCSSValue('setting-xui-layout','width');
+                _handlerSize=xui.UI.$getCSSValue('setting-xui-layout','width'),
+                pct = t.flexSize, sum=0;
 
             var obj={}, obj2={};
             // **keep the original size
@@ -38376,22 +42447,24 @@ Class("xui.UI.Layout",["xui.UI", "xui.absList"],{
                 obj[itemId] = {};
                 obj2[itemId] = {};
 //                obj3[itemId] = o;
+                if(pct)sum+=o.size||80;
             });
 
             var fun=function(prop,w,width,left,right,offset,forceoffset){
                 var _t,m,m1,itemId, temp1=0,temp2=0,temp=0,blocknumb=0,offsetbak=offset;
+
                 _.arr.each(prop.items,function(o){
                     if(o.id=='main')return;
                     if(o.pos=='before'){
                         itemId = profile.getSubIdByItemId(o.id);
                         if(o.hidden){
                             m=0;
-                            obj2[itemId][width]=o.size;
+                            obj2[itemId][width]=pct? parseInt(w*Math.min(1,(o.size/sum)),10) :o._size;
                         }else if(o.folded){
                             m=obj2[itemId][width]=_handlerSize;
                         }else{
                             blocknumb++;
-                            m=m1=o.size;
+                            m=m1=pct? parseInt(w*Math.min(1,(o.size/sum)),10) :o._size;
                             if(m>offset+o.min){
                                 m-=offset;
                             }else{
@@ -38416,12 +42489,12 @@ Class("xui.UI.Layout",["xui.UI", "xui.absList"],{
                         itemId = profile.getSubIdByItemId(o.id);
                         if(o.hidden){
                             m=0;
-                            obj2[itemId][width]=o.size;
+                            obj2[itemId][width]= pct? parseInt(w*Math.min(1,(o.size/sum)),10) : o._size;
                         }else if(o.folded){
                             m=obj2[itemId][width]=_handlerSize;
                         }else{
                             blocknumb++;
-                            m=m1=o.size;
+                            m=m1= pct? parseInt(w*Math.min(1,(o.size/sum)),10): o._size;
                             if(m>offset+o.min){
                                 m-=offset;
                             }else{
@@ -38468,7 +42541,7 @@ Class("xui.UI.Layout",["xui.UI", "xui.absList"],{
                     //get left
                     fun(t,width,'width','left','right',0,0);
 //                    _.each(obj2,function(o,i){
-//                       if(o.width && !obj3[i].folded)obj3[i].size=o.width;
+//                       if(o.width && !obj3[i].folded)obj3[i]._size=o.width;
 //                    });
                  }
                 if(!_.isNull(height)){
@@ -38481,7 +42554,7 @@ Class("xui.UI.Layout",["xui.UI", "xui.absList"],{
                     //get left
                     fun(t,height,'height','top','bottom',0,0);
 //                    _.each(obj2,function(o,i){
-//                        if(o.height  && !obj3[i].folded)obj3[i].size=o.height;
+//                        if(o.height  && !obj3[i].folded)obj3[i]._size=o.height;
 //                    });
                 }
                 if(!_.isNull(width)){
@@ -38509,7 +42582,7 @@ Class("xui.UI.TreeGrid",["xui.UI","xui.absValue"],{
         activate:function(){
             var profile=this.get(0),t;
             if(!profile.renderId)return;
-            profile.getSubNode('ROWS').nextFocus(true, true, true);
+            profile.getSubNode('ROWS22').nextFocus(true, true, true);
             return this;
         },
         _setCtrlValue:function(value){
@@ -38521,8 +42594,8 @@ Class("xui.UI.TreeGrid",["xui.UI","xui.absValue"],{
                     uiv = box.getUIValue(),
                     p = profile.properties,
                     rowMap=profile.rowMap,
-                    k = p.activeMode=='row'?'CELLS':'CELL',
-                    getN = function(k,i){return profile.getSubNode(k,i)},
+                    k = p.activeMode=='row'?['CELLS1','CELLS2']:'CELL',
+                    getN = function(k,i){return profile.getSubNodes(k,i)},
                     getI = function(i){
                         var map1=profile.rowMap2;
                         if(p.activeMode=='row')
@@ -38593,7 +42666,7 @@ Class("xui.UI.TreeGrid",["xui.UI","xui.absValue"],{
             if(!arr)
                 arr=[];
 
-            var obj,hw,
+            var obj21,obj22,hw,
                 box=profile.box,
                 hw=profile.getSubNode('FHCELL').width();
             //give width at here
@@ -38603,11 +42676,18 @@ Class("xui.UI.TreeGrid",["xui.UI","xui.absValue"],{
                     v.width=v._col._pxWidth;
                 })
             });
+            // check freezed row exists?
+            if(profile.properties.freezedRow){
+                var t = profile.getSubNode('ROWS12');
+                if(!t.isEmpty()  && t.query('div','id',/-ROWS12\:/).isEmpty())
+                    delete profile._passFreezedRow;
+            }
 
             //build dom
-            var nodes = profile._buildItems('rows', arr);
+            var nodes21 = profile._buildItems('rows21', arr),
+                nodes22 = profile._buildItems('rows22', arr);
             if(temp&&temp.length){
-                var needshowinput=[],arr=[];
+                var needshowinput=[],arrt=[];
                 _.arr.each(temp,function(o){
                        if(box.getCellOption(profile, o, "editable")&&box.getCellOption(profile, o, "editMode")=="inline")
                             needshowinput.push(o);
@@ -38617,13 +42697,13 @@ Class("xui.UI.TreeGrid",["xui.UI","xui.absValue"],{
                 if(needshowinput.length){
                     for(var i=0,l=needshowinput.length,t;i<l;i++){
                         t=parseInt(i/25,10);
-                        if(!arr[t])arr[t]=[];
-                        arr[t].push(needshowinput[i]);
+                        if(!arrt[t])arrt[t]=[];
+                        arrt[t].push(needshowinput[i]);
                     }
                     needshowinput.length=0;
                     var fun=function(){
-                        if(arr.length){
-                            var a=arr.shift();
+                        if(arrt.length){
+                            var a=arrt.shift();
                             if(a&&a.length){
                                 for(var i=0,l=a.length;i<l;i++){
                                     if(profile&&profile.box&&!profile.destroyed&&a[i]&&a[i]._row)
@@ -38631,6 +42711,8 @@ Class("xui.UI.TreeGrid",["xui.UI","xui.absValue"],{
                                 }
                                 _.asyRun(fun);
                             }
+                        }else{
+                            arrt=null;
                         }
                     };
                     fun();
@@ -38640,23 +42722,32 @@ Class("xui.UI.TreeGrid",["xui.UI","xui.absValue"],{
             if(!base){
                 //no base add to parent
                 if(pid){
-                    obj = profile.getSubNode('SUB', pid);
+                    obj21 = profile.getSubNode('SUB1', pid);
+                    obj22 = profile.getSubNode('SUB2', pid);
                 }else{
-                    obj = profile.getSubNode('ROWS');
+                    obj21 = profile.getSubNode('ROWS21');
+                    obj22 = profile.getSubNode('ROWS22');
                 }
-                if(before)
-                    obj.prepend(nodes);
-                else
-                    obj.append(nodes);
+                if(before){
+                    obj21.prepend(nodes21);
+                    obj22.prepend(nodes22);
+                }else{
+                    obj21.append(nodes21);
+                    obj22.append(nodes22);
+                }
             }else{
                 //
-                obj = profile.getSubNode('ROW', base);
-                if(before)
-                    obj.addPrev(nodes);
-                else{
-                    obj.addNext(nodes);
+                obj21 = profile.getSubNode('ROW1', base);
+                obj22 = profile.getSubNode('ROW2', base);
+                if(before){
+                    obj21.addPrev(nodes21);
+                    obj22.addPrev(nodes22);
+                }else{
+                    obj21.addNext(nodes21);
+                    obj22.addNext(nodes22);
                 }
             }
+
             //add sub
             _.arr.each(arr,function(o){
                 o.open=false;
@@ -38665,7 +42756,8 @@ Class("xui.UI.TreeGrid",["xui.UI","xui.absValue"],{
             });
 
             //clear rows cache
-            delete profile.$allrowscache;
+            delete profile.$allrowscache1;
+            delete profile.$allrowscache2;
 
             profile.box._adjustBody(profile,'addrow');
         },
@@ -38687,21 +42779,27 @@ Class("xui.UI.TreeGrid",["xui.UI","xui.absValue"],{
 
             profile.getSubNode('HCELL', true).remove();
 
-            var nodes;
+            var nodes1, nodes2;
             if(arr.length){
-                nodes=profile._buildItems('header', arr);
-                profile.getSubNode('LHCELL').addPrev(nodes);
+                nodes1=profile._buildItems('header1', arr);
+                profile.getSubNode('HCELLS1').append(nodes1);
+                nodes2=profile._buildItems('header2', arr);
+                profile.getSubNode('LHCELL').addPrev(nodes2);
             }
             if(grpcols && _.isArr(grpcols) && grpcols.length>0){
                 grpcols=box._adjustGrpColsData(profile,grpcols);
                 pro.grpCols=grpcols;
                 arr2=box._prepareGrpCols(profile, grpcols, arr);
                 if(arr2 && arr2.length){
-                    nodes=profile._buildItems('grpCols', arr2);
-                    profile.getSubNode('GRPCELLBOX').append(nodes);
+                    nodes1=profile._buildItems('grpCols1', arr2);
+                    profile.getSubNode('GRPCELLBOX1').append(nodes1);
+                    nodes2=profile._buildItems('grpCols2', arr2);
+                    profile.getSubNode('GRPCELLBOX2').append(nodes2);
                 }
-                box._adjustColsH(profile);
-                box._adjustColsV(profile);
+                box._adjustColsWidth(profile);
+                box._adjustColsHeight(profile);
+
+                xui.UI.$tryResize(profile,profile.getRoot().width(),profile.getRoot().height(),true);
             }
             if(rows&&rows.length)
                 this.setRows(rows);
@@ -38790,7 +42888,13 @@ Class("xui.UI.TreeGrid",["xui.UI","xui.absValue"],{
         isDirtied:function(){
             var dirty=false;
             _.each(this.get(0).cellMap,function(v){
-                if(v._oValue!==v.value||v.dirty){
+                if(v._oValue!==v.value){
+                    dirty=true;
+                    return false;
+                }
+            });
+            _.each(this.get(0).rowMap,function(v){
+                if(v._oValue!==v.value){
                     dirty=true;
                     return false;
                 }
@@ -38859,150 +42963,183 @@ Class("xui.UI.TreeGrid",["xui.UI","xui.absValue"],{
                 profile.box._setSub(profile, row, typeof expand=="boolean"?expand:!row._checked);
             return this;
         },
-        updateRow:function(rowId,options){
-            var ns=this, profile=ns.get(0), orow=ns.getRowbyRowId(rowId), nid;
-            if(orow){
-                var rid=orow._serialId, t,tt;
-                if(typeof options!='object') options={caption:options};
-                else _.filter(options,true);
+        updateRow:function(rowId,options,dirtyMark,triggerEvent){
+            var ns=this, 
+                orow = ns.getRowbyRowId(rowId);
+            if(!orow)return ns;
 
-                // [[modify id
-                if(_.isSet(options.id))options.id+="";
-                if(options.id && options.id!==rowId){
-                    nid=options.id;
-                    var m2=profile.rowMap2, v;
-                    if(!m2[nid]){
-                        if(v=m2[rowId]){
-                            m2[nid]=v;
-                            delete m2[rowId];
-                            profile.rowMap[v].id=nid;
-                            // modify cells link
-                            _.each(profile.colMap,function(o){
-                                if(o=o._cells){
-                                    o[nid]=o[rowId];
-                                    delete o[rowId];
+            var profile = ns.get(0), 
+                box = profile.box,
+                prop = profile.properties,
+                pdm = prop.dirtyMark,
+                psdm = pdm && prop.showDirtyMark, 
+                ishotrow = orow.id==box._temprowid,
+                sc = xui.absObj.$specialChars,
+                ext;
+            
+            if(!_.isHash(options))options={value:options};
+            options=_.filter(options,function(o,i,r){r= !sc[i.charAt(0)] || i=='_$caption'; if(!r){ext=ext||{}; ext[i]=o} return r;});
+
+            if(triggerEvent){
+                if(profile.beforeRowUpdated && false === profile.boxing().beforeRowUpdated(profile, orow, options, ishotrow, ext))
+                    return;
+            }
+            if(!_.isEmpty(options)){
+                if(orow){
+                    var rid=orow._serialId, t, tt, nid ;
+
+                    // [[modify id
+                    if(_.isSet(options.id))options.id+="";
+                    if(options.id && options.id!==rowId){
+                        nid=options.id;
+                        var m2=profile.rowMap2, v;
+                        if(!m2[nid]){
+                            if(v=m2[rowId]){
+                                m2[nid]=v;
+                                delete m2[rowId];
+                                profile.rowMap[v].id=nid;
+                                // modify cells link
+                                _.each(profile.colMap,function(o){
+                                    if(o=o._cells){
+                                        o[nid]=o[rowId];
+                                        delete o[rowId];
+                                    }
+                                });
+                            }
+                        }
+                    }else{
+                        options.id=rowId;
+                    }
+                    // modify id only
+                    if(_.isEmpty(options))
+                        return ns;
+                    //]]
+
+                    // need to refresh
+                    if(('group' in options && options.group!=orow.group) ||
+                        'cells' in options ||
+                        ('sub' in options &&
+                        // only try to show/hide toggle icon
+                        !((options.sub===true && !orow.sub) || (!options.sub && orow.sub===true)))
+                    ){
+                        var id="__special",pid=orow._pid?profile.rowMap[orow._pid].id:null;
+                        // change id in rowMap
+                        orow.id=id;
+                        // change link in rowMap2
+                        profile.rowMap2[id]=profile.rowMap2[nid||rowId];
+                        delete profile.rowMap2[nid||rowId];
+                        // remove cells link
+                        _.each(profile.colMap,function(o){
+                            if(o=o._cells)
+                                delete o[nid||rowId];
+                        });
+                        // make sure data
+                        orow=_.clone(orow,true);
+                        _.merge(orow, options, 'all');
+                        if('sub' in options && !options.sub)delete orow.sub;
+
+                        ns.insertRows([orow],pid,id,true);
+                        ns.removeRows([id]);
+
+                        if(profile.properties.activeMode=='row'){
+                            var uiv=profile.properties.$UIvalue||"", arr=(''+uiv).split(profile.properties.valueSeparator);
+                            if(arr.length && _.arr.indexOf(arr, rowId)!=-1){
+                                if(nid)
+                                    _.arr.removeValue(arr, rowId);
+                                ns.setUIValue(arr.join(profile.properties.valueSeparator), true,null,'sub');
+                            }
+                        }
+
+                    }else{
+                        if('sub' in options){
+                            t = box._getToggleNode(profile, rid);
+                            if(options.sub){
+                                t.addClass('xui-uicmd-toggle2');
+                                if(orow._layer)
+                                    t.removeClass('xui-uicmd-empty');
+                            }else{
+                                t.removeClass('xui-uicmd-toggle2');
+                                if(orow._layer)
+                                    t.addClass('xui-uicmd-empty');
+                            }
+                        }
+                        // 
+                        tt = ns.getSubNodes(['CELLS1','CELLS2'],rid);
+                        if(t=options.height) profile.box._adjusteditorH(profile, tt.height(orow._height=t),t);
+                        if(t=options.rowStyle) tt.attr('style',tt.attr('style')+";"+t);
+                        if(t=options.rowClass) tt.addClass(t);
+                        if(options.hasOwnProperty('disabled')){
+                            var cls=profile.getClass('CELLS2', '-disabled');
+                            if(options.disabled)
+                                tt.addClass(cls);
+                            else
+                                tt.removeClass(cls);
+                        }
+                        if(options.hasOwnProperty('readonly')){
+                            var cls=profile.getClass('CELLS2', '-readonly');
+                            if(options.readonly)
+                                tt.addClass(cls);
+                            else
+                                tt.removeClass(cls);
+                        }
+                        //
+                        if(t=options.firstCellStyle) (tt=ns.getSubNode('FCELL',rid)).first().attr('style',tt.attr('style')+";"+t);
+                        if(t=options.firstCellClass) ns.getSubNode('FCELL',rid).first().addClass(t);
+
+                        if(options.hasOwnProperty('value') && !options.hasOwnProperty('caption')){
+                            options.caption = options.value +"";
+                        }
+                        if(options.hasOwnProperty('caption'))
+                            ns.getSubNode('FCELLCAPTION',rid).get(0).innerHTML=options.caption;
+
+                        if(options.hasOwnProperty('rowResizer')){
+                            t=!!options.rowResizer;
+                            ns.getSubNode('FHANDLER',rid).css('display',(options.rowResizer=t)?"block":'none');
+                        }
+
+                        if(options.hasOwnProperty('hidden')){
+                            var  b = !!options.hidden;
+                            if(b){
+                                if(orow.hidden!==true){
+                                    ns.getSubNodes(['ROW1','ROW2'],rid).css('display','none');
                                 }
-                            });
+                            }else{
+                                if(orow.hidden===true){
+                                    ns.getSubNodes(['ROW1','ROW2'],rid).css('display','');
+                                }
+                            }
+                        }
+
+                        _.merge(orow, options, 'all');
+
+                        //if update value
+                        if(options.hasOwnProperty('value')){
+                            var node=profile.getSubNode('CELLA', rid);
+                            if(!pdm || dirtyMark===false)
+                                orow._oValue=orow.value;
+                            else{
+                                if(orow.value===orow._oValue){
+                                    if(psdm)
+                                        node.removeClass('xui-ui-dirty');
+                                    delete orow.dirty;
+                                }else{
+                                    if(psdm)
+                                        node.addClass('xui-ui-dirty');
+                                    orow.dirty=true;
+                                }
+                            }
+                            if(orow._editor)orow._editor.setValue(options.value,true,'editorini');
                         }
                     }
                 }else{
-                    options.id=rowId;
+                    var rst=ns.get(0).queryItems(ns.getRows(),function(o){return typeof o=='object'?o.id===rowId:o==rowId},true,true,true);
+                    if(rst.length)
+                        _.merge(orow = rst[0][0], options, 'all');
                 }
-                // modify id only
-                if(_.isEmpty(options))
-                    return ns;
-                //]]
-
-                // need to refresh
-                if(('group' in options && options.group!=orow.group) ||
-                    'cells' in options ||
-                    ('sub' in options &&
-                    // only try to show/hide toggle icon
-                    !((options.sub===true && !orow.sub) || (!options.sub && orow.sub===true)))
-                ){
-                    var id="__special",pid=orow._pid?profile.rowMap[orow._pid].id:null;
-                    // change id in rowMap
-                    orow.id=id;
-                    // change link in rowMap2
-                    profile.rowMap2[id]=profile.rowMap2[nid||rowId];
-                    delete profile.rowMap2[nid||rowId];
-                    // remove cells link
-                    _.each(profile.colMap,function(o){
-                        if(o=o._cells)
-                            delete o[nid||rowId];
-                    });
-                    // make sure data
-                    orow=_.clone(orow,true);
-                    _.merge(orow, options, 'all');
-                    if('sub' in options && !options.sub)delete orow.sub;
-
-                    ns.insertRows([orow],pid,id,true);
-                    ns.removeRows([id]);
-
-                    if(profile.properties.activeMode=='row'){
-                        var uiv=profile.properties.$UIvalue||"", arr=(''+uiv).split(profile.properties.valueSeparator);
-                        if(arr.length && _.arr.indexOf(arr, rowId)!=-1){
-                            if(nid)
-                                _.arr.removeValue(arr, rowId);
-                            ns.setUIValue(arr.join(profile.properties.valueSeparator), true,null,'sub');
-                        }
-                    }
-
-                }else{
-                    if('sub' in options){
-                        t=ns.getSubNode('ROWTOGGLE',rid);
-                        if(options.sub)
-                            t.removeClass('xui-uicmd-none').addClass('xui-uicmd-toggle2')
-                        else
-                            t.removeClass('xui-uicmd-toggle2').addClass('xui-uicmd-none')
-                    }
-
-                    if(t=options.height){
-                        profile.box._adjusteditorH(profile, ns.getSubNode('CELLS',rid).height(orow._height=t),t);
-                    }
-                    if(t=options.rowStyle)
-                        (tt=ns.getSubNode('CELLS',rid)).attr('style',tt.attr('style')+";"+t);
-
-                    if(t=options.rowClass)
-                        ns.getSubNode('CELLS',rid).addClass(t);
-
-                    if(options.hasOwnProperty('disabled')){
-                        var cls=profile.getClass('CELLS', '-disabled');
-                        if(options.disabled)
-                            ns.getSubNode('CELLS',rid).addClass(cls);
-                        else
-                            ns.getSubNode('CELLS',rid).removeClass(cls);
-                    }
-                    if(options.hasOwnProperty('readonly')){
-                        var cls=profile.getClass('CELLS', '-readonly');
-                        if(options.readonly)
-                            ns.getSubNode('CELLS',rid).addClass(cls);
-                        else
-                            ns.getSubNode('CELLS',rid).removeClass(cls);
-                    }
-                    if(t=options.firstCellStyle)
-                        (tt=ns.getSubNode('FCELL',rid)).first().attr('style',tt.attr('style')+";"+t);
-                    if(t=options.firstCellClass)
-                        ns.getSubNode('FCELL',rid).first().addClass(t);
-
-                    if(options.hasOwnProperty('caption'))
-                        ns.getSubNode('FCELLCAPTION',rid).get(0).innerHTML=options.caption;
-                    if(options.hasOwnProperty('preview')){
-                        if(options.preview)
-                            ns.getSubNode('PREVIEW',rid).css('display','block').html(options.preview);
-                        else
-                            ns.getSubNode('PREVIEW',rid).css('display','none');
-                    }
-                    if(options.hasOwnProperty('summary')){
-                        if(options.summary)
-                            ns.getSubNode('SUMMARY',rid).css('display','block').html(options.summary);
-                        else
-                            ns.getSubNode('SUMMARY',rid).css('display','none');
-                    }
-                    if(options.hasOwnProperty('rowResizer')){
-                        t=!!options.rowResizer;
-                        ns.getSubNode('FHANDLER',rid).css('display',(options.rowResizer=t)?"block":'none');
-                    }
-
-                    if('hidden' in options){
-                        var  b = !!options.hidden;
-                        if(b){
-                            if(orow.hidden!==true){
-                                ns.getSubNode('ROW',rid).css('display','none');
-                            }
-                        }else{
-                            if(orow.hidden===true){
-                                ns.getSubNode('ROW',rid).css('display','');
-                            }
-                        }
-                    }
-
-                    _.merge(orow, options, 'all');
-                }
-            }else{
-                var rst=ns.get(0).queryItems(ns.getRows(),function(o){return typeof o=='object'?o.id===rowId:o==rowId},true,true,true);
-                if(rst.length)
-                    _.merge(rst[0][0], options, 'all');
+            }
+            if(triggerEvent){
+                if(profile.afterRowUpdated)
+                    profile.boxing().afterRowUpdated(profile, orow, options, ishotrow, ext);
             }
             return ns;
         },
@@ -39130,7 +43267,8 @@ Class("xui.UI.TreeGrid",["xui.UI","xui.absValue"],{
                         _.breakO(profile.rowMap[id]);
                         delete profile.rowMap[id];
 
-                        nodes.push(profile.getSubNode('ROW', id).get(0));
+                        nodes.push(profile.getSubNode('ROW1', id).get(0));
+                        nodes.push(profile.getSubNode('ROW2', id).get(0));
                     }
                     profile.reclaimSubId(id.slice(3), 'row');
                 }else{
@@ -39166,7 +43304,8 @@ Class("xui.UI.TreeGrid",["xui.UI","xui.absValue"],{
                     delete profile.$activeRow;
 
                 //clear rows cache
-                delete profile.$allrowscache;
+                delete profile.$allrowscache1;
+                delete profile.$allrowscache2;
 
                 profile.box._asy(profile);
                 profile.box._adjustBody(profile,'delrow');
@@ -39188,6 +43327,9 @@ Class("xui.UI.TreeGrid",["xui.UI","xui.absValue"],{
             pos=_.isNumb(pos)?pos:-1;
             if(pos===-1||prop.header.length<pos)pos=prop.header.length;
             if(pos<0)pos=0;
+            if(prop.treeMode=='infirstcell' && pos===0)return false;
+
+            var leftRegion = pos <= prop.freezedColumn -1 ;
 
             var arr=prop.grpCols;
             if(arr && _.isArr(arr)&& arr.length){
@@ -39203,15 +43345,15 @@ Class("xui.UI.TreeGrid",["xui.UI","xui.absValue"],{
             }
 
             if(profile.renderId){
-                colResult = box._parepareCol(profile, col);
+                colResult = box._parepareCol(profile, col,prop.header);
                 col=colResult[0];
 
                 // insert header
                 _.arr.insertAny(prop.header, col, pos);
                 // insert dom node
-                base = profile.getSubNode('HCELLS').children().get(pos);
+                base = profile.getSubNode(leftRegion?'HCELLS1':'HCELLS2').children().get(pos);
                 if(base)
-                    xui(base).addNext(profile._buildItems('header', [colResult[1]]));
+                    xui(base).addNext(profile._buildItems(leftRegion?'header1':'header2', [colResult[1]]));
 
                 // render
                 var co=profile.properties.colOptions;
@@ -39220,8 +43362,8 @@ Class("xui.UI.TreeGrid",["xui.UI","xui.absValue"],{
 
                 // for adjust UI
                 prop.grpCols=box._adjustGrpColsData(profile,arr);
-                box._adjustColsH(profile);
-                box._adjustColsV(profile);
+                box._adjustColsWidth(profile);
+                box._adjustColsHeight(profile);
                 box._adjustBody(profile,'addcol');
             }else{
                 // insert header dir
@@ -39239,14 +43381,14 @@ Class("xui.UI.TreeGrid",["xui.UI","xui.absValue"],{
                         }else{
                             cell=cells[k];
                             // this row was rendered
-                            base=profile.getSubNode('CELLS',row._serialId).children().get(pos);
+                            base=profile.getSubNode(leftRegion?'CELLS1':'CELLS2',row._serialId).children().get(pos);
                             if(base){
                                 cellResult = box._parepareCell(profile,cell,row,col,temp);
 
                                 // original cell only
                                 _.arr.insertAny(row.cells, cellResult[0], pos);
                                 // insert dom node
-                                xui(base).addNext(profile._buildItems('rows.cells', [cellResult[1]]));
+                                xui(base).addNext(profile._buildItems(leftRegion?'rows21.cells':'rows22.cells', [cellResult[1]]));
                             }else{
                                 // insert cell dir
                                 _.arr.insertAny(row.cells, cell||{}, pos);
@@ -39374,8 +43516,8 @@ Class("xui.UI.TreeGrid",["xui.UI","xui.absValue"],{
                     delete profile.$activeCell;
 
                 p.grpCols=box._adjustGrpColsData(profile,arr);
-                box._adjustColsH(profile);
-                box._adjustColsV(profile);
+                box._adjustColsWidth(profile);
+                box._adjustColsHeight(profile);
                 box._adjustBody(profile,'delcol');
             }
             return self;
@@ -39412,12 +43554,13 @@ Class("xui.UI.TreeGrid",["xui.UI","xui.absValue"],{
                 // ensure the column header scroll to zero
                 // code must same to the SCROLL->onScroll event
                 if(profile.$sl!=0)
-                    profile.getSubNode('HEADER').get(0).scrollLeft=profile.$sl=0;
-                profile.getSubNode('SCROLL').scrollTop(0).scrollLeft(0);
-                profile.getSubNode('ROWS').empty();
+                    profile.getSubNode('HEADER2').get(0).scrollLeft=profile.$sl=0;
+                profile.getSubNodes(['SCROLL21','SCROLL22']).scrollTop(0).scrollLeft(0);
+                profile.getSubNodes(['ROWS21','ROWS22']).empty();
             }
             //clear rows cache
-            delete profile.$allrowscache;
+            delete profile.$allrowscache1;
+            delete profile.$allrowscache2;
             profile.properties.$UIvalue=null;
 
             if(affectUI!==false&&profile.renderId&&profile.__hastmpRow){
@@ -39430,6 +43573,7 @@ Class("xui.UI.TreeGrid",["xui.UI","xui.absValue"],{
         },
         resetRowValue:function(rowId){
             var profile=this.get(0),row=this.getRowbyRowId(rowId),arr=[],prop=profile.properties;
+            // for cells
             _.arr.each(row.cells,function(o){
                 if(o._oValue!==o.value){
                     o._oValue=o.value;
@@ -39438,6 +43582,12 @@ Class("xui.UI.TreeGrid",["xui.UI","xui.absValue"],{
                         arr.push(profile.getSubNode('CELLA',o._serialId).get(0));
                 }
             });
+            // for row 
+            row._oValue = row.value;
+            delete row.dirty;
+            if(prop.dirtyMark)
+                arr.push(profile.getSubNode('CELLA',row._serialId).get(0));
+
             if(prop.dirtyMark && prop.showDirtyMark)
                 xui(arr).removeClass('xui-ui-dirty');
         },
@@ -39471,7 +43621,7 @@ Class("xui.UI.TreeGrid",["xui.UI","xui.absValue"],{
             profile.box._activeRow(profile, false);
 
             if(!(row=this.getRowbyRowId(rowId)))return;
-            if(!(dr=profile.getSubNode('CELLS',row._serialId)).isEmpty())
+            if(!(dr=profile.getSubNodes(['CELLS1','CELLS2'],row._serialId)).isEmpty())
                 profile.box._activeRow(profile, dr.get(0).id);
             return this;
         },
@@ -39566,8 +43716,8 @@ Class("xui.UI.TreeGrid",["xui.UI","xui.absValue"],{
                             });
                             prf.box._adjusteditorW(prf, xui(n).width(colh._pxWidth=t),t);
 
-                            ns.getSubNode('SCROLL').onScroll();
-                            ns.constructor._adjustColsH(ns.get(0));
+                            ns.getSubNode('SCROLL22').onScroll();
+                            ns.constructor._adjustColsWidth(ns.get(0));
                             ns.constructor._adjustBody(ns.get(0),'setcol');
                         }
 
@@ -39587,6 +43737,9 @@ Class("xui.UI.TreeGrid",["xui.UI","xui.absValue"],{
                                 }
                             }
                         }
+                        if('type' in options){
+                            delete colh.editorCacheKey;
+                        }
                     }
 
                     if(t=options.headerStyle||options.colStyle)
@@ -39602,6 +43755,10 @@ Class("xui.UI.TreeGrid",["xui.UI","xui.absValue"],{
                 }
 
                 _.merge(colh, options, 'all');
+
+                if('flexSize' in options){
+                    xui.UI.$tryResize(prf,prf.getRoot().width(),prf.getRoot().height(),true);
+                }
             }
         },
         showColumn:function(colId, flag){
@@ -39626,7 +43783,7 @@ Class("xui.UI.TreeGrid",["xui.UI","xui.absValue"],{
                     profile.boxing().afterColShowHide(profile,colId,flag);
                 }
 
-                profile.box._adjustColsH(profile);
+                profile.box._adjustColsWidth(profile);
                 profile.box._adjustBody(profile,'setcol');
             return true;
         },
@@ -39731,6 +43888,123 @@ Class("xui.UI.TreeGrid",["xui.UI","xui.absValue"],{
             this.constructor._editCell(this.get(0), cell);
             return this;
         },
+        // only support single line text input
+        editFirstCell:function(rowId){
+            var profile=this.get(0),
+                getPro=function(key){return profile.box.getCellOption(profile, row, key)},
+                row = typeof rowId=='string' ? (profile.rowMap[profile.rowMap2[rowId]]) : rowId,
+                editor;
+
+            if(!profile.properties.firstCellEditable || !row)return;
+            if(getPro(profile, row, 'disabled')||getPro(profile, row, 'readonly'))return;
+            if(!(profile && profile.renderId) || profile.destroyed)return;
+
+            var cellNode = profile.getSubNode('FCELLCAPTION',row._serialId);
+            if(!cellNode.isEmpty()){
+                if(profile.beforeIniEditor){
+                    editor=profile.boxing().beforeIniEditor(profile, row, cellNode, pp, 'row');
+                    if(editor===false)
+                        return;
+                }
+
+                var pp=cellNode.parent(),
+                    size2 = pp.cssSize(),
+                    baseNode = profile.getSubNode('BORDER'),
+                    absPos = cellNode.offset(null, pp),
+                    absPos2 = pp.offset(null, baseNode);
+                // too small
+                if(absPos2.left > size2.width - 8)return;
+
+                // try to get from cache
+                editor = profile.$cache_editor['firstCellEditor'];
+                if(!editor || !editor['xui.UI'] || editor.isDestroyed()){
+                    editor=new xui.UI.ComboInput({type:"input"});
+                    profile.$cache_editor['firstCellEditor'] = editor;
+                }
+                editor.setWidth(size2.width - absPos.left + 2)
+                    .setHeight(size2.height + 2)
+                    .setValue(row.value||row.value||"");
+
+                if(profile.onBeginEdit)profile.boxing().onBeginEdit(profile,row,editor, 'row');
+
+                editor.undo=function(){
+                    var editor=this, row=editor.get(0) && editor.get(0).$row;
+                    // execute once
+                    editor.undo=null;
+                    // row dirty alert
+                    if(profile.box){
+                        if(row && row._oValue!==row.value && row.id !=profile.box._temprowid && profile.onRowDirtied)
+                            profile.boxing().onRowDirtied(profile,row);
+                    }
+                    if(editor.get(0) && editor.get(0).box){
+                        // for ie's setBlurTrigger doesn't trigger onchange event
+                        editor.getSubNode('INPUT').onBlur(true);
+                        editor.getRoot().setBlurTrigger("tg_editor_blur:"+profile.$xid);
+                        if(profile.properties){
+                            editor.afterUIValueSet(null).beforeNextFocus(null).onCancel(null);
+                            editor.setValue('',true,'editorreset');
+                        }
+                        delete editor.get(0).$row;
+                        delete editor.get(0)._smartnav;
+                        //don't use disply:none, firfox has many bugs about Caret or renderer
+                        editor.setVisibility('hidden');
+                    }
+                    if(row)delete row._editor;
+                    profile.$curEditor=null;
+                    if(profile.onEndEdit)
+                        profile.boxing().onEndEdit(profile, row, editor, 'row');
+
+                    // don't cache it
+                    if(editor.get(0)){
+                        editor.destroy(true);
+                    }
+
+                    editor=null;
+                };
+                editor.afterUIValueSet(function(prf, ov, nv, force, tag){
+                    var options={value:nv},t;
+                    if(prf.properties.hasOwnProperty("tagVar") && !_.isEmpty(t=prf.properties.tagVar))
+                        options.tagVar=t;
+                    if(false!==(profile.beforeEditApply&&profile.boxing().beforeEditApply(profile, row, options, editor, tag, 'row'))){
+                        profile.boxing().updateRow(row.id, {value:nv, caption:nv+""});
+                        _.tryF(editor.undo,[],editor);
+                    }
+                })
+                .beforeNextFocus(function(pro, e){
+                    _.tryF(editor.undo,[true],editor);
+                    var hash=xui.Event.getEventPara(e);
+                    if(hash.key=='enter')hash.key='right';
+                    profile.getSubNode('CELLA', row._serialId).onKeydown(true,hash);
+                    //prevent
+                    return false;
+                })
+                .onCancel(function(){
+                    _.tryF(editor.undo,[],editor);
+                })
+
+                baseNode.append(editor);
+
+                //show editor
+                editor.reBoxing().show((absPos.left + absPos2.left -1 ) + 'px',(absPos2.top - 1) + 'px');
+
+                var root=editor.getRoot();
+                // For scroll to undo
+                root.setBlurTrigger("tg_editor_blur:"+profile.$xid,function(){
+                    _.tryF(editor.undo,[],editor);
+                    return false;
+                }); 
+
+                //give reference
+                editor.get(0).$row = row;
+                editor.get(0)._smartnav = true;
+                row._editor=editor;
+                profile.$curEditor=editor;
+
+                editor.activate();
+            }
+
+            return this;
+        },
         focusCellbyRowCol:function(rowId, colId){
             var profile=this.get(0),con=profile.box,
                 cellId=con._getCellId(profile, rowId, colId),
@@ -39782,6 +44056,10 @@ Class("xui.UI.TreeGrid",["xui.UI","xui.absValue"],{
                     v._oValue=v.value;
                     delete v.dirty;
                 });
+                _.each(profile.rowMap,function(v){
+                    v._oValue=v.value;
+                    delete v.dirty;
+                });
                 if(prop.dirtyMark && prop.showDirtyMark)
                     profile.getSubNode('CELLA',true).removeClass('xui-ui-dirty');
             })
@@ -39789,7 +44067,7 @@ Class("xui.UI.TreeGrid",["xui.UI","xui.absValue"],{
         getDirtied:function(rowId, colId){
             var map={};
             _.each(this.get(0).cellMap,function(v){
-                if((v._oValue!==v.value||v.dirty)&&(rowId?(rowId==v._row.id):1) &&(colId?(colId==v._col.id):1)){
+                if(v._oValue!==v.value &&(rowId?(rowId==v._row.id):1) &&(colId?(colId==v._col.id):1)){
                     map[v.id]={rowId:v._row.id, colId:v._col.id, value:v.value, _oValue:v._oValue};
                 }
             });
@@ -39825,7 +44103,7 @@ Class("xui.UI.TreeGrid",["xui.UI","xui.absValue"],{
                     adjustFun.apply(ns,[editor, cell]);
                 }else if(editor.KEY=="xui.UI.ComboInput"){
                     var cellNode = prf.getSubNode('CELL', cell.id),
-                        absPos=cellNode.offset(null, prf.getSubNode('SCROLL')),
+                        absPos=cellNode.offset(null, prf.getSubNode('SCROLL22')),
                         size = cellNode.cssSize();
                     editor.setLeft(absPos.left-1).setTop(absPos.top-1)
                     .setWidth(size.width+3).setHeight(size.height+2)
@@ -39835,10 +44113,15 @@ Class("xui.UI.TreeGrid",["xui.UI","xui.absValue"],{
             return ns;
         }
     },
+    Before:function(key, parent_key, o){
+        this.Behaviors.CELLS1=this.Behaviors.CELLS2;
+        this.Behaviors.GCELLA=this.Behaviors.CELLA;
+        return arguments.callee.upper.apply(this,arguments);
+    },
     Initialize:function(){
         this.addTemplateKeys(['ALT','PROGRESS']);
         this.getCellPro = this.getCellOption;
-
+       
         var p=this.prototype;
 
         p.getColumn=p.getHeader;
@@ -39856,111 +44139,235 @@ Class("xui.UI.TreeGrid",["xui.UI","xui.absValue"],{
             BORDER:{
                 tagName : 'div',
                 BOX:{
-                    tagName:'div',
-                    HEADER:{
-                        $order:0,
-                        tagName:'div',
-                        style:"{showHeader}",
-                        //for scroll performance
-                        HI:{
-                            tagName:'div',
-                            HCELLS:{
-                                tagName:'div',
-                                style:'{headerHeight};',
-                                /*the first col (row handler) in table header*/
-                                FHCELL:{
-                                    $order:0,
-                                    style:'{rowHandlerDisplay};{_row0DfW};height:{_hcellheight}px;line-height:{_hcelllineh}px;}',
-                                    className:'{cellCls}',
-                                    tabindex: '{_tabindex}',
-                                    HCELLA:{
-                                        //for IE78
-                                        style:'line-height:inherit;{firstCellStyle};',
-                                        className:'{firstCellClass}',
-                                        HHANDLER:{
+                    tagName:'table',
+                    cellspacing:'0',
+                    cellpadding:'0',
+                    className:'xui-uibg-content',
+                    TBODY:{
+                        tagName:'tbody',
+                        TRHEADER:{
+                            tagName:'tr',
+                            TDHEADER1:{
+                                tagName:'td',
+                                HEADER1:{
+                                    tagName:'div',
+                                    style:"{showHeader}",
+                                    HI1:{
+                                        tagName:'div',
+                                        HCELLS1:{
                                             tagName:'div',
-                                            style:'{colDDDisplay}'
+                                            style:'{headerHeight};',
+                                            /*the first col (row handler) in table header*/
+                                            FHCELL:{
+                                                $order:0,
+                                                style:'{rowHandlerDisplay};{_row0DfW};height:{_hcellheight}px;',
+                                                className:'{cellCls}',
+                                                tabindex: '{_tabindex}',
+                                                HCELLA:{
+                                                    //for IE78
+                                                    style:'{firstCellStyle};',
+                                                    className:'xui-v-wrapper {firstCellClass}',
+                                                    HHANDLER:{
+                                                        tagName:'div',
+                                                        style:'{colDDDisplay}'
+                                                    },
+                                                    FHANDLER:{
+                                                        tagName:'div',
+                                                        style:'{rowDDDisplay}'
+                                                    },
+                                                    LTAGCMDS:{
+                                                        $order:1,
+                                                        tagName:'span',
+                                                        text:"{ltagCmds}"
+                                                    },
+                                                    HFMARK:{
+                                                        $order:2,
+                                                        className:"xui-uicmd-check",
+                                                        style:'{_rowMarkDisplay}'
+                                                    },
+                                                    GRIDCAPTION:{
+                                                        $order:2,
+                                                        text:'{gridHandlerCaption}'
+                                                    },
+                                                    SORT:{
+                                                        style:'{sortDisplay}'
+                                                    }
+                                                }
+                                            },
+                                            OTHERHCELLS:{
+                                                $order:1,
+                                                tagName:'text',
+                                                text:'{header1}'
+                                            }
                                         },
-                                        FHANDLER:{
+                                        GRPCELLBOX1:{
                                             tagName:'div',
-                                            style:'{rowDDDisplay}'
-                                        },
-                                        HFMARK:{
-                                            className:"xui-uicmd-check",
-                                            style:'{_rowMarkDisplay}'
-                                        },
-                                        GRIDCAPTION:{
-                                            $order:2,
-                                            text:'{gridHandlerCaption}'
-                                        },
-                                        SORT:{
-                                            style:'{sortDisplay}'
+                                            style:'{headerHeight};',
+                                            GRPCELLS:{
+                                                $order: 3,
+                                                tagName:'text',
+                                                text:'{grpCols1}'
+                                            }
                                         }
                                     }
-                                },
-                                OTHERHCELLS:{
+                                }
+                            },
+                            TDHEADER2:{
+                                tagName:'td',
+                                HEADER2:{
+                                    $order:0,
+                                    tagName:'div',
+                                    style:"{showHeader}",
+                                    //for scroll performance
+                                    HI2:{
+                                        tagName:'div',
+                                        HCELLS2:{
+                                            tagName:'div',
+                                            style:'{headerHeight};',
+                                            OTHERHCELLS:{
+                                                $order:1,
+                                                tagName:'text',
+                                                text:'{header2}'
+                                            },
+                                            LHCELL:{
+                                                $order: 2,
+                                                className:'xui-v-wrapper',
+                                                RTAGCMDS:{
+                                                    $order:1,
+                                                    tagName:'span',
+                                                    text:"{rtagCmds}"
+                                                }
+                                            }
+                                        },
+                                        GRPCELLBOX2:{
+                                            tagName:'div',
+                                            style:'{headerHeight};',
+                                            GRPCELLS:{
+                                                $order: 3,
+                                                tagName:'text',
+                                                text:'{grpCols2}'
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        },
+                        TRLOCKED:{
+                            tagName:'tr',
+                            TDBODY11:{
+                                tagName:'td',
+                                SCROLL11:{
                                     $order:1,
-                                    tagName:'text',
-                                    text:'{header}'
-                                },
-                                LHCELL:{
-                                    $order: 2
+                                    tagName:'div',
+                                    className:'{_rowfreezed} {_columnfreezed}',
+                                    BODY11:{
+                                        tagName:'div',
+                                        ROWS11:{
+                                            $order:1,
+                                            tagName:'div',
+                                            text:'{rows11}'
+                                        }
+                                    }
                                 }
                             },
-                            GRPCELLBOX:{
-                                tagName:'div',
-                                style:'{headerHeight};',
-                                GRPCELLS:{
-                                    $order: 3,
-                                    tagName:'text',
-                                    text:'{grpCols}'
+                            TDBODY12:{
+                                tagName:'td',
+                                SCROLL12:{
+                                    $order:1,
+                                    tagName:'div',
+                                    className:'{_rowfreezed}',
+                                    BODY12:{
+                                        tagName:'div',
+                                        ROWS12:{
+                                            $order:1,
+                                            tagName:'div',
+                                            text:'{rows12}'
+                                        }
+                                    }
+                                }
+                            }
+                        },
+                        TRBODY:{
+                            tagName:'tr',
+                            TDBODY21:{
+                                tagName:'td',
+                                SCROLL21:{
+                                    $order:1,
+                                    tagName:'div',
+                                    className:'{_columnfreezed}',
+                                    BODY21:{
+                                        tagName:'div',
+                                        ROWS21:{
+                                            $order:1,
+                                            tagName:'div',
+                                            text:'{rows21}'
+                                        }
+                                    }
+                                }
+                            },
+                            TDBODY22:{
+                                tagName:'td',
+                                SCROLL22:{
+                                    $order:1,
+                                    tagName:'div',
+                                    BODY22:{
+                                        tagName:'div',
+                                        ROWS22:{
+                                            $order:1,
+                                            tagName:'div',
+                                            text:'{rows22}'
+                                        }
+                                    }
+                                }
+                            }
+                        },
+                        TRTAIL:{
+                            tagName:'tr',
+                            TDTAIL1:{
+                                tagName:'td'
+                            },
+                            TDTAIL2:{
+                                tagName:'td',
+                                FOOTER:{
+                                    $order:2
                                 }
                             }
                         }
-                    },
-                    SCROLL:{
-                        $order:1,
-                        tagName:'div',
-                        className:'xui-uibg-content ',
-                        BODY:{
-                            tagName:'div',
-                            className:"xui-uibg-content",
-                            FROW:{
-                                $order:0,
-                                tagName:'div'
-                            },
-                            ROWS:{
-                                $order:1,
-                                tagName:'div',
-                                text:'{rows}'
-                            },
-                            LROW:{
-                                $order: 2,
-                                tagName:'div'
-                            }
-                        }
-                    },
-                    FOOTER:{
-                        $order:2
-                    },
-                    COLLIST:{
-                        tagName:'div',
-                        className:"xui-uiborder-rb"
-                    },
-                    ARROW:{}
-                }
+                    }
+                },
+                COLLIST:{
+                    tagName:'div',
+                    className:"xui-uiborder-rb"
+                },
+                ARROW:{}
             },
             $submap : {
                 /*the other header in table header*/
+                header1:function(profile,template,v,tag,result,index){
+                    if(index > profile.properties.freezedColumn)return false;
+                    profile.colMap[v._serialId]._region=1;
+                    tag="header";
+                    xui.UI.$doTemplate(profile,template,v,tag, result);
+                    return tag;
+                },
+                header2:function(profile,template,v,tag,result,index){
+                    if(index > profile.properties.freezedColumn){
+                        profile.colMap[v._serialId]._region=2;
+                        tag="header";
+                        xui.UI.$doTemplate(profile,template,v,tag, result);
+                        return tag;
+                    }
+                },
                 header:{
                     HCELL:{
-                        style:"width:{_pxWidth}px;height:{_hcellheight}px;line-height:{_hcelllineh}px;{colDisplay};",
+                        style:"width:{_pxWidth}px;height:{_hcellheight}px;{colDisplay};",
                         className:'{cellCls}',
                         HCELLA:{
-                            className:'{headerClass}',
-                            style:"lline-height:inherit;{headerStyle};{colStyle}",
+                            className:'xui-v-wrapper {headerClass}',
+                            style:"{headerStyle};{colStyle}",
                             tabindex: '{_tabindex}',
                             HCELLCAPTION:{
+                                className:'xui-v-node',
                                 text:"{caption}"
                             },
                             SORT:{
@@ -39974,15 +44381,31 @@ Class("xui.UI.TreeGrid",["xui.UI","xui.absValue"],{
                         }
                     }
                 },
+                grpCols1:function(profile,template,v,tag,result,index){
+                    if(v.to > profile.properties.freezedColumn - 1)return false;
+                    profile.colMap[v._serialId]._region=1;
+                    tag="grpCols";
+                    xui.UI.$doTemplate(profile,template,v,tag, result);
+                    return tag;
+                },
+                grpCols2:function(profile,template,v,tag,result,index){
+                    if(v.to > profile.properties.freezedColumn - 1){
+                        profile.colMap[v._serialId]._region=2;
+                        tag="grpCols";
+                        xui.UI.$doTemplate(profile,template,v,tag, result);
+                        return tag;
+                    }
+                },
                 grpCols:{
                     HCELL:{
-                        style:"position:absolute;width:{_pxWidth}px;height:{_hcellheight}px;line-height:{_hcelllineh}px;top:{_hcelltop}px;left:{_hcellleft}px;",
+                        style:"position:absolute;width:{_pxWidth}px;height:{_hcellheight}px;top:{_hcelltop}px;left:{_hcellleft}px;",
                         className:'{cellCls}',
                         HCELLA:{
-                            className:'{headerClass}',
-                            style:"line-height:inherit;{headerStyle};{colStyle}",
+                            className:'xui-v-wrapper {headerClass}',
+                            style:"{headerStyle};{colStyle}",
                             tabindex: '{_tabindex}',
                             HCELLCAPTION:{
+                                className:"xui-v-node",
                                 text:"{caption}"
                             },
                             HHANDLER : {
@@ -39993,94 +44416,276 @@ Class("xui.UI.TreeGrid",["xui.UI","xui.absValue"],{
                         }
                     }
                 },
-                rows:{
-                    ROW:{
+                rows11:function(profile,template,v,tag,result,index){
+                    if(profile._passFreezedRow)return false;
+                    if(index > profile.properties.freezedRow)return false;
+                    profile.rowMap[v._serialId]._region=1;
+                    // keep realtag for real data
+                    xui.UI.$doTemplate(profile,template,v, "row1", result, index,'rows1');
+                },
+                rows12:function(profile,template,v,tag,result,index){
+                    if(profile._passFreezedRow)return false;
+                    if(index > profile.properties.freezedRow)return false;
+                    profile.rowMap[v._serialId]._region=1;
+                    // keep realtag for real data
+                    xui.UI.$doTemplate(profile,template,v, "row2", result, index,'rows2');
+                },
+                rows21:function(profile,template,v,tag,result,index){
+                    if(!profile._passFreezedRow && index <= profile.properties.freezedRow)return;
+                    profile.rowMap[v._serialId]._region=2;
+                    // keep realtag for real data
+                    xui.UI.$doTemplate(profile,template,v, "row1", result, index,'rows1');
+                },
+                rows22:function(profile,template,v,tag,result,index){
+                    if(!profile._passFreezedRow && index <= profile.properties.freezedRow)return;
+                    // *** dont calculate freeeze rows again
+                    profile._passFreezedRow=1;
+                    profile.rowMap[v._serialId]._region=2;
+                    // keep realtag for real data
+                    xui.UI.$doTemplate(profile,template,v, "row2", result, index,'rows2');
+                },
+                row1:{
+                    ROW1:{
                         tagName:'div',
                         style:'{rowDisplay}',
-                        PREVIEW:{
-                            $order:1,
-                            tagName:'div',
-                            className:'xui-uiborder-rb2',
-                            style:'{previewDisplay}',
-                            text:'{preview}'
-                        },
-                        CELLS:{
+                        CELLS1:{
                             $order:2,
                             tagName:'div',
                             className:'xui-uirowbg xui-uiborder-b2 {rowCls} {rowClass}',
                             style:'height:{rowHeight}px;{rowStyle}',
-                            FCELL:{
-                                $order:0,
-                                style:'{rowHandlerDisplay};{_row0DfW};',
-                                className:'{cellCls}',
-                                CELLA:{
-                                    tabindex: '{_tabindex}',
-                                    style:'{cellStyle}{firstCellStyle}',
-                                    className:'{cellClass}{firstCellClass}',
-                                    ROWLRULER:{
-                                        $order:1,
-                                        style:'{_treeMode};width:{_rulerW}px'
-                                    },
-                                    MARK:{
-                                        $order:2,
-                                        style:'{_rowMarkDisplay}'
-                                    },
-                                    ROWNUM:{
-                                        $order:3,
-                                        style:'{_rowNumbDisplay}'
-                                    },
-                                    ROWTOGGLE:{
-                                        $order:4,
-                                        style:'{_treeMode};',
-                                        className:'{subClass}'
-                                    },
-                                    FCELLCAPTION:{
-                                        $order:5,
-                                        text:'{caption}'
-                                    },
-                                    FHANDLER:{
-                                        $order:6,
-                                        tagName:'div',
-                                        style:'{rowDDDisplay}'
-                                    }
-                                }
+                            GRPCELL1:{
+                                tagName:'text',
+                                text:'{_cellhandler}'
                             },
                             OTHERCELLS:{
                                 tagName:'text',
-                                $order: 1,
-                                text:'{cells}'
-                            },
-                            LCELL:{
                                 $order: 2,
-                                text:"{tagCmds}"
+                                text:'{cells}'
                             }
                         },
-                        SUB:{
+                        SUB1:{
                             $order:3,
                             tagName:'div'
-                        },
-                        SUMMARY:{
-                            $order:4,
-                            tagName:'div',
-                            className:'xui-uiborder-rb2',
-                            style:'{summaryDisplay}',
-                            text:'{summary}'
                         }
                     }
                 },
-                'rows.cells':function(profile,template,v,tag,result){
-                    var me=arguments.callee,map=me._m||(me._m={'checkbox':'.checkbox','button':'.button','progress':'.progress'});
-                    xui.UI.$doTemplate(profile,template,v,tag+(map[v.type]||'.input'),result)
+                row2:{
+                    ROW2:{
+                        tagName:'div',
+                        style:'{rowDisplay}',
+                        CELLS2:{
+                            $order:2,
+                            tagName:'div',
+                            className:'xui-uirowbg xui-uiborder-b2 {rowCls} {rowClass}',
+                            style:'height:{rowHeight}px;{rowStyle}',
+                            GRPCELL2:{
+                                tagName:'text',
+                                text:'{_fgrpcell}'
+                            },
+                            OTHERCELLS:{
+                                tagName:'text',
+                                $order: 2,
+                                text:'{cells}'
+                            },
+                            LCELL:{
+                                $order: 3,
+                                className:'xui-v-wrapper',
+                                RTAGCMDS:{
+                                    $order:1,
+                                    tagName:'span',
+                                    text:"{rtagCmds}"
+                                }
+                            }
+                        },
+                        SUB2:{
+                            $order:3,
+                            tagName:'div'
+                        }
+                    }
+                },
+                'rows1._cellhandler':function(profile,template,v,tag,result,index){
+                    xui.UI.$doTemplate(profile,template,v, profile.properties.treeMode=="infirstcell" &&  !profile.properties.freezedColumn ? "rows1.infirstcell" : "rows1.inhandler", result);
+                },
+                'rows1.inhandler':{
+                    FCELL:{
+                        $order:0,
+                        style:'{rowHandlerDisplay};{_row0DfW};',
+                        className:'{cellCls}',
+                        CELLA:{
+                            tabindex: '{_tabindex}',
+                            style:'{cellStyle}{firstCellStyle}',
+                            className:'xui-v-wrapper {cellClass}{firstCellClass}',
+                            ROWLRULER:{
+                                $order:1,
+                                style:'{_treeMode};width:{_rulerW}px'
+                            },
+                            MARK:{
+                                $order:2,
+                                style:'{_rowMarkDisplay}'
+                            },
+                            ROWNUM:{
+                                $order:3,
+                                style:'{_rowNumbDisplay}'
+                            },
+                            ROWTOGGLE:{
+                                $order:4,
+                                style:'{_treeMode};',
+                                className:'{_subClass}'
+                            },
+                            LTAGCMDS:{
+                                $order:1,
+                                tagName:'span',
+                                text:"{ltagCmds}"
+                            },
+                            FCELLCAPTION:{
+                                $order:5,
+                                className:"xui-v-node",
+                                text:"{caption}"
+                            },
+                            FHANDLER:{
+                                $order:6,
+                                tagName:'div',
+                                style:'{rowDDDisplay}'
+                            }
+                        }
+                    } 
+                },
+                'rows1.infirstcell':{
+                    FCELL:{
+                        $order:0,
+                        style:'{rowHandlerDisplay};{_row0DfW};',
+                        className:'{cellCls}',
+                        CELLA:{
+                            tabindex: '{_tabindex}',
+                            style:'{cellStyle}{firstCellStyle}',
+                            className:'xui-v-wrapper {cellClass}{firstCellClass}',
+                            MARK:{
+                                $order:2,
+                                style:'{_rowMarkDisplay}'
+                            },
+                            ROWNUM:{
+                                $order:3,
+                                style:'{_rowNumbDisplay}'
+                            },
+                            LTAGCMDS:{
+                                $order:1,
+                                tagName:'span',
+                                text:"{ltagCmds}"
+                            },
+                            FHANDLER:{
+                                $order:6,
+                                tagName:'div',
+                                style:'{rowDDDisplay}'
+                            }
+                        }
+                    } 
+                },
+                'rows2._fgrpcell':{
+                    GCELL:{
+                        $order:0,
+                        style:'{_row0DfW};',
+                        className:'{cellCls}',
+                        GCELLA:{
+                            tabindex: '{_tabindex}',
+                            style:'{cellStyle}{firstCellStyle}',
+                            className:'xui-v-wrapper {cellClass}{firstCellClass}',
+                            ROWLRULER:{
+                                $order:1,
+                                style:'{_treeMode};width:{_rulerW}px'
+                            },
+                            ROWTOGGLE:{
+                                $order:4,
+                                style:'{_treeMode};',
+                                className:'{_subClass}'
+                            },
+                            FCELLCAPTION:{
+                                $order:5,
+                                className:"xui-v-node",
+                                text:"{caption}"
+                            }
+                        }
+                    } 
+                },
+
+                'rows1.cells':function(profile,template,v,tag,result,index){
+                    if(index > profile.properties.freezedColumn)return;
+                    tag = 'rows.cells';
+
+                    var me=arguments.callee,map=me._m||(me._m={'textarea':'.textarea','checkbox':'.checkbox','button':'.button','progress':'.progress'}),
+                        t = map[v.type] || '.input';
+                    if(profile.properties.treeMode=='infirstcell' && index==1 && t=='.input'){
+                        t='.firstinput';
+                    }
+                    xui.UI.$doTemplate(profile,template,v,tag + t, result);
+
+                    return tag;
+                },
+                'rows2.cells':function(profile,template,v,tag,result,index){
+                    if(index <= profile.properties.freezedColumn)return;
+                    tag = 'rows.cells';
+
+                    var me=arguments.callee,map=me._m||(me._m={'textarea':'.textarea','checkbox':'.checkbox','button':'.button','progress':'.progress'}),
+                        t = map[v.type] || '.input';
+                    if(profile.properties.treeMode=='infirstcell' && index==1 && t=='.input'){
+                        t='.firstinput';
+                    }
+                    xui.UI.$doTemplate(profile,template,v,tag + t, result);
+
+                    return tag;
+                },
+
+                'rows.cells.firstinput':{
+                    CELL:{
+                        style:'width:{width}px;{cellDisplay};',
+                        className:'xui-treegrid-fcell {cellCls}',
+                        CELLA:{
+                            className:'xui-v-wrapper {cellClass}',
+                            style:'{bgcolor};{color};{cellStyle}',
+                            tabindex: '{_tabindex}',
+                            ROWLRULER:{
+                                $order:1,
+                                style:'{_treeMode};width:{_rulerW}px'
+                            },
+                            ROWTOGGLE:{
+                                $order:2,
+                                style:'{_treeMode};',
+                                className:'{_subClass}'
+                            },
+                            CELLCAPTION:{
+                                $order:3,
+                                className:'xui-v-node xui-treegrid-fcellcaption',
+                                text:"{caption}"
+                            }
+                        }
+                    }
                 },
                 'rows.cells.input':{
                     CELL:{
                         style:'width:{width}px;{cellDisplay};',
                         className:'{cellCls}',
                         CELLA:{
-                            className:'{cellClass}',
+                            className:'xui-v-wrapper {cellClass}',
                             style:'{bgcolor};{color};{cellStyle}',
                             tabindex: '{_tabindex}',
-                            text:"{caption}"
+                            CELLCAPTION:{
+                                className:'xui-v-node',
+                                text:"{caption}"
+                            }
+                        }
+                    }
+                },
+                'rows.cells.textarea':{
+                    CELL:{
+                        style:'width:{width}px;{cellDisplay};',
+                        className:'{cellCls}',
+                        CELLA:{
+                            className:'xui-v-wrapper xui-cls-wordwrap {cellClass}',
+                            style:'{bgcolor};{color};{cellStyle}',
+                            tabindex: '{_tabindex}',
+                            CELLCAPTION:{
+                                className:'xui-v-node',
+                                text:"{caption}"
+                            }
                         }
                     }
                 },
@@ -40103,7 +44708,7 @@ Class("xui.UI.TreeGrid",["xui.UI","xui.absValue"],{
                         style:'width:{width}px;{cellDisplay}',
                         className:'{cellCls}',
                         CELLA:{
-                            className:'{cellClass}',
+                            className:'xui-v-wrapper {cellClass}',
                             style:'{cellStyle}',
                             tabindex: '{_tabindex}',
                             CHECKBOX:{
@@ -40121,16 +44726,33 @@ Class("xui.UI.TreeGrid",["xui.UI","xui.absValue"],{
                             style:'{cellStyle}',
                             tabindex: '{_tabindex}',
                             PROGRESS:{
+                                $order:2,
                                 tagName:'div',
+                                className:'xui-v-wrapper',
                                 style:'width:{progress};',
-                                text:'{caption}'
+                                CELLCAPTION:{
+                                    className:'xui-v-node',
+                                    text:"{caption}"
+                                }
                             }
                         }
                     }
                 },
-                'rows.tagCmds':function(profile,template,v,tag,result){
+                'rows2.rtagCmds':function(profile,template,v,tag,result){
                     var me=arguments.callee,map=me._m||(me._m={'text':'.text','button':'.button','image':'.image'});
-                    xui.UI.$doTemplate(profile,template,v,tag+(map[v.type]||'.button'),result)
+                    xui.UI.$doTemplate(profile,template,v,'rows.tagCmds'+(map[v.type]||'.button'),result)
+                },
+                'rows1.ltagCmds':function(profile,template,v,tag,result){
+                    var me=arguments.callee,map=me._m||(me._m={'text':'.text','button':'.button','image':'.image'});
+                    xui.UI.$doTemplate(profile,template,v,'row.tagCmds'+(map[v.type]||'.button'),result)
+                },
+                'rtagCmds':function(profile,template,v,tag,result){
+                    var me=arguments.callee,map=me._m||(me._m={'text':'.text','button':'.button','image':'.image'});
+                    xui.UI.$doTemplate(profile,template,v,"rows.tagCmds"+(map[v.type]||'.button'),result)
+                },
+                'ltagCmds':function(profile,template,v,tag,result){
+                    var me=arguments.callee,map=me._m||(me._m={'text':'.text','button':'.button','image':'.image'});
+                    xui.UI.$doTemplate(profile,template,v,"rows.tagCmds"+(map[v.type]||'.button'),result)
                 },
                 'rows.tagCmds.text':{
                     CMD:{
@@ -40149,7 +44771,7 @@ Class("xui.UI.TreeGrid",["xui.UI","xui.absValue"],{
                         tagName:"button",
                         title:"{tips}",
                         style:'{_style}{itemStyle}',
-                        className:'xui-list-cmd {itemClass}',
+                        className:'xui-uiborder-outset xui-list-cmd {itemClass}',
                         tabindex: '{_tabindex}',
                         text:"{caption}"
                     }
@@ -40176,13 +44798,11 @@ Class("xui.UI.TreeGrid",["xui.UI","xui.absValue"],{
                 overflow:'hidden'
             },
             BOX:{
-                display:'block',
-                position:'relative',
-                overflow:'hidden',
-                'text-align':'left'
+                'border-collapse':'collapse',
+                 height: '100%',
+                 width: '100%'
             },
-
-            HEADER:{
+            'HEADER1, HEADER2':{
                 'background-image':  xui.UI.$bg('head.gif'),
                 'background-repeat':'repeat-x',
                 'background-position':'left top',
@@ -40191,10 +44811,10 @@ Class("xui.UI.TreeGrid",["xui.UI","xui.absValue"],{
                 overflow:'hidden',
                 'text-align':'left'
             },
-            HI:{
+            'HI1, HI2':{
                 position:'relative'
             },
-            GRPCELLBOX:{
+            'GRPCELLBOX1, GRPCELLBOX2':{
                 position:'absolute',
                 overflow:'visible',
                 left:0,
@@ -40204,10 +44824,21 @@ Class("xui.UI.TreeGrid",["xui.UI","xui.absValue"],{
                 'font-size':0,
                 'line-height':0
             },
-            SCROLL:{
-                overflow:'auto',
+            'SCROLL11, SCROLL12, SCROLL21, SCROLL22':{
                 position:'relative',
                 'text-align':'left'
+            },
+            'SCROLL11, SCROLL12, SCROLL21':{
+                overflow:'hidden'
+            },
+            'SCROLL11.columnfreezed, SCROLL21.columnfreezed':{
+                'border-right':'1px solid #9a9a9a'
+            },
+            'SCROLL11.rowfreezed, SCROLL12.rowfreezed':{
+                'border-bottom':'1px solid #9a9a9a'
+            },
+            SCROLL22:{
+                overflow:'auto'
             },
             ARROW:{
                 position:'absolute',
@@ -40216,7 +44847,7 @@ Class("xui.UI.TreeGrid",["xui.UI","xui.absValue"],{
                 top:0,
                 display:'none',
                 width:'14px',
-                height:'18px',
+                height:'22px',
                 'background-image':  xui.UI.$bg('icons.gif','',true),
                 'background-repeat':'no-repeat',
                 'background-position':'-72px -270px'
@@ -40232,10 +44863,9 @@ Class("xui.UI.TreeGrid",["xui.UI","xui.absValue"],{
                 'background-repeat':'no-repeat',
                 'background-position':'center bottom'
             },
-            BODY:{
+            'BODY11, BODY12, BODY21, BODY22':{
                 overflow:'visible',
                 position:'absolute',
-                'padding-bottom':'1px',
                 left:0,
                 top:'0',
                 'font-size':0,
@@ -40287,7 +44917,7 @@ Class("xui.UI.TreeGrid",["xui.UI","xui.absValue"],{
                 'font-size':0,
                 'line-height':0
             },
-            'HCELLS, CELLS':{
+            'HCELLS1, HCELLS2, CELLS1, CELLS2':{
                 //for ie height change trigger
                 'overflow-y': xui.browser.ie ?'hidden':'',
                 position:'relative',
@@ -40295,33 +44925,28 @@ Class("xui.UI.TreeGrid",["xui.UI","xui.absValue"],{
                 'font-size':'12px',
                 'line-height':'18px'
             },
-            'HCELLS, GRPCELLBOX':{
+            'HCELLS1, HCELLS2, GRPCELLBOX1, GRPCELLBOX2':{
                 overflow:'visible'
             },
-            CELLS:{
+            'CELLS1, CELLS2':{
                 overflow:'visible'
             },
-            'CELLS-group FCELL':{
+            'CELLS1-group FCELL, CELLS2-group FCELL':{
                 'border-right':0,
                 'padding-right':'1px',
                 overflow:'visible'
             },
-            'CELLS-group FCELLCAPTION, CELLS-group CELLA, CELLS-group ROWNUM':{
+            'CELLS1-group FCELLCAPTION, CELLS1-group CELLA, CELLS1-group ROWNUM, CELLS2-group FCELLCAPTION, CELLS2-group CELLA':{
                 'font-weight':'bold',
                 color:'#3764A0',
                 overflow:'visible'
             },
-            'PREVIEW,SUMMARY':{
-                position:'relative',
-                display:'none',
-                'padding-left':'16px'
-            },
-           'CELLS-mouseover':{
+           'CELLS1-mouseover, CELLS2-mouseover':{
                 $order:4,
                 'background-color':'#DFE8F6'
             },
 
-            'CELLS-readonly CELLA':{
+            'CELLS1-readonly CELLA,CELLS2-readonly CELLA':{
                  $order:5,
                  color:'#808080'
             },
@@ -40329,11 +44954,11 @@ Class("xui.UI.TreeGrid",["xui.UI","xui.absValue"],{
                  $order:6,
                  color:'#808080'
             },
-            'CELLS-disabled':{
+            'CELLS1-disabled, CELLS2-disabled':{
                  $order:7,
                  'background-color':'#EBEADB'
             },
-            'CELLS-disabled CELLA':{
+            'CELLS1-disabled CELLA, CELLS2-disabled CELLA':{
                  $order:7,
                  color:'#808080'
             },
@@ -40346,15 +44971,15 @@ Class("xui.UI.TreeGrid",["xui.UI","xui.absValue"],{
                  color:'#808080'
             },
 
-            'CELLS-active, CELL-active':{
+            'CELLS1-active, CELLS2-active, CELL-active':{
                  $order:5,
                  'background-color':'#A3BAE9'
             },
-            "CELLS-hot":{
+            "CELLS1-hot, CELLS2-hot":{
                 $order:6,
                 'background-color':'#FFE97F'
             },
-            'CELLS-checked, CELL-checked, CELLS-checked CELLA, CELL-checked CELLA':{
+            'CELLS1-checked, CELLS2-checked, CELL-checked, CELL-checked CELLA':{
                  $order:6,
                 'background-color':'#7199E8',
                 color:'#fff'
@@ -40365,8 +44990,22 @@ Class("xui.UI.TreeGrid",["xui.UI","xui.absValue"],{
             "FHCELL HCELLA":{
                 'text-align': 'center'
             },
-            'HCELLCAPTION,SORT,HHANDLER':{
+            'CELLCAPTION,HCELLCAPTION,SORT,HHANDLER':{
                 'vertical-align':'middle'
+            },
+            'CELLCAPTION,HCELLCAPTION,FCELLCAPTION,GRIDCAPTION':{
+                "max-width": "100%",
+                "text-overflow": "ellipsis",
+                "white-space": "nowrap",
+                "overflow": "hidden"
+            },
+            // for "text-overflow": "ellipsis",
+            'FCELL FCELLCAPTION, FHCELL GRIDCAPTION':{
+                display:"inline"
+            },
+            'CELL-textarea CELLCAPTION':{
+                $order:10,
+                 "white-space": "normal"
             },
             FHANDLER:{
                 position:'absolute',
@@ -40402,7 +45041,7 @@ Class("xui.UI.TreeGrid",["xui.UI","xui.absValue"],{
                'background-position':'left top',
                'background-color':'#FFF1A0'
             },
-            ROW:{
+            'ROW1, ROW2':{
                 position:'relative',
                 zoom:xui.browser.ie?1:null,
                 width:xui.browser.ie?'100%':null,
@@ -40463,7 +45102,8 @@ Class("xui.UI.TreeGrid",["xui.UI","xui.absValue"],{
                 'background-color':'#DFE8F6'
             },
             'FCELL CELLA, HCELLA':{
-                position:'relative'
+                position:'relative',
+                "text-overflow": "ellipsis"
             },
             HCELLA:{
                 $order:3,
@@ -40493,7 +45133,6 @@ Class("xui.UI.TreeGrid",["xui.UI","xui.absValue"],{
             PROGRESS:{
                 height:'100%',
                 'background-color':'#00ffff',
-                'text-align':'center',
                 'line-height':'22px',
                 overflow:'visible',
                 opacity:0.7,
@@ -40516,7 +45155,7 @@ Class("xui.UI.TreeGrid",["xui.UI","xui.absValue"],{
                 $order:2,
                 'background-position': '-20px -110px'
             },
-            'CHECKBOX-checked, CELLS-checked MARK':{
+            'CHECKBOX-checked, CELLS1-checked MARK, CELLS2-checked MARK':{
                 $order:3,
                 'background-position': '0 -70px'
             },
@@ -40528,15 +45167,22 @@ Class("xui.UI.TreeGrid",["xui.UI","xui.absValue"],{
                 $order:5,
                 'background-position': '0 -110px'
             },
-            SUB:{
+            'SUB1, SUM22':{
                 //for ie bug: relative , height='auto' will disppear
                 zoom:xui.browser.ie?1:null,
                 height:0,
                 position:'relative',
-                overflow:'hidden',
+                overflow:'visible',
                 'font-size':'1px',
                 //1px for ie8
                 'line-height':'1px'
+            },
+            LTAGCMDS:{
+                "padding-right":'2px',
+                'vertical-align':'middle'
+            },
+            RTAGCMDS:{
+                'vertical-align':'middle'
             },
             CMD:{
                 "margin-left":'2px',
@@ -40545,11 +45191,11 @@ Class("xui.UI.TreeGrid",["xui.UI","xui.absValue"],{
                 cursor:'pointer'
             }
         },
-        _objectProp:{tagVar:1,propBinder:1,dockMargin:1,rowOptions:1,colOptions:1},
+        _objectProp:{rowOptions:1,colOptions:1},
         Behaviors:{
-            HoverEffected:{ROWTOGGLE:'ROWTOGGLE', HCELL:'HCELL', FHCELL:'FHCELL'},
-            ClickEffected:{ROWTOGGLE:'ROWTOGGLE', CELL:'CELL', HCELL:'HCELL'},
-            DroppableKeys:['SCROLL','CELLS','ROWTOGGLE'],
+            HoverEffected:{ROWTOGGLE:'ROWTOGGLE', CELL:'CELL', HCELL:'HCELL', FCELL:'FHCELL',FCELL:'FHCELL',CMD:'CMD',SCROLL22:"SCROLL22",BODY11:"BODY11",BODY12:"BODY12",BODY21:"BODY22",BODY11:"BODY22",HEADER1:"HEADER1",HEADER2:"HEADER2"},
+            ClickEffected:{ROWTOGGLE:'ROWTOGGLE', CELL:'CELL', HCELL:'HCELL',CMD:'CMD'},
+            DroppableKeys:['SCROLL22','CELLS1','CELLS2','FCELL'],
             DraggableKeys:['FCELL'],
 
             onSize:xui.UI.$onSize,
@@ -40576,19 +45222,45 @@ Class("xui.UI.TreeGrid",["xui.UI","xui.absValue"],{
                 }
             },
             //key navigator
-            SCROLL:{
+            SCROLL22:{
+                onScroll:function(profile, e, src){
+                    var node=xui.use(src).get(0),
+                        l=node.scrollLeft||0,
+                        t=node.scrollTop||0;
+                    if(profile.$sl!=l){
+                        profile.getSubNodes(['HEADER2','SCROLL12']).scrollLeft(profile.$sl=l);
+                    }
+                    if(profile.$st!=t){
+                        profile.getSubNode('SCROLL21').get(0).scrollTop=profile.$st=t;
+                        //for IE11's scrollbar bug
+                        if((t=profile.getSubNode('SCROLL21').get(0).scrollTop) && t!=profile.$st){
+                            node.scrollTop=profile.$st=t;
+                        }                    
+                    }
+                }
+            },
+            SCROLL21:{
+                onScroll:function(profile, e, src){
+                    var node=xui.use(src).get(0),
+                        t=node.scrollTop||0;
+                    if(profile.$st!=t)
+                        profile.getSubNode('SCROLL22').get(0).scrollTop=profile.$st=t;
+                }
+            },
+            HEADER2:{
                 onScroll:function(profile, e, src){
                     var node=xui.use(src).get(0),
                         l=node.scrollLeft||0;
                     if(profile.$sl!=l)
-                        profile.getSubNode('HEADER').get(0).scrollLeft=profile.$sl=l;
+                        profile.getSubNodes(['SCROLL12','SCROLL22']).scrollLeft(profile.$sl=l);
                 }
             },
-            HEADER:{
+            SCROLL12:{
                 onScroll:function(profile, e, src){
-                    var l=xui.use(src).get(0).scrollLeft||0;
+                    var node=xui.use(src).get(0),
+                        l=node.scrollLeft||0;
                     if(profile.$sl!=l)
-                        profile.getSubNode('SCROLL').get(0).scrollLeft=profile.$sl=l;
+                        profile.getSubNodes(['HEADER2','SCROLL22']).scrollLeft(profile.$sl=l);
                 }
             },
             //colomn resizer
@@ -40597,12 +45269,15 @@ Class("xui.UI.TreeGrid",["xui.UI","xui.absValue"],{
                     if(xui.Event.getBtn(e)!='left')return;
                     var p=profile.properties,
                         id = profile.getSubId(src),
-                        col = profile.colMap[id];
-                    if(col && col.relWidth)return;
-
-                    var o=xui(src),
-                    minW =o.parent(2).width()-p._minColW,
-                    scroll = profile.getSubNode('SCROLL'),
+                        col = profile.colMap[id],o;
+                    if(col && col.flexSize)return;
+                    if(col && col._isgroup){
+                        o=profile.getSubNode("HHANDLER",profile.properties.header[col["to"]]._serialId);
+                    }else{
+                        o=xui(src);
+                    }
+                    var minW =o.parent(2).width()-p._minColW,
+                    scroll = profile.getSubNode('SCROLL22'),
                     maxW = scroll.offset().left + scroll.width() - xui.Event.getPos(e).left - 4;
 
                     if(p.disabled)return false;
@@ -40681,8 +45356,8 @@ Class("xui.UI.TreeGrid",["xui.UI","xui.absValue"],{
                     if(profile.afterColResized)
                         profile.boxing().afterColResized(profile,col?col.id:null,w);
 
-                    profile.getSubNode('SCROLL').onScroll();
-                    profile.box._adjustColsH(profile);
+                    profile.getSubNode('SCROLL22').onScroll();
+                    profile.box._adjustColsWidth(profile);
                     profile.box._adjustBody(profile,'setcol');
                     profile._limited=0;
                 },
@@ -40700,7 +45375,7 @@ Class("xui.UI.TreeGrid",["xui.UI","xui.absValue"],{
                         o=profile.getSubNode("HCELL",col._serialId);
                     }
 
-                    if(col && col.relWidth)return;
+                    if(col && col.flexSize)return;
 
                     //for row0
                     if(profile.getKey(xui.use(src).parent(2).id())==profile.keys.FHCELL){
@@ -40733,14 +45408,14 @@ Class("xui.UI.TreeGrid",["xui.UI","xui.absValue"],{
                         if('minWidth' in col)
                             w=Math.max(col.minWidth,w);
                     }
-
+                    w+=2;
                     profile.box._adjusteditorW(profile, xui(ns).parent().width(w),w);
                     profile, o.width(col._pxWidth=col.width=w);
                     xui(ns).removeClass(cls);
                     if(profile.afterColResized)
                         profile.boxing().afterColResized(profile,col.id,w);
 
-                    profile.box._adjustColsH(profile);
+                    profile.box._adjustColsWidth(profile);
                     profile.box._adjustBody(profile,'setcol');
                     return false;
                 }
@@ -40753,7 +45428,7 @@ Class("xui.UI.TreeGrid",["xui.UI","xui.absValue"],{
                     row = profile.rowMap[profile.getSubId(src)],
                     o=xui(src),
                     minH =o.parent(3).height()-p._minRowH,
-                    scroll = profile.getSubNode('SCROLL'),
+                    scroll = profile.getSubNode('SCROLL21'),
                     maxH = scroll.offset().top + scroll.height() - xui.Event.getPos(e).top - 4;
 
                     if(p.disabled || (row&&row.disabled))return false;
@@ -40794,11 +45469,13 @@ Class("xui.UI.TreeGrid",["xui.UI","xui.absValue"],{
                     }
                 },
                 onDragstop:function(profile, e, src){
-                    var o=xui(src).parent(3),
+                    var subId=profile.getSubId(src),
+                        o=xui(src).parent(3),
                         h=o.height()+xui.DragDrop.getProfile().offset.y,
                         row = profile.rowMap[profile.getSubId(src)],
-                        header = profile.properties.header,
-                        h1,t1;
+                        header = profile.properties.header;
+
+                    profile.getSubNode("CELLS2",subId).height(h);
 
                     //for ie's weird bug
                     if(xui.browser.ie && h%2==1)h+=1;
@@ -40808,14 +45485,14 @@ Class("xui.UI.TreeGrid",["xui.UI","xui.absValue"],{
                         return;
                     }
 
-                    profile.box._adjusteditorH(profile, o.height(row._height=h),h);
-
                     if(profile.getKey(xui.use(src).parent(2).id())==profile.keys.FHCELL){
                         profile.properties.headerHeight=h;
-                        profile.box._adjustColsV(profile);
+                        profile.box._adjustColsHeight(profile);
                         xui.UI.$tryResize(profile,profile.getRoot().width(),profile.getRoot().height(),true);
-                    }else
+                    }else{
+                        profile.box._adjusteditorH(profile, o.height(row._height=h),h);
                         row.height=h;
+                    }
 
                     if(profile.afterRowResized)
                         profile.boxing().afterRowResized(profile, row?row.id:null, h);
@@ -40832,7 +45509,7 @@ Class("xui.UI.TreeGrid",["xui.UI","xui.absValue"],{
 
                     if(sid){
                         row=profile.rowMap[sid];
-                        cells=profile.getSubNode('CELLS', sid);
+                        cells=profile.getSubNodes(['CELLS2','CELLS1'], sid);
                         var h=cells.height('auto').height();
 
                         if(profile.beforeRowResized && false===profile.boxing().beforeRowResized(profile, row.id, h))
@@ -40844,7 +45521,7 @@ Class("xui.UI.TreeGrid",["xui.UI","xui.absValue"],{
                         var h=(profile._headerLayers||0)*profile.box.$DataStruct.headerHeight;
                         if(profile.beforeRowResized && false===profile.boxing().beforeRowResized(profile, null, h))
                             return;
-                        profile.box._adjustColsV(profile,true);
+                        profile.box._adjustColsHeight(profile,true);
                         xui.UI.$tryResize(profile, profile.getRoot().width(), profile.getRoot().height(),true);
                     }
 
@@ -40860,16 +45537,22 @@ Class("xui.UI.TreeGrid",["xui.UI","xui.absValue"],{
             //mark click for tree build
             ROWTOGGLE:{
                 onClick:function(profile, e, src){
-                    var
-                    p = profile.properties,
-                    row = profile.rowMap[profile.getSubId(src)]
-                    ;
+                    var  p = profile.properties,cell,
+                        row = profile.rowMap[profile.getSubId(src)];
+                    if(!row){
+                        cell = profile.cellMap[profile.getSubId(src)];
+                        if(cell)row=cell._row;
+                    }
+                    if(!row)return;
                     if(p.disabled || row.disabled)return false;
                     //for selection click
                     if(!row.sub)return;
 
                     profile.box._setSub(profile, row, !row._checked);
 
+                    return false;
+                },
+                beforeMousedown:function(){
                     return false;
                 }
             },
@@ -40905,19 +45588,24 @@ Class("xui.UI.TreeGrid",["xui.UI","xui.absValue"],{
                     sortby = col ? col.sortby : null,
                     index = col ? _.arr.indexOf(p.header,col) :-1,
                     me=arguments.callee,
-                    fun = me.fun||(me.fun = function(profile, subNode, index, type, sortby,order,lastrownode){
-                        var rows,parent,self=arguments.callee;
+                    fun = me.fun||(me.fun = function(profile, subNode, index, type, sortby,order,lastrownode1,lastrownode2){
+                        var rows,parent1,parent2,self=arguments.callee;
                         if(subNode){
                             rows = subNode.sub;
-                            parent = profile.getSubNode('SUB', subNode._serialId).get(0);
+                            parent1 = profile.getSubNode('SUB1', subNode._serialId).get(0);
+                            parent2 = profile.getSubNode('SUB2', subNode._serialId).get(0);
                         }else{
                             subNode={_inited:true};
                             rows = profile.properties.rows;
-                            parent = profile.getSubNode('ROWS').get(0);
+                            parent1 = profile.getSubNode('ROWS21').get(0);
+                            parent2 = profile.getSubNode('ROWS22').get(0);
                         }
                         //sor sub first
-                        var a1=[], a2=[], a3=[], a4=[],t,ff;
+                        var a1=[],a2=[], a4=[],t,ff;
+                        var a11=[], a12=[], a31=[], a32=[];
                         _.arr.each(rows,function(row){
+                            if(row._region==1)return;
+
                             if(row.sub && row.sub.length>1)
                                 self(profile, row, index, type, sortby, order, null);
                              //for short input
@@ -40958,31 +45646,41 @@ Class("xui.UI.TreeGrid",["xui.UI","xui.absValue"],{
                         //sort memory array
                         //sort dom node
                         var b = subNode._inited, bak=_.copy(rows), c;
-                        if(b)
-                            a1=parent.childNodes;
+                        if(b){
+                            a11=parent1.childNodes;
+                            a12=parent2.childNodes;
+                        }
                         _.arr.each(a2,function(o,i){
                             rows[i]=bak[o];
-                            if(b)a3[i]=a1[o];
+                            if(b){
+                                a31[i]=a11[o];
+                                a32[i]=a12[o];
+                            }
                         });
                         if(b){
-                            var fragment=document.createDocumentFragment();
-                            for(var i=0;t=a3[i];i++)
-                                fragment.appendChild(t);
+                            var fragment1=document.createDocumentFragment(),
+                                fragment2=document.createDocumentFragment();
+                            for(var i=0;t=a31[i];i++) fragment1.appendChild(t);
+                            for(var i=0;t=a32[i];i++) fragment2.appendChild(t);
 
-                            if(lastrownode)
-                                parent.insertBefore(fragment, lastrownode);
-                            else
-                                parent.appendChild(fragment);
+                            if(lastrownode1){
+                                parent1.insertBefore(fragment1, lastrownode1);
+                                parent2.insertBefore(fragment2, lastrownode2);
+                            }else{
+                                parent1.appendChild(fragment1);
+                                parent2.appendChild(fragment2);
+                            }
                         }
                     });
 
-                    var lastrow,lastrownode;
+                    var lastrow, lastrownode1, lastrownode2;
                     if(profile.__hastmpRow){
                         lastrow=profile.properties.rows.pop();
-                        lastrownode=profile.getSubNode('ROWS').get(0).lastChild;
+                        lastrownode1=profile.getSubNode('ROWS21').get(0).lastChild;
+                        lastrownode2=profile.getSubNode('ROWS22').get(0).lastChild;
                     }
 
-                    fun(profile, null, index, type, sortby,order, lastrownode);
+                    fun(profile, null, index, type, sortby,order, lastrownode1, lastrownode2);
 
                     if(profile.__hastmpRow)
                         profile.properties.rows.push(lastrow);
@@ -40995,18 +45693,22 @@ Class("xui.UI.TreeGrid",["xui.UI","xui.absValue"],{
                     profile.box._asy(profile);
 
                     //clear rows cache
-                    delete profile.$allrowscache;
+                    delete profile.$allrowscache1;
+                    delete profile.$allrowscache2;
 
                     if(profile.afterColSorted)
                         profile.boxing().afterColSorted(profile, col);
                 },
                 beforeMousedown:function(profile, e, src){
                     if(xui.Event.getBtn(e)!='left')return;
+                    
                     var p=profile.properties;
                     if(p.disabled)return;
+
                     var col=profile.colMap[profile.getSubId(src)];
                     if(!col||col._isgroup)return;
                     if(p.disabled || col.disabled)return false;
+                    if(p.treeMode=='infirstcell' && p.header[0]==col)return false;
                     if(!(col.hasOwnProperty('colMovable')?col.colMovable:p.colMovable))return;
 
                     //fire before event
@@ -41047,7 +45749,7 @@ Class("xui.UI.TreeGrid",["xui.UI","xui.absValue"],{
                     xui.DragDrop.setDropElement(src).setDropFace(src,'move');
                     var nn=xui.use(psrc).get(0);
                     profile.getSubNode("ARROW")
-                        .left(nn.offsetLeft-8)
+                        .left(nn.offsetLeft + (profile._leftregionw || 0) - 8)
                         .top(nn.offsetTop+nn.offsetHeight)
                         .css("display","block");
                 },
@@ -41158,15 +45860,16 @@ Class("xui.UI.TreeGrid",["xui.UI","xui.absValue"],{
                             return r;
                         });
                         p.grpCols=box._adjustGrpColsData(profile,arr);
-                        box._adjustColsH(profile);
-                        box._adjustColsV(profile);
+                        box._adjustColsWidth(profile);
+                        box._adjustColsHeight(profile);
                     }
 
                     //fire after event
                     profile.boxing().afterColMoved(profile, fromTh.id, toTh.id);
 
                     //clear rows cache
-                    delete profile.$allrowscache;
+                    delete profile.$allrowscache1;
+                    delete profile.$allrowscache2;
                 },
                 onMouseover:function(profile,e,src){
                     var p=profile.properties,
@@ -41259,15 +45962,16 @@ Class("xui.UI.TreeGrid",["xui.UI","xui.absValue"],{
                         profile.$col_pop.pop(src);
                 }
             },
-            CELLS:{
+            CELLS2:{
                 afterMouseover:function(profile, e, src){
                     var p=profile.properties;
                     if(p.disabled)return;
                     if(p.disableHoverEffect)return;
                     if(p.activeMode=='row'){
-                        xui.use(src).tagClass('-mouseover');
+                        var subid=profile.getSubId(src);
+                        profile.getSubNodes(['CELLS1','CELLS2'], subid).tagClass('-mouseover');
                         if(profile.onRowHover){
-                            var row = profile.rowMap[profile.getSubId(src)];
+                            var row = profile.rowMap[subid];
                             profile.boxing().onRowHover(profile, row, true, e, src);
                         }
                     }
@@ -41277,9 +45981,10 @@ Class("xui.UI.TreeGrid",["xui.UI","xui.absValue"],{
                     if(p.disabled)return;
                     if(p.disableHoverEffect)return;
                     if(p.activeMode=='row'){
-                        xui.use(src).tagClass('-mouseover',false);
+                        var subid=profile.getSubId(src);
+                        profile.getSubNodes(['CELLS1','CELLS2'], subid).tagClass('-mouseover',false);
                         if(profile.onRowHover){
-                            var row = profile.rowMap[profile.getSubId(src)];
+                            var row = profile.rowMap[subid];
                             profile.boxing().onRowHover(profile, row, false, e, src);
                         }
                     }
@@ -41287,7 +45992,7 @@ Class("xui.UI.TreeGrid",["xui.UI","xui.absValue"],{
                 onDblclick:function(profile, e, src){
                     var p = profile.properties,
                         row = profile.rowMap[profile.getSubId(src)];
-                    if(p.disabled || row.disabled)return false;
+                    if(!row || p.disabled || row.disabled)return false;
                     if(profile.onDblclickRow)profile.boxing().onDblclickRow(profile, row, e, src);
                     return false;
                 },
@@ -41299,7 +46004,7 @@ Class("xui.UI.TreeGrid",["xui.UI","xui.absValue"],{
                         ck=profile.getKey(xui.Event.getSrc(e).id||"");
                     if(p.disabled || row.disabled)return false;
                     if(ck==ks.ROWTOGGLE || ck==ks.MARK) return false;
-                    if(row.group) profile.getSubNode('ROWTOGGLE',row._serialId).onClick();
+                    if(row.group) profile.box._getToggleNode(profile, row._serialId).onClick();
                     if(profile.onClickRow)
                         profile.boxing().onClickRow(profile, row, e, src);
                 }
@@ -41422,7 +46127,7 @@ Class("xui.UI.TreeGrid",["xui.UI","xui.absValue"],{
                     if(profile.box){
                         if(xui.use(src).get(0)){
                             //in some browsers: if CELLA has a child 'span', you click 'span' will not tigger to focus CELLA
-                            if(!xui.getNodeData(src,'_tmp_forcefocus'))
+                            if(!xui.getNodeData(src,'_tmp_forcefocus') )
                                 profile.box._focusEvent(profile, e, src);
                         }
                     }
@@ -41432,81 +46137,134 @@ Class("xui.UI.TreeGrid",["xui.UI","xui.absValue"],{
                     profile.box._focusEvent(profile, e, src);
                 },
                 onKeydown:function(profile, e, src){
-                    var p = profile.properties,
+                    var akeys={"tab":1,"left":1,"right":1,"up":1,"down":1},
                         keys=xui.Event.getKey(e),
-                        key = keys.key,
-                        shift=keys.shiftKey,
-                        ctrl=keys.ctrlKey,
-                        cur = xui(src),
-                        body = profile.getSubNode('ROWS'),
-                        keyid=new RegExp("^"+profile.box.$Keys.CELLA+":"+profile.serialId+":"),
-                        first = body.nextFocus(true, true, false,keyid),
-                        last = body.nextFocus(false, true, false,keyid),
-                        cell=profile.cellMap[profile.getSubId(src)],
-                        row;
+                        key = keys.key;
 
+                    if(key=='enter'){
+                        xui(src).onClick();
+                        return;
+                    }
+
+                    if(!akeys[key])return;
+
+                    var cell=profile.cellMap[profile.getSubId(src)];
                     if(profile.beforeCellKeydown && false===profile.boxing().beforeCellKeydown(profile,cell,keys)){
                         return false;
                     }
-                    switch(key){
-                    case 'enter':
-                        xui(src).onClick();
-                    break;
-                    //tab to next/pre
-                    case 'tab':
-                        if(shift){
-                            if(src!=first.xid()){
-                                cur.nextFocus(false,false,true,keyid);
-                                return false;
-                            }
-                        }else{
-                            if(src!=last.xid()){
-                                cur.nextFocus(true,false,true,keyid);
-                                return false;
-                            }
-                        }
-                        break;
-                    case 'left':
-                        if(cur.get(0)==first.get(0))
-                            last.focus();
-                        else
-                            cur.nextFocus(false,false,true,keyid);
-                        return false;
-                        break;
-                    case 'right':
-                        if(cur.get(0)==last.get(0))
-                            first.focus();
-                        else
-                            cur.nextFocus(true,false,true,keyid);
-                        return false;
-                        break;
-                    case 'up':
-                        if(ctrl){
-                            if(cell)
-                                row=cell._row
-                            else
-                                row=profile.rowMap[profile.getSubId(src)];
-                            if(row && !(p.disabled || row.disabled) && (row.group||row.sub)){
-                                profile.getSubNode('ROWTOGGLE',row._serialId).onClick();
-                                return false;
-                            }
-                        }
-                        if(cur.get(0)==first.get(0)){
-                            last.focus();
-                            return;
-                        }
-                   case 'down':
-                        if(ctrl){
-                            if(cell)
-                                row=cell._row
-                            else
-                                row=profile.rowMap[profile.getSubId(src)];
-                            if(row && !(p.disabled || row.disabled) &&  (row.group||row.sub)){
-                                profile.getSubNode('ROWTOGGLE',row._serialId).onClick();
-                                return false;
-                            }
-                        }
 
+                    // for navigation
+                    var p = profile.properties,
+                        shift=keys.shiftKey,
+                        ctrl=keys.ctrlKey,
+                        cur = xui(src),
+                        body11 = profile.getSubNode('BODY11'),
+                        body12 = profile.getSubNode('BODY12'),
+                        body21 = profile.getSubNode('BODY21'),
+                        body22 = profile.getSubNode('BODY22'),
+                        keyid=new RegExp("^"+profile.box.$Keys.CELLA+":"+profile.serialId+":"),
+                        hasBody12 = !!body12.offsetWidth() ,
+                        hasBody21 = !!body21.offsetWidth() ,
+                        hasBody22 = !!body22.offsetHeight() ,
+                        first11 = body11.nextFocus(true, true, false, keyid),
+                        first12 = body12.nextFocus(true, true, false, keyid),
+                        first21 = body21.nextFocus(true, true, false, keyid),
+                        first22 = body22.nextFocus(true, true, false, keyid),
+                        last11 = body11.nextFocus(false, true, false, keyid),
+                        last12 = body12.nextFocus(false, true, false, keyid),
+                        last21 = body21.nextFocus(false, true, false, keyid),
+                        last22 = body22.nextFocus(false, true, false, keyid),
+                        first = hasBody12 ? hasBody21 ? first11 : first12: hasBody21 ? first21 : first22,
+                        last = body22 ? last22 : body12 ? last12 : body21 ? last21 : last11,
+
+                        
+                        cellNode = cur.parent(),
+                        cellsid = cellNode.parent().id(),
+                        subId = profile.getSubId(cellsid),
+                        row = cell ? cell._row : profile.rowMap[profile.getSubId(src)], 
+                        region = cell ? (cell._row._region + "" + cell._col._region) : (row._region + "1"),
+                        t;
+
+
+                    var toLeft=function(inner){
+                        if(src!=first.xid()){
+                            var ok;
+                            if(!cellNode.get(0).previousSibling || !cellNode.get(0).previousSibling.clientWidth){
+                                switch(region){
+                                    case '11':
+                                    case '21':
+                                        // has right region
+                                        if(hasBody22){
+                                            if(src==first21.xid()){
+                                                last12.focus();
+                                                ok=1;
+                                            }else{
+                                                var prev = profile.getSubNode("ROW2",subId).prev();
+                                                if(prev){
+                                                    prev.nextFocus(false, true, true,keyid);
+                                                    ok=1;
+                                                }
+                                            }
+                                        }                        
+                                    break;
+                                    case '12':
+                                    case '22':
+                                        // has left region
+                                        if(hasBody21){
+                                            profile.getSubNode("CELLS1",subId).last(2).focus();
+                                            ok=1;
+                                        }
+                                    break;
+                                }
+                            }
+                            if(!ok){
+                                cur.nextFocus(false,false,true,keyid);
+                            }
+                            return false;
+                        }else if(inner){
+                            last.focus();
+                        }
+                    },
+                    toRight=function(inner){
+                        if(src!=last.xid()){
+                            var ok;
+                            if(region=="11"||region=="21" ? !cellNode.get(0).nextSibling : (!(t=cellNode.get(0).nextSibling)||!t.clientWidth)){
+                                switch(region){
+                                    case '11':
+                                    case '21':
+                                        // has right region
+                                        if(hasBody22){
+                                            profile.getSubNode("CELLS2",subId).first(2).focus();
+                                            ok=1;
+                                        }
+                                    break;
+                                    case '12':
+                                    case '22':
+                                        // has left region
+                                        if(hasBody21){
+                                            if(src==last12.xid()){
+                                                first21.focus();
+                                                ok=1;
+                                            }else{
+                                                var next = profile.getSubNode("ROW1",subId).next();
+                                                if(next){
+                                                    next.nextFocus(true, true, true,keyid);
+                                                    ok=1;
+                                                }
+                                            }
+                                        }
+                                    break;
+                                }
+                            }
+                            if(!ok){
+                                cur.nextFocus(true,false,true,keyid);
+                            }
+                            return false;
+                        }else if(inner){
+                            first.focus();
+                        }
+                    },
+                    verticalNav=function(up){
                         //get no.
                         var count=1,
                             temp = cur.parent().get(0),
@@ -41516,13 +46274,13 @@ Class("xui.UI.TreeGrid",["xui.UI","xui.absValue"],{
                         //get row
                         temp=cur.parent(2).get(0);
 
-                        //get all rows(include header)
-                        if(!profile.$allrowscache)
+                        //get all rows
+                        if(!profile.$allrowscache2)
                             profile.box._cacheRows(profile);
 
                         //get index
-                        var index = _.arr.indexOf(profile.$allrowscache,temp),
-                            rowLen = profile.$allrowscache.length,
+                        var index = _.arr.indexOf(region=="12"||region=="22" ? profile.$allrowscache2 : profile.$allrowscache1, temp),
+                            rowLen = profile.$allrowscache2.length,
                             newLine=0;
 
                         //adjust index
@@ -41550,14 +46308,13 @@ Class("xui.UI.TreeGrid",["xui.UI","xui.absValue"],{
                             }else
                                 colId=cell._col.id;
 
-                            var addhotrow=true,
-                                cacheAll=profile.$allrowscache;
+                            var addhotrow=true;
                             // if it's just the active row
                             if(profile.__hastmpRow){
                                 // if it's invalid, dont add new row
                                 addhotrow=profile.box._checkNewLine(profile,'keydown');
 
-                                if(!profile.$allrowscache)
+                                if(!profile.$allrowscache2)
                                     profile.box._cacheRows(profile);
                             }
 
@@ -41568,7 +46325,7 @@ Class("xui.UI.TreeGrid",["xui.UI","xui.absValue"],{
                             }
                         }
                         //get node
-                        var node = xui(profile.$allrowscache[index]).first(),
+                        var node = xui( (region=="12"||region=="22" ? profile.$allrowscache2 : profile.$allrowscache1)[index]).first(),
                             node2=node;
                         // it's normal cell
                         if(count>1)
@@ -41582,7 +46339,86 @@ Class("xui.UI.TreeGrid",["xui.UI","xui.absValue"],{
                         // focus
                         if(!node2.isEmpty())
                             node2.focus();
-
+                    },
+                    toUp=function(){
+                        if(src!=first.xid()){
+                            var ok;
+                            if(cur.get(0)==first12.get(0) || cur.get(0)==first22.get(0)){
+                                if(hasBody21){
+                                    last21.focus();
+                                    ok=1;
+                                }else{
+                                    last11.focus();
+                                    ok=1;                                    
+                                }
+                            }
+                            if(!ok){
+                                verticalNav(true);
+                            }
+                        }else{
+                            last.focus();
+                        }
+                    },
+                    toDown=function(){
+                        if(src!=last.xid()){
+                            var ok;
+                            if(cur.get(0)==last11.get(0) || cur.get(0)==last21.get(0)){
+                                if(hasBody12){
+                                    first12.focus();
+                                    ok=1;
+                                }else{
+                                    first22.focus();
+                                    ok=1;                                    
+                                }
+                            }
+                            if(!ok){
+                                verticalNav();
+                            }
+                        }else{
+                            first.focus();
+                        }
+                    };
+                    switch(key){
+                    //tab to next/pre
+                    case 'tab':
+                        if(shift){
+                            if(false===toLeft()){
+                                return false;
+                            }
+                        }else{
+                            if(false===toRight()){
+                                return false;
+                            }
+                        }
+                        break;
+                    case 'left':
+                        if(false===toLeft(true)){
+                            return false;
+                        }
+                        break;
+                    case 'right':
+                        if(false===toRight(true)){
+                            return false;
+                        }
+                        break;
+                    case 'up':
+                        if(ctrl){
+                            if(row && !(p.disabled || row.disabled) && (row.group||row.sub)){
+                                profile.box._getToggleNode(profile, row._serialId).onClick();
+                                return false;
+                            }
+                        }
+                        toUp();
+                        return false;
+                        break;
+                    case 'down':
+                        if(ctrl){
+                            if(row && !(p.disabled || row.disabled) &&  (row.group||row.sub)){
+                                profile.box._getToggleNode(profile, row._serialId).onClick();
+                                return false;
+                            }
+                        }
+                        toDown();
                         return false;
                         break;
                     }
@@ -41602,14 +46438,12 @@ Class("xui.UI.TreeGrid",["xui.UI","xui.absValue"],{
                         cmdkey=id[id.length-1];
                     id.pop();
                     var row = profile.rowMap[profile.getSubId(id.join("_"))];
-                    if(p.disabled|| row.disabled)return false;
+                    if(p.disabled|| (row&&row.disabled))return false;
 
                     if(profile.onCmd)
                         profile.boxing().onCmd(profile,row, cmdkey, e, src);
                     return false;
-                },
-                beforeMousedown:function(){return false;},
-                beforeMouseup:function(){return false;}
+                }
             }
         },
         DataModel:{
@@ -41619,12 +46453,15 @@ Class("xui.UI.TreeGrid",["xui.UI","xui.absValue"],{
             numberTpl:"",
             valueSeparator:";",
             activeRow:{
+                hidden:true,
                 ini:null
             },
             activeCell:{
+                hidden:true,
                 ini:null
             },
             rowMap:{
+                hidden:true,
                 ini:null
             },
             selMode:{
@@ -41645,22 +46482,27 @@ Class("xui.UI.TreeGrid",["xui.UI","xui.absValue"],{
                 action:function(value){
                     var ns=this;
                     var altCls = ns.getClass('ALT'),
-                        nodes = ns.getSubNode('CELLS',true),alt,j;
-                    nodes.removeClass(altCls);
+                        nodes21 = ns.getSubNode('CELLS1',true),
+                        nodes22 = ns.getSubNode('CELLS2',true),
+                        j,o1,o2;
+                    nodes21.removeClass(altCls);
+                    nodes22.removeClass(altCls);
                     if(value){
                         alt=[];
                         j=0;
-                        nodes.each(function(o,i){
-                            if(o.clientHeight){
-                                o=xui([o]);
+                        nodes22.each(function(o2,i){
+                            if(o2.clientHeight){
+                                o2=xui([o2]);
+                                o1=xui([nodes21.get(i)]);
                                 if((j++)%2==1){
-                                    if(!o.hasClass(altCls))o.addClass(altCls);
+                                    if(!o1.hasClass(altCls))o1.addClass(altCls);
+                                    if(!o2.hasClass(altCls))o2.addClass(altCls);
                                 }else{
-                                    if(o.hasClass(altCls))o.removeClass(altCls);
+                                    if(o1.hasClass(altCls))o1.removeClass(altCls);
+                                    if(o2.hasClass(altCls))o2.removeClass(altCls);
                                 }
                             }
                         });
-                        xui(alt).addClass(altCls);
                     }
                 }
             },
@@ -41709,8 +46551,9 @@ Class("xui.UI.TreeGrid",["xui.UI","xui.absValue"],{
                 }
             },
             editable:false,
+            firstCellEditable:false,
 
-            $subMargin:16,
+            $subMargin:22,
 
             iniFold:true,
             animCollapse:false,
@@ -41744,21 +46587,21 @@ Class("xui.UI.TreeGrid",["xui.UI","xui.absValue"],{
             showHeader:{
                 ini:true,
                 action:function(value){
-                    this.getSubNode('HEADER').css('display',value?'':'none');
+                    this.getSubNodes(['HEADER1','HEADER2']).css('display',value?'':'none');
                 }
             },
             headerHeight:{
-                ini:18,
+                ini:22,
                 action:function(v){
                     var o=this;
-                    o.box._adjustColsV(o);
+                    o.box._adjustColsHeight(o);
                     xui.UI.$tryResize(o, o.getRoot().width(), o.getRoot().height(),true);
                 }
             },
             rowHeight:{
                 ini:20,
                 action:function(v){
-                    this.box._adjusteditorH(this, this.getSubNode('CELLS', true).height(v),v);
+                    this.box._adjusteditorH(this, this.getSubNodes(['CELLS1','CELLS2'], true).height(v),v);
                 }
             },
             _colDfWidth: 80,
@@ -41769,7 +46612,7 @@ Class("xui.UI.TreeGrid",["xui.UI","xui.absValue"],{
                     this.getSubNode('FHCELL').css('display',value?'':'none');
                     this.getSubNode('FCELL',true).css('display',value?'':'none');
 
-                    this.box._adjustColsH(this);
+                    this.box._adjustColsWidth(this);
                     this.box._adjustBody(this,'rowhandler');
                 }
             },
@@ -41829,6 +46672,60 @@ Class("xui.UI.TreeGrid",["xui.UI","xui.absValue"],{
                         o.properties.rows = _.copy(value);
                 }
             },
+            // can be se dynamic only
+            rawData:{
+                ini:[],
+                set:function(value){
+                    if(!value || !_.isArr(value) || !value.length)return;
+                    var o=this,cols={},header=[],rows=[],i,j,l=value.length,hash;
+                    // collect data
+                    for(i=0;i<l;i++){
+                        if(!_.isHash(hash=value[i])){
+                            return;
+                        }
+                        for(var k in hash){
+                            if(!(k in cols))cols[k]=[];
+                            cols[k][i] = hash[k];
+                        }
+                    }
+                    //convert to header / rows
+                    j=0;
+                    for(var k in cols){
+                        header.push(k);
+                        for(i=0;i<l;i++){
+                            if(!rows[i])rows[i]=[];
+                            rows[i][j]=cols[k][i];
+                        }
+                      j++;
+                    }
+
+                    var ins=o.boxing();
+                    if(ins.getHeader('min').join(';') != header.join(';')){
+                        ins.setHeader(header)
+                    }
+                    ins.setRows(rows);
+                },
+                get:function(){
+                    var o=this, prop=o.properties, header=prop.header, rows=prop.rows,
+                        l=header.length, h=rows.length;
+                        columns=[],
+                        data=[];
+
+                    if(h){
+                        for(var i=0;i<l;i++){
+                            columns.push(header[i].id);
+                        }
+                        for(var j=0;j<h;j++){
+                            var hash={};
+                            for(var i=0;i<l;i++){
+                                hash[columns[i]]=rows[j].cells[i].value;
+                            }
+                            data.push(hash);             
+                        }
+                    }
+                    return data;
+                }
+            },
             tagCmds:{
                 ini:[],
                 action:function(){
@@ -41870,9 +46767,28 @@ Class("xui.UI.TreeGrid",["xui.UI","xui.absValue"],{
                 }
             },
             treeMode:{
-                ini:true,
-                action:function(value){
-                    this.getSubNodes(['ROWLRULER', 'ROWTOGGLE'],true).css('display',value?'':'none');
+                ini:'inhandler',
+                // compitable: false->'none'; true->inhanlder
+                listbox:['none','inhandler','infirstcell'],
+                action:function(value, ovalue){
+                    if((ovalue=='inhandler' && value=='infirstcell')||(ovalue=='infirstcell' && value=='inhandler')){
+                        this.boxing().refresh();
+                    }else{
+                        this.getSubNodes(['ROWLRULER', 'ROWTOGGLE'],true).css('display',value?'':'none');
+                    }
+                }
+            },
+            freezedColumn:{
+                ini:0,
+                action:function(){
+                    this.boxing().refresh();
+                    this.box._adjustColsWidth(this);
+                }
+            },
+            freezedRow:{
+                ini:0,
+                action:function(){
+                    this.boxing().refresh();
                 }
             },
             hotRowMode:{
@@ -41918,18 +46834,23 @@ Class("xui.UI.TreeGrid",["xui.UI","xui.absValue"],{
             beforeRowResized:function(profile, rowId, height){},
             afterRowResized:function(profile, rowId, height){},
 
+            beforePrepareRow:function(profile, row, pid){},
+            beforePrepareCol:function(profile,  col){},
+
             beforeRowActive:function(profile, row){},
             afterRowActive:function(profile, row){},
             beforeCellActive:function(profile, cell){},
             afterCellActive:function(profile, cell){},
 
-            beforeIniEditor:function(profile, cell, cellNode, pNode){},
-            onBeginEdit:function(profile, cell, editor){},
-            beforeEditApply:function(profile, cell, options, editor, tag){},
-            onEndEdit:function(profile, cell, editor){},
+            beforeIniEditor:function(profile, obj, cellNode, pNode, type){},
+            onBeginEdit:function(profile, obj, editor, type){},
+            beforeEditApply:function(profile, obj, options, editor, tag, type){},
+            onEndEdit:function(profile, obj, editor, type){},
 
             beforeCellUpdated:function(profile, cell, options, isHotRow){},
             afterCellUpdated:function(profile, cell, options, isHotRow){},
+            beforeRowUpdated:function(profile, obj, options, isHotRow){},
+            afterRowUpdated:function(profile, obj, options, isHotRow){},
 
             onRowDirtied:function(profile, row){},
 
@@ -41974,7 +46895,7 @@ Class("xui.UI.TreeGrid",["xui.UI","xui.absValue"],{
                     if(_.isFun(o.colRenderer||pro.colOptions.colRenderer))
                         (o.colRenderer||pro.colOptions.colRenderer).call(null,ns,o);
                 });
-                box._adjustColsV(ns);
+                box._adjustColsHeight(ns);
             }
             _.arr.each(pro.rows,function(o){
                 if(_.isFun(o.rowRenderer||pro.rowOptions.rowRenderer))
@@ -42076,7 +46997,7 @@ Class("xui.UI.TreeGrid",["xui.UI","xui.absValue"],{
             // gives a special id
             row.id = this._temprowid;
             row.rowNumber=prop.hotRowNumber;
-            row.rowClass=profile.getClass('CELLS', '-hot');
+            row.rowClass=profile.getClass('CELLS2', '-hot');
 
             ins.insertRows([row],null,null,false,false);
 
@@ -42135,8 +47056,8 @@ Class("xui.UI.TreeGrid",["xui.UI","xui.absValue"],{
             // add a new row
             else if(result===true){
                 var newrow=_.clone(tempRow,true);
-                // remove CELLS-hot;
-                var hotcls=profile.getClass('CELLS', '-hot');
+                // remove CELLSo-hot;
+                var hotcls=profile.getClass('CELLS2', '-hot');
                 if(hotcls==newrow.rowClass)delete newrow.rowClass;
                 else newrow.rowClass=newrow.rowClass.replace(hotcls,'');
 
@@ -42174,8 +47095,8 @@ Class("xui.UI.TreeGrid",["xui.UI","xui.absValue"],{
             }
         },
         _sethotrowoutterblur:function(profile, clear){
-            profile.getSubNode('ROWS').setBlurTrigger(profile.$domId+':ROWS',clear?null:function(pos,e){
-                var trigger = xui.Event.getSrc(e)==profile.getSubNode('SCROLL').get(0)?'focusin':null;
+            profile.getSubNode('ROWS22').setBlurTrigger(profile.$domId+':ROWS22',clear?null:function(pos,e){
+                var trigger = xui.Event.getSrc(e)==profile.getSubNode('SCROLL22').get(0)?'focusin':null;
                 profile.__tmpRowBlurTrigger=_.asyRun(function(){
                     // destroyed
                     if(!profile.box)return;
@@ -42190,17 +47111,22 @@ Class("xui.UI.TreeGrid",["xui.UI","xui.absValue"],{
             }
         },
         _cacheRows:function(profile){
-            var all=profile.getSubNode('CELLS',true).get();
+            var all1=profile.getSubNodes('CELLS1',true).get(),
+                all2=profile.getSubNodes('CELLS2',true).get();
             //filter dispaly==none
-            _.filter(all,function(o){
+            _.filter(all1,function(o){
                 return !!o.clientHeight;
             });
-            profile.$allrowscache = all;
+            _.filter(all2,function(o){
+                return !!o.clientHeight;
+            });
+            profile.$allrowscache1 = all1;
+            profile.$allrowscache2 = all2;
         },
         _asy:function(profile){
             var pro=profile.properties,b=profile.boxing(),id=profile.$xid;
-            if(pro.altRowsBg)_.resetRun(id+"1",function(){b.setAltRowsBg(true,true)});
-            if(pro.rowNumbered)_.resetRun(id+"2",function(){b.setRowNumbered(true,true)});
+            if(pro.altRowsBg)_.resetRun(id+"1",function(){if(profile.rowMap)b.setAltRowsBg(true,true)});
+            if(pro.rowNumbered)_.resetRun(id+"2",function(){if(profile.rowMap)b.setRowNumbered(true,true)});
         },
         _setRowHanderW:function(profile, flag){
             var pro=profile.properties,
@@ -42229,12 +47155,13 @@ Class("xui.UI.TreeGrid",["xui.UI","xui.absValue"],{
                 if(pro.rowHandlerWidth!=w){
                     hcell.width(pro.rowHandlerWidth=w);
                     profile.getSubNode('FCELL',true).width(w);
+                    /*
                     profile.getSubNode('ROWLRULER',true).each(function(o){
                         n=map[profile.getSubId(o.id)];
-                        o.style.width=(4+n._layer*ww)+'px';
+                        o.style.width=(4 + n._layer*ww)+'px';
                     });
-
-                    profile.box._adjustColsH(profile);
+                    */
+                    profile.box._adjustColsWidth(profile);
                     profile.box._adjustBody(profile,'rowhandler');
                 }
             }
@@ -42263,7 +47190,7 @@ Class("xui.UI.TreeGrid",["xui.UI","xui.absValue"],{
                 var k=profile.getKey(tid),
                     ks=profile.keys,
                     row=profile.rowMap[profile.getSubId(tid)];
-                if(k==ks.ROWTOGGLE && !row.sub)
+                if(k==ks.FCELL && !row.sub)
                     return false;
             }
             if(fp && fp.$xid==profile.$xid){
@@ -42288,27 +47215,27 @@ Class("xui.UI.TreeGrid",["xui.UI","xui.absValue"],{
         _onDrop:function(profile, e, src, key, data, item){
             xui.DragDrop.setDragIcon('none');
             if(!data.profile || !data.profile[profile.KEY])return;
-            var k=profile.getKey(src),
-                po=data.profile,
-                ps=data.domId,
+            var k = profile.getKey(src),
+                po = data.profile,
+                ps = data.domId,
                 oitem,
-                ks=profile.keys,
-                t=xui.absObj.$specialChars,
-                b=profile.boxing(),
-                arr=_.copy(b.getUIValue(true)),
-                orow= po.rowMap[po.getSubId(ps)],
-                row= profile.rowMap[profile.getSubId(src)];
+                ks = profile.keys,
+                t = xui.absObj.$specialChars,
+                b = profile.boxing(),
+                arr = _.copy(b.getUIValue(true)),
+                orow = po.rowMap[po.getSubId(ps)],
+                row = profile.rowMap[profile.getSubId(src)];
 
             //remove
             orow=_.clone(orow,function(o,i){return !t[(i+'').charAt(0)]});
             po.boxing().removeRows([orow.id]);
 
             //add
-            if(k==ks.SCROLL)
+            if(k==ks.SCROLL22)
                 b.insertRows([orow], null, null, false);
-            else if((k==ks.ROWTOGGLE) && row.sub)
+            else if((k==ks.FCELL) && row.sub)
                 b.insertRows([orow], row.id, null, false);
-            else if(k==ks.CELLS)
+            else if(k==ks.CELLS2)
                 b.insertRows([orow], row._pid, row.id, true);
 
             if(arr && arr.length){
@@ -42337,17 +47264,20 @@ Class("xui.UI.TreeGrid",["xui.UI","xui.absValue"],{
             if(op.header.length===0)delete op.header;
             if(op.grpCols.length===0)delete op.grpCols;
             if(op.rows.length===0)delete op.rows;
-            delete op.valueMap;
+
             delete op.activeRow;
             delete op.activeCell;
+            delete op.rawData;
             return o;
         },
         _clsCache:{},
 
         _colDragCheck:function(profile, src){
-            var dd = xui.DragDrop.getProfile(), key=dd.dragKey, data=dd.dragData,
+            var p=profile.properties,
+                dd = xui.DragDrop.getProfile(), key=dd.dragKey, data=dd.dragData,
                 col=profile.colMap[profile.getSubId(src)];
             if(!col || col._isgroup)return false;
+            if(p.treeMode=='infirstcell' && p.header[0]==col)return false;
             if(!(col.hasOwnProperty('colMovable')?col.colMovable:profile.properties.colMovable))return false;
             if(!key || !data || key!=(profile.$xid+":col"))return false;
             if(data==xui.use(src).id() || data==xui.use(src).prev().id())return false;
@@ -42366,7 +47296,7 @@ Class("xui.UI.TreeGrid",["xui.UI","xui.absValue"],{
             data.rowDDDisplay=pro.rowResizer?'':NONE;
             data.rowHandlerDisplay=pro.rowHandler?'':NONE;
             data.sortDisplay=NONE;
-            data._hcelllineh=data._hcellheight=data.headerHeight?(data.headerHeight-2):'';
+            data._hcellheight=data.headerHeight?(data.headerHeight-2):'';
             data.headerHeight=data.headerHeight?('height:'+data.headerHeight+'px;'):'';
             data._rowMarkDisplay=(pro.selMode=="multi"||pro.selMode=="multibycheckbox")?"":"display:none;";
 
@@ -42379,43 +47309,69 @@ Class("xui.UI.TreeGrid",["xui.UI","xui.absValue"],{
 
             pro.header=this._adjustHeader(pro.header);
             data.header=this._prepareHeader(profile, pro.header);
+            // for triggerring render
+            data.header1=data.header2= data.header;
             data._row0DfW=data.rowHandlerWidth?('width:'+data.rowHandlerWidth+'px'):'';
 
             pro.grpCols=this._adjustGrpColsData(profile,pro.grpCols);
             data.grpCols=this._prepareGrpCols(profile, pro.grpCols, data.header);
+            // for triggerring render
+            data.grpCols1=data.grpCols2=data.grpCols;
 
             arguments.callee.upper.call(this, profile);
 
             pro.rows=this._adjustRows(profile, pro.rows);
-            data.rows = this._prepareItems(profile, pro.rows);
+            data.rows11 = data.rows12 = data.rows21 = data.rows22 = this._prepareItems(profile, pro.rows);
+            xui.UI.List._prepareCmds(profile, data, function(item){
+                return !item.tag || !!item.tag.match(/\bheader\b/);
+            });
+            
+            data._columnfreezed = pro.freezedColumn?'columnfreezed':'';
+            data._rowfreezed = pro.freezedRow?'rowfreezed':'';
+            
+
             return data;
         },
-        _parepareCol:function(profile,col){
+        _parepareCol:function(profile,col,cols,index){
             // build header
             var SubID=xui.UI.$tag_subId,
                 prop=profile.properties,
                 headerHeight=prop.headerHeight,
-                NONE='display:none',
-                forDom;
+                NONE='display:none',iid,
+                ii=1,tt,
+                oid, forDom;
 
-            if(typeof col=='string')
-                col={id:col};
+            if(!_.isHash(col)){
+                oid = col + "";
+                col={id : oid};
+            }else{
+                oid = col.id +"";
+            }
 
             // links
             col._cells={};
-            col[SubID]='-h_'+profile.pickSubId('header');
+            iid = profile.pickSubId('header');
+            col[SubID]='-h_'+iid;
 
-            col.id=col.id||col[SubID];
+            col.id = col.id || iid;
+            while((tt=_.arr.subIndexOf(cols,"id",col.id) )!= -1 && tt!==index){
+                col.id = iid + (ii++);
+            }
 
             profile.colMap[col[SubID]]=col;
             col.width = col.width||prop._colDfWidth;
+
+            if('relWidth' in col){
+                col.flexSize = col.relWidth
+                delete col.relWidth;
+            }
             // width
-            if(!col.relWidth){
+            if(!col.flexSize){
                 if(col.hasOwnProperty('minWidth'))col.width=Math.max(col.minWidth);
                 if(col.hasOwnProperty('maxWidth'))col.width=Math.min(col.minWidth);
             }
             col._pxWidth=col.width;
-            col._hcelllineh=col._hcellheight=headerHeight-2;
+            col._hcellheight=headerHeight-2;
 
             forDom={
                 sortDisplay : NONE,
@@ -42425,7 +47381,7 @@ Class("xui.UI.TreeGrid",["xui.UI","xui.absValue"],{
             forDom._tabindex=prop.tabindex;
             forDom.colDDDisplay = (('colResizer' in col)?col.colResizer:prop.colResizer)?'':NONE;
 
-            if(col.relWidth)forDom.colDDDisplay = NONE;
+            if(col.flexSize)forDom.colDDDisplay = NONE;
 
             //  Forward-compatible with 'visibility'
             if(col.hasOwnProperty('visibility') && !col.hasOwnProperty('hidden'))
@@ -42437,7 +47393,7 @@ Class("xui.UI.TreeGrid",["xui.UI","xui.absValue"],{
             forDom.firstCellClass=prop.colOptions.firstCellClass||'';
 
             if(!col.type)col.type=prop.colOptions.type || 'input';
-            if(!col.caption)col.caption=col.id;
+            if(!('caption' in col))col.caption = oid;
             xui.UI.adjustData(profile, col, forDom);
 
             // id to dom item id
@@ -42445,7 +47401,7 @@ Class("xui.UI.TreeGrid",["xui.UI","xui.absValue"],{
 
             return [col,forDom];
         },
-        _parepareCell:function(profile,cell,row,col,temp){
+        _parepareCell:function(profile,cell,row,col,temp,_row,index){
             // build header
             var ns=this,
                 SubID=xui.UI.$tag_subId,
@@ -42470,6 +47426,17 @@ Class("xui.UI.TreeGrid",["xui.UI","xui.absValue"],{
             row._cells[col.id]=forDom[SubID];
             // header link to cell/cell
             col._cells[row.id]=forDom[SubID];
+            // move those prop to cell
+            if(prop.treeMode=='infirstcell' && index===0 && _row){
+                forDom._treeMode=row._treeMode;
+                row._treeMode=NONE;
+
+                forDom._rulerW=_row._rulerW;
+                forDom._subClass=_row._subClass;
+                
+                _row._rulerW=0;
+                _row._subClass="";
+            }
 
             return [cell, forDom];
         },
@@ -42484,14 +47451,14 @@ Class("xui.UI.TreeGrid",["xui.UI","xui.absValue"],{
                     _grp,w,h,_left,
 
                     layer=profile._headerLayers,
-                    h=parseInt(headerHeight/(layer+1),10);
+                    h=parseInt(headerHeight/(layer+1),10),
                     flag=false;
 
                 for(var j=0,m=arr.length,grp;j<m;j++){
                     _grp={};
                     w=0;
                     flag=false;
-                    _left=prop.rowHandler?(prop.rowHandlerWidth+2):0;
+                    _left=0;//prop.rowHandler?(prop.rowHandlerWidth+2):0;
 
                     grp=arr[j];
                     xui.UI.adjustData(profile, grp, _grp);
@@ -42507,7 +47474,7 @@ Class("xui.UI.TreeGrid",["xui.UI","xui.absValue"],{
                         }
                     }
                     _grp._pxWidth = w -2;
-                    _grp._hcelllineh=_grp._hcellheight = h-2;
+                    _grp._hcellheight = h-2;
                     _grp._hcelltop = h*(grp._layer-1);
 
                     _grp._tabindex=prop.tabindex;
@@ -42520,7 +47487,7 @@ Class("xui.UI.TreeGrid",["xui.UI","xui.absValue"],{
                 for(var k=0,n=header.length,o,p;k<n;k++){
                     o=header[k];p=_header[k];
                     if(o._grp && o._grp.length){
-                        p._hcelllineh=p._hcellheight=headerHeight - o._grp.length*h - 2;
+                        p._hcellheight=headerHeight - o._grp.length*h - 2;
                     }
                 }
                 return _ngrp;
@@ -42534,20 +47501,26 @@ Class("xui.UI.TreeGrid",["xui.UI","xui.absValue"],{
             profile.colMap = {};
 
             _.arr.each(arr,function(o,i){
-                colResult=profile.box._parepareCol(profile,o);
+                if(profile.beforePrepareCol && false===profile.boxing().beforePrepareCol(profile, o)){
+                    return;
+                }
+                colResult=profile.box._parepareCol(profile,o,arr,i);
                 arr[i]=colResult[0];
                 header.push(colResult[1]);
             });
+
             return header;
         },
         // to set uicell, or set dom node directly
         // uicell and node are not occur at the same time
         _renderCell:function(profile, cell, uicell, node,options){
             var getPro=profile.box.getCellOption,
+                firstColumnTree=profile.properties.treeMode=='infirstcell',
                 type=getPro(profile, cell, 'type'),
                 t1='',
                 t2='',
                 caption,
+                cellanode=node,
                 capOut=('caption' in cell) && xui.adjustRes(cell.caption),
                 reg1=/</g,
                 me=arguments.callee,
@@ -42612,15 +47585,15 @@ Class("xui.UI.TreeGrid",["xui.UI","xui.absValue"],{
                     var t=getPro(profile,cell,'editorListItems');
                     if(!t)
                         if(t=getPro(profile,cell,'editorListKey'))
-                           t=xui.UI.getCachedData(t);
-                    if(t && t.length)
+                           t=xui.UI.getCachedData(typeof(t)=="function"?t():t);
+                    if((typeof(t)=="function"?(t=t()):t) && t.length)
                         for(var i=0,l=t.length;i<l;i++)
                             if(t[i].id===v)
                                 return t[i].caption||v;
                     return v;
-               })
-            ;
-
+               });
+            // get caption node
+            if(node && node.get(0))node=firstColumnTree?node.last():node.first();
             switch(type){
                 case 'number':
                 case 'spin':
@@ -42659,7 +47632,6 @@ Class("xui.UI.TreeGrid",["xui.UI","xui.absValue"],{
                 break;
                 case 'textarea':
                     cell.value=cell.value||"";
-                    cell.cellClass = "xui-cls-wordwrap "+(cell.cellClass||"").replace(/(xui-cls-wordwrap\s+)|(\s+xui-cls-wordwrap)/g,"");
                     caption= capOut ||ren(profile,cell,uicell,f2);
                     if(node)
                         node.html(caption,false);
@@ -42692,7 +47664,7 @@ Class("xui.UI.TreeGrid",["xui.UI","xui.absValue"],{
                     cell.value=!!cell.value;
                     caption=cell.value+'';
                     if(node)
-                        node.first().tagClass('-checked', cell.value);
+                        node.tagClass('-checked', cell.value);
                     else
                         uicell.checkboxCls = profile.getClass('CHECKBOX', cell.value?'-checked':'');
                 break;
@@ -42701,7 +47673,8 @@ Class("xui.UI.TreeGrid",["xui.UI","xui.absValue"],{
                     cell.value=Math.min(Math.max(cell.value,0),1);
                     caption= capOut ||ren(profile,cell,uicell,f3);
                     if(node){
-                        node.first().html(caption, false).width(caption);
+                        node.first().html(caption, false);
+                        node.width(caption);
                     }else
                         uicell.progress=caption;
 
@@ -42722,44 +47695,43 @@ Class("xui.UI.TreeGrid",["xui.UI","xui.absValue"],{
             var t2=getPro(profile, cell, 'disabled'),
                 t3=getPro(profile, cell, 'readonly');
             if(uicell){
-/*
-colRenderer
-rowRenderer
+                /*
+                    colRenderer
+                    rowRenderer
 
-cellStyle
-cellClass
-cellRenderer
+                    cellStyle
+                    cellClass
+                    cellRenderer
 
-renderer
-type
-disabled
-readonly
-increment
-min
-max
-maxlength
-precision
-dateEditorTpl
-editable
-value
-caption
-sortby [for column only]
+                    renderer
+                    type
+                    disabled
+                    readonly
+                    increment
+                    min
+                    max
+                    maxlength
+                    precision
+                    dateEditorTpl
+                    editable
+                    value
+                    caption
+                    sortby [for column only]
 
-customEditor -> an object for custom editor. or the below prop
+                    customEditor -> an object for custom editor. or the below prop
 
-editorListKey
-editorListItems
-editorFormat
-editorMask
-editorReadonly
-editorDropListWidth
-editorDropListHeight
-editorProperties
-editorCC
-editorCS
-editorEvents
-
-*/
+                    editorListKey
+                    editorListItems
+                    editorFormat
+                    editorMask
+                    editorReadonly
+                    editorDropListWidth
+                    editorDropListHeight
+                    editorProperties
+                    editorCC
+                    editorCS
+                    editorEvents
+                */
                 uicell.cellCls=profile.getClass('CELL', '-'+type) + (t2?(' '+dcls):'') + (t3?(' '+rcls):'');
                 uicell.type=type;
                 uicell.value=cell.value;
@@ -42767,20 +47739,23 @@ editorEvents
                 uicell.cellStyle=getPro(profile, cell, 'cellStyle');
                 uicell.cellClass=getPro(profile, cell, 'cellClass');
             }else{
-                if(t2) node.parent().addClass(dcls);
-                else node.parent().removeClass(dcls);
-                if(t3) node.parent().addClass(rcls);
-                else node.parent().removeClass(rcls);
+                if(t2) cellanode.parent().addClass(dcls);
+                else cellanode.parent().removeClass(dcls);
+                if(t3) cellanode.parent().addClass(rcls);
+                else cellanode.parent().removeClass(rcls);
 
                 if(t2=options.cellStyle)
-                    node.attr('style',node.attr('style')+";"+t2);
+                    cellanode.attr('style',cellanode.attr('style')+";"+t2);
+                if(t2=options.cellUnclass)
+                    cellanode.removeClass(t2);
                 if(t2=options.cellClass)
-                    node.addClass(t2);
+                    cellanode.addClass(t2);
             }
         },
-        _prepareItems:function(profile, arr, pid,temparr){
+        _prepareItems:function(profile, arr, pid ,temparr){
             var self=this,
                 pro=profile.properties,
+                _treemode=pro.treeMode,
                 mm = pro.$subMargin,
                 a = profile.rowMap2,
                 b = profile.rowMap,
@@ -42791,7 +47766,7 @@ editorEvents
                 rows=[],
                 temp,cells,t,row,v,cellResult,
                 NONE='display:none';
-
+            _treemode= !(!_treemode || _treemode=="none");
             for(var i=0,l=arr.length;i<l;i++){
                 row = arr[i];
                 // give id (avoid conflicts)
@@ -42800,6 +47775,9 @@ editorEvents
                     row.id="-"+t;
                 }else{
                     row.id+="";
+                }
+                if(profile.beforePrepareRow && false===profile.boxing().beforePrepareRow(profile, row, pid, temparr)){
+                    continue;
                 }
 
                 // give _serialId
@@ -42815,7 +47793,7 @@ editorEvents
                 row._tabindex=pro.tabindex;
                 row._rowMarkDisplay=(pro.selMode=="multi"||pro.selMode=="multibycheckbox")?"":NONE;
 
-                row._treeMode=pro.treeMode?'':NONE;
+                row._treeMode=_treemode?'':NONE;
 
                 row._rowNumbDisplay=pro.rowNumbered?'':NONE;
 
@@ -42823,16 +47801,12 @@ editorEvents
 
                 t.rowCls = ""
                 if(row.disabled)
-                    t.rowCls += profile.getClass('CELLS', '-disabled');
+                    t.rowCls += profile.getClass('CELLS2', '-disabled');
                 if(row.readonly)
-                    t.rowCls += profile.getClass('CELLS', '-readonly');
+                    t.rowCls += profile.getClass('CELLS2', '-readonly');
                 if(row.group)
-                    t.rowCls += profile.getClass('CELLS','-group') + " xui-uiborder-r";
+                    t.rowCls += profile.getClass('CELLS1','-group') + " xui-uiborder-r2";
 
-                if(row.summary)
-                    t.summaryDisplay='display:block;';
-                if(row.preview)
-                    t.previewDisplay='display:block;';
                 if(row.hidden)
                     t.rowDisplay=NONE;
 
@@ -42840,6 +47814,7 @@ editorEvents
                 t._rulerW=4+_layer*mm;
 
                 row._height = t.rowHeight=row._height||row.height||pro.rowHeight;
+
                 t.rowHandlerDisplay=pro.rowHandler?'':NONE;
                 t.rowDDDisplay=(('rowResizer' in row)?row.rowResizer:pro.rowResizer)?'':NONE;
 
@@ -42849,31 +47824,49 @@ editorEvents
                 cells = t.cells = [];
 
                 t[SubID]=temp;
-                t.subClass = row.sub?'xui-uicmd-toggle2':'xui-uicmd-none';
+//                t._subClass = row.sub?'xui-uicmd-toggle2':(row._layer?'xui-uicmd-empty':'');
+                t._subClass = row.sub?'xui-uicmd-toggle2':'';
 
                 // id to dom item id
                 a[row.id]=temp;
 
-                // for cells
-                if(row.group)
-                    row.cells=null;
                 if(!row.hasOwnProperty('caption') && row.hasOwnProperty('value'))
                     row.caption=''+row.value;
+                 
+                 row._oValue=row.value;
 
                 if(row.caption && !row.tips)
                     row._$tips=row.caption;
 
-                if(v=row.cells)
+                if(!row.group && (v=row.cells))
                     _.arr.each(pro.header,function(col,j){
-                        cellResult = profile.box._parepareCell(profile, v[j], row, col,temparr);
+                        cellResult = profile.box._parepareCell(profile, v[j], row, col,temparr,t,j);
                         v[j]=cellResult[0];
                         cells.push(cellResult[1]);
                     });
 
                 xui.UI.adjustData(profile, row, t);
 
-                xui.UI.List._prepareCmds(profile, t);
+                xui.UI.List._prepareCmds(profile, t, function(item){
+                    return !item.tag || !!item.tag.match(/\brow\b/);
+                });
                 
+                // for cells
+                if(row.group){
+                    row.cells=null;
+                    if(pro.treeMode=='infirstcell' && !pro.freezedColumn){
+                        t._fgrpcell={};
+                        _.merge(t._fgrpcell, t, function(o){
+                            return _.isNumb(o) || _.isStr(o);
+                        });
+                    }
+                }
+
+                t._cellhandler={};
+                _.merge(t._cellhandler, t, function(o){
+                    return _.isNumb(o) || _.isStr(o);
+                });
+
                 rows.push(t);
             }
             return rows;
@@ -42902,8 +47895,10 @@ editorEvents
             var id=profile.domId,
                 pro=profile.properties,
                 serialId = profile.rowMap2[item.id],
-                markNode = profile.getSubNode('ROWTOGGLE', serialId),
-                subNs = profile.getSubNode('SUB', serialId)
+                markNode = profile.box._getToggleNode(profile, serialId),
+                subNs1 = profile.getSubNode('SUB1', serialId),
+                subNs2 = profile.getSubNode('SUB2', serialId),
+                subNs = profile.getSubNodes(['SUB1','SUB2'], serialId)
                 ;
 
             if(xui.Thread.isAlive(profile.key+profile.id)) return;
@@ -42911,22 +47906,26 @@ editorEvents
             if(item._checked){
                 if(!flag){
                     var onend=function(){
-                        subNs.css({display:'none',height:0});
+                        subNs.css({display:'none',overflow:'', height:0});
                         markNode.tagClass('-checked', false);
                         item._checked = false;
                         profile.box._asy(profile);
 
                         //clear rows cache
-                        delete profile.$allrowscache;
+                        delete profile.$allrowscache1;
+                        delete profile.$allrowscache2;
                         profile.box._adjustBody(profile,'showrow');
                     };
-                    if(pro.animCollapse) subNs.animate({'height':[subNs.height(),0]},null,onend, 200, 0, 'expoOut', profile.key+profile.id).start();
+                    if(pro.animCollapse) {
+                        subNs.css('overflow','hidden');
+                        subNs.animate({'height':[subNs2.height(),0]},null,onend, 200, 0, 'expoOut', profile.key+profile.id).start();
+                    }
                     else onend();
                 }
             }else{
                 //open
                 if(flag){
-                    var openSub = function(profile, item, id, markNode, subNs, sub){
+                    var openSub = function(profile, item, id, markNode, subNs1, subNs2, subNs , sub){
                         var b=profile.boxing(),
                             p = profile.properties,
                             empty = sub===false;
@@ -42937,43 +47936,64 @@ editorEvents
                             item._inited=true;
                             //subNs.css('display','none');
                             if(sub){
-                                if(typeof sub=='string')
-                                    subNs.html(item.sub=sub,false);
-                                else if(_.isArr(sub))
+                                if(typeof sub=='string'){
+                                    subNs2.html(item.sub=sub,false);
+                                }else if(_.isArr(sub))
                                     b.insertRows(sub, item.id);
-                                else if(sub['xui.Template']||sub['xui.UI'])
-                                    subNs.append(item.sub=sub.render(true));
+                                else if(sub['xui.Template']||sub['xui.UI']){
+                                    subNs2.append(item.sub=sub.render(true));
+                                }
                             }
                             //set checked items
                             b._setCtrlValue(b.getUIValue(), true);
                         }
 
-                        var h=0;
                         subNs.css("height","0px").css("display",'');
-                        subNs.children().each(function(o){
-                            h+=o.offsetHeight;
-                        });
                         var onend=function(){
-                            markNode.css('background','');
+                            // compitable with IE<8
+                            if(xui.browser.ie && xui.browser.ver<=8){
+                                markNode.css({
+                                    backgroundImage:'',
+                                    backgroundRepeat:'',
+                                    backgroundPositionX:'',
+                                    backgroundPositionY:'',
+                                    backgroundColor:'',
+                                    backgroundAttachment:''
+                                  });
+                            }else{
+                                markNode.css('background','');
+                            }
                             if(empty){
                                 // markNode.css('background','none');
                                 // do nothing
                             }else{
-                                subNs.css({display:'',height:'auto'});
+                                subNs.css({display:'',height:'auto',overflow:''});
+                                
+                                if(!subNs1.height())
+                                    subNs1.height(subNs2.height());
+
                                 markNode.tagClass('-checked');
                                 item._checked = true;
                             }
                             profile.box._asy(profile);
                             //clear rows cache
-                            delete profile.$allrowscache;
+                            delete profile.$allrowscache1;
+                            delete profile.$allrowscache2;
                             profile.box._adjustBody(profile,'showrow');
                         };
-                        if(p.animCollapse) subNs.animate({'height':[0,h]},null,onend, 200, 0, 'expoIn', profile.key+profile.id).start();
+                        if(p.animCollapse) {
+                            var h=0;
+                            subNs2.children().each(function(o){
+                                h+=o.offsetHeight;
+                            });
+                            subNs.css('overflow','hidden');
+                            subNs.animate({'height':[0,h]},null,onend, 200, 0, 'expoIn', profile.key+profile.id).start();
+                        }
                         else onend();
                     };
 
                     var sub = item.sub, callback=function(sub){
-                        openSub(profile, item, id, markNode, subNs, sub);
+                        openSub(profile, item, id, markNode, subNs1, subNs2, subNs, sub);
                     },t;
                     if((t=typeof sub)=='string'||t=='object')
                         callback(sub);
@@ -42999,7 +48019,7 @@ editorEvents
             var box=profile.box,
                 prop=profile.properties,
                 pdm=prop.dirtyMark,
-                psdm=prop.showDirtyMark,
+                psdm=pdm&&prop.showDirtyMark,
                 sc=xui.absObj.$specialChars,
                 cell,node,ishotrow,ext;
 
@@ -43009,7 +48029,7 @@ editorEvents
                 cell = cellId;
                 cellId = cell._serialId;
             }
-            if(!cell)return;
+            if(!cell || !cell._row)return;
             ishotrow=cell._row.id==box._temprowid;
 
             if(!_.isHash(options))options={value:options};
@@ -43030,7 +48050,7 @@ editorEvents
                 if('type' in options){
                     var uicell={};
                     box._adjustCell(profile, cell, uicell);
-                    node.parent().replace(profile._buildItems('rows.cells', [uicell]));
+                    node.parent().replace(profile._buildItems('rows22.cells', [uicell]));
                     node=profile.getSubNode('CELLA', cellId);
                 }
                 box._renderCell(profile, cell, null, node, options);
@@ -43166,9 +48186,10 @@ editorEvents
         _activeRow:function(profile, id){
             if(profile.properties.activeMode!='row')return;
             if(profile.$activeRow == id)return;
-            var targetRow=null;
+            var targetRow=null, subId;
             if(profile.$activeRow){
-               xui(profile.$activeRow).tagClass('-active', false);
+               subId=profile.getSubId(profile.$activeRow);
+               profile.getSubNodes(['CELLS1','CELLS2'],subId).tagClass('-active', false);
                delete profile.$activeRow;
             }
             if(id!==false){
@@ -43177,7 +48198,8 @@ editorEvents
                 targetRow=map[targetId];
                 //before event
                 if(profile.beforeRowActive && (false===profile.boxing().beforeRowActive(profile, targetRow)))return;
-                xui(profile.$activeRow = id).tagClass('-active');
+                subId=profile.getSubId(profile.$activeRow = id);
+                profile.getSubNodes(['CELLS1','CELLS2'],subId).tagClass('-active');
             }
             //after event
             if(profile.afterRowActive)profile.boxing().afterRowActive(profile, targetRow);
@@ -43237,7 +48259,7 @@ editorEvents
             });
         },
         _editCell:function(profile, cellId, byhover){
-            var cell = typeof cellId=='string'?profile.cellMap[cellId]:cellId;
+            var cell = typeof cellId=='string'?(profile.cellMap[cellId]||profile.cellMap[profile.cellMap2[cellId]]):cellId;
             if(!cell)return;
             // real cellId
             cellId=cell._serialId;
@@ -43249,12 +48271,24 @@ editorEvents
 
             var editor,
                 grid = this,
-                colId = cell._col.id,
-                ishotrow=cell._row.id==profile.box._temprowid,
+                prop = profile.properties,
+                //region = prop.freezedColumn prop.freezedRow
+                col = cell._col,
+                colId = col.id,
+                row = cell._row,
+                rowId = row.id,
+                ishotrow=rowId==profile.box._temprowid,
                 editMode= getPro('editMode'),
                 inline=editMode=="inline",
-                baseNode = profile.getSubNode('SCROLL'),
-                cellNode = profile.getSubNode('CELL', cellId);
+                baseNode = profile.getSubNode('SCROLL' + row._region + col._region),
+                //baseNode = profile.getSubNode('BORDER'),
+                cellNode = profile.getSubNode('CELL', cellId),
+                toggleNode = prop.treeMode=='infirstcell' && profile.getSubNode('ROWTOGGLE', cellId);
+
+            // only for first cell and, shown toggle 
+            if(toggleNode && (toggleNode.isEmpty() || !toggleNode.get(0).clientWidth)){
+                toggleNode=null;
+            }
 
             if(!inline){
                 //clear the prev editor
@@ -43268,13 +48302,13 @@ editorEvents
                 editor.iniEditor(profile, cell, cellNode);
                 _.tryF(editor.activate,[],editor);
                 if(profile.onBeginEdit)
-                    profile.boxing().onBeginEdit(profile, cell, editor);
+                    profile.boxing().onBeginEdit(profile, cell, editor, 'cell');
             }else{
                 // 2. beforeIniEditor
                 //      returns an editor(xui.UI object)
                 //      or, sets $editorValue
                 if(profile.beforeIniEditor){
-                    editor=profile.boxing().beforeIniEditor(profile, cell, cellNode, baseNode);
+                    editor=profile.boxing().beforeIniEditor(profile, cell, cellNode, baseNode, 'cell');
                     // if return false, dont set $curEditor
                     if(editor===false)
                         return;
@@ -43299,7 +48333,7 @@ editorEvents
                     // 3. for checkbox/lable,button type
                     if(type=='checkbox'){
                         if(!inline){
-                            cellNode.first().focus();
+                            cellNode.focus();
                         }
                         return;
                     }else if(type=='button'||type=='label')
@@ -43309,6 +48343,8 @@ editorEvents
                         // 4. try to get editor from cache
                         if(editorCacheKey && profile.$cache_editor[editorCacheKey])
                             editor=profile.$cache_editor[editorCacheKey];
+                        if(editor && (!editor.get(0) || editor.isDestroyed()))
+                            editor=nulll;
                     }
                     // 5. else, create a ComboInput Editor, and cache it
                     if(!editor){
@@ -43419,20 +48455,23 @@ editorEvents
                                     editor.afterPopShow(function(pro, popCtl){
                                         return profile.boxing().afterPopShow(profile, pro.$cell, pro, popCt);
                                     });
-                                if(profile.onCommand)
-                                    editor.onCommand(function(pro, node){
-                                        return profile.boxing().onCommand(profile, pro.$cell, pro, node);
-                                    });
-                                if(profile.onEditorClick)
-                                    editor.onClick(function(pro, node){
-                                        return profile.boxing().onEditorClick(profile, pro.$cell, pro, node);
-                                    });
+                                if(type=="getter"||type=="popbox"||type=='cmdbox'||type=='cmd'){
+                                    if(profile.onEditorClick)
+                                        editor.onClick(function(pro, node){
+                                            return profile.boxing().onEditorClick(profile, pro.$cell, pro, node);
+                                        });
+                                }
                             }
                             break;
                         case 'file':
                             editor.setType(type);
                         break;
                     }
+                    if(profile.onCommand)
+                        editor.onCommand(function(pro, node){
+                            return profile.boxing().onCommand(profile, pro.$cell, pro, node);
+                        });
+
                     if(inline){
                        cellNode.append(editor);
                        cell._editor=editor;
@@ -43483,10 +48522,10 @@ editorEvents
                             // set properties
                             if(t=getPro('editorListItems')){
                                 editor.setListKey(null);
-                                editor.setItems(t);
+                                editor.setItems(typeof(t)=="function"?t():t);
                             }else if(t=getPro('editorListKey')) {
                                 editor.setItems(null);
-                                editor.setListKey(t);
+                                editor.setListKey(typeof(t)=="function"?t():t);
                             }
                             break;
                     }
@@ -43515,6 +48554,8 @@ editorEvents
                     //undo function is a must
                     editor.undo=inline?null:function(refocus){
                         var editor=this;
+                        // execute once
+                        editor.undo=null;
                         // row dirty alert
                         if(profile.box)
                             profile.box._trycheckrowdirty(profile,profile.$cellInEditor);
@@ -43570,10 +48611,8 @@ editorEvents
                         profile.$curEditor=null;
                         profile.$cellInEditor=null;
                         profile._inHoverEdit=null;
-                        // execute once
-                        editor.undo=null;
                         if(profile.onEndEdit)
-                            profile.boxing().onEndEdit(profile, cell, editor);
+                            profile.boxing().onEndEdit(profile, cell, editor, 'cell');
 
                         // don't cache it
                         if(!editorCacheKey && editor.get(0)){
@@ -43611,10 +48650,10 @@ editorEvents
                         if(_.isDefined(_$caption))
                             options._$caption=_$caption;
 
-                        if(pro.properties.hasOwnProperty("tagVar"))
+                        if(pro.properties.hasOwnProperty("tagVar") && !_.isEmpty(pro.properties.tagVar))
                             options.tagVar=pro.properties.tagVar;
                     
-                        if(false!==(profile.beforeEditApply&&profile.boxing().beforeEditApply(profile, cell, options, editor, tag))){
+                        if(false!==(profile.beforeEditApply&&profile.boxing().beforeEditApply(profile, cell, options, editor, tag, 'cell'))){
 
                             grid._updCell(profile, cellId, options, profile.properties.dirtyMark, true);
     
@@ -43649,16 +48688,23 @@ editorEvents
                         });
 
                         var absPos=cellNode.offset(null, baseNode),
-                            size = cellNode.cssSize();
+                            size = cellNode.cssSize(),
+                            absPos2 = toggleNode?toggleNode.offset(null, cellNode):null,
+                            w2 = toggleNode?toggleNode.width():null;
+                        if(absPos2)absPos2.left+=w2;
+                        // too small
+                        if(  toggleNode && (absPos2.left > size.width - 8))return;
+
                         //show editor
                         if(type=='textarea'){
-                            editor.setWidth(Math.max(200,size.width+3)).setHeight(Math.max(100,size.height+2))
+                            editor.setWidth(Math.max(200,size.width  - (toggleNode?absPos2.left:0)  +3)).setHeight(Math.max(100,size.height+2))
                             .reLayout(true,true)
                             .reBoxing()
                             .popToTop(cellNode, 4, baseNode);
                         }else{
-                            editor.setWidth(size.width+3).setHeight(size.height+2).reLayout(true);
-                            editor.reBoxing().show((absPos.left-1) + 'px',(absPos.top-1) + 'px');
+                            //**toggleNode
+                            editor.setWidth(size.width  - (toggleNode?absPos2.left:0)  +3).setHeight(size.height+2).reLayout(true);
+                            editor.reBoxing().show((absPos.left + (toggleNode?absPos2.left:0) -1) + 'px',(absPos.top-1) + 'px');
                         }
 
                         var expand,
@@ -43715,7 +48761,7 @@ editorEvents
                         }
                     }
                     if(profile.onBeginEdit)
-                        profile.boxing().onBeginEdit(profile, cell, editor);
+                        profile.boxing().onBeginEdit(profile, cell, editor, 'cell');
                 }
             }
             if(!inline){
@@ -43733,14 +48779,75 @@ editorEvents
             _.resetRun(profile.$xid+'4',function(){
                 // destroyed
                 if(!profile.renderId || profile.destroyed)return;
-                profile.getSubNode('SCROLL').css('overflow','hidden');
+                
+                var prop = profile.properties,
+                    css = profile.getSubNode("BORDER").cssSize(),
+                    width = css.width,
+                    height = css.height,
+
+                    //left region
+                    w1 = prop.rowHandler?(prop.rowHandlerWidth + 2):0,
+                    w2,
+                    h1 = profile.getSubNode('HEADER1'),
+                    h2 = profile.getSubNode('HEADER2'),
+                    b12 = profile.getSubNode('BODY12'),
+                    b21 = profile.getSubNode('BODY21'),
+                    s11 = profile.getSubNode('SCROLL11'),
+                    s12 = profile.getSubNode('SCROLL12'),
+                    s21 = profile.getSubNode('SCROLL21'),
+                    s22 = profile.getSubNode('SCROLL22'),
+                    rh = h2.height(),
+                    rr = b12.height();
+
+
+
+                // adjust width
+                // left region
+                if(prop.freezedColumn){
+                    _.arr.each(prop.header,function(col,i){
+                        if(i==prop.freezedColumn)return false;
+                        if(!col.hidden)w1 += col.width + 2;
+                    });
+                }
+                // for border-bottom
+                if(rr)rr-=1;
+                // for border-right
+                if(w1 && prop.freezedColumn)w1-=1;
+
+                w2 = width - w1;
+                profile._leftregionw = w1;
+
+                //h1.width(w1);
+                h2.width(w2);
+                //s21.width(w1);
+                s22.width(w2);
+
+                _.asyRun(function(){
+                    b21.css('padding-bottom', (s22.isScrollBarShowed('x')?xui.Dom.getScrollBarSize():0) + "px");
+                    s21.scrollTop(s22.scrollTop());
+                    if(prop.freezedRow){
+                        b12.css('padding-right', (s22.isScrollBarShowed('y')?xui.Dom.getScrollBarSize():0) + "px");
+                        s12.scrollLeft(s22.scrollLeft());
+                    }
+                },100);
+
+                // adjust height
+                s11.height((rr?rr:0) + "px");
+                s12.height((rr?rr:0) + "px");
+                s21.height((height - rh - rr)+'px');
+                s22.height((height - rh - rr)+'px');
+
+
+                // others
+                s22.css('overflow','hidden');
                 var overflowX=profile.box._adjustRelWith(profile);
 
-                var body=profile.getSubNode('ROWS'),
-                    header=profile.getSubNode('HCELLS'),
+                var body=profile.getSubNode('ROWS22'),
+                    header=profile.getSubNode('HCELLS2'),
                     cols=profile.properties.header,
-                    scroll=profile.getSubNode('SCROLL'),
+                    scroll=profile.getSubNode('SCROLL22'),
                     t,l,last,keys=profile.keys,ww,bw;
+
                 if(body.get(0).clientHeight){
                     if(header.get(0).clientHeight){
                         if(t=header.get(0).childNodes){
@@ -43769,7 +48876,7 @@ editorEvents
                             }
                             if(last){
                                 var sid=profile.getSubId(last.id);
-                                t=profile.getSubNode('CELLS',sid);
+                                t=profile.getSubNode('CELLS2',sid);
                                 if(t=t.get(0).childNodes){
                                     l=t.length;
                                     while(l){
@@ -43786,16 +48893,16 @@ editorEvents
                 }
 
                 if(last){
-                    body.width(bw=last.offsetWidth+last.offsetLeft);
+                    body.width(bw = last.offsetLeft);
                 }else{
                     var prop = profile.properties,hd=prop.header,rows=prop.rows,
                     //defult
-                    w = prop.rowHandler?(prop.rowHandlerWidth+2):0;
+                    w = 0;
                     _.each(hd,function(o){
                         if(o.hidden!==true)
                             w += ('_pxWidth' in o) ? o._pxWidth : (o.width + 2);
                     });
-                    body.width(bw=w);
+                    body.width(bw = w);
                 }
                 t=last=null;
 
@@ -43847,7 +48954,7 @@ editorEvents
             });
             for(var j=0,m=a.length,grp;j<m;j++){
                 grp=a[j];
-                grp[SubID]=grp[SubID]||('g_'+profile.pickSubId('grpCol'));
+                grp[SubID]=grp[SubID]||('-g_'+profile.pickSubId('grpCol'));
                 grp.id=grp.id||grp[SubID];
                 if(!grp.caption)grp.caption=grp.id;
                 grp._isgroup=1;
@@ -43922,19 +49029,24 @@ editorEvents
             });
             return a;
         },
-        _adjustColsH:function(profile){
+        _adjustColsWidth:function(profile){
             var prop=profile.properties,
                 header=prop.header,
                 arr=prop.grpCols;
             if(prop.showHeader && arr && _.isArr(arr)&& arr.length){
-                var _left,_l,_w,flag=false;
+                var _left,_l,_w,flag=false,
+                     _l2=0;
                 for(var j=0,m=arr.length,grp,n;j<m;j++){
                     _l=_w=0;
                     flag=false;
-                    _left=prop.rowHandler?(prop.rowHandlerWidth+2):0;
                     grp=arr[j];
+                    _left=0;
                     for(var k=0,o;k<=grp.to;k++){
                         o=header[k];
+                        // for the main region
+                        if(prop.freezedColumn && prop.freezedColumn==k && !_l2){
+                            _l2 = _left;
+                        }
                         if(k===grp.from){
                             flag=true;
                             _l=_left;
@@ -43946,26 +49058,34 @@ editorEvents
                     }
                     n=profile.getSubNode("HCELL",grp._serialId);
                     if(_w>2){
-                        n.css({display:'',left:_l+"px",width:(_w-2)+"px"});
+                        n.css({display:'',left:(_l - (prop.freezedColumn
+                                                                    ? (grp.to > prop.freezedColumn-1 
+                                                                            ? _l2 
+                                                                            : (prop.rowHandler ? -(prop.rowHandlerWidth+2) : 0) 
+                                                                        )
+                                                                    : 0
+                                                                )
+                                                      )+"px", width:(_w-2)+"px"});
                     }else{
                         n.css({display:'none'});
                     }
                 }
             }
         },
-        _adjustColsV:function(profile, force){
+        _adjustColsHeight:function(profile, force){
             var map=profile.colMap,
+                map2=profile.colMap2,
                 _layers=profile._headerLayers,
                 h=profile.properties.headerHeight,
                 cacuH=profile.box.$DataModel.headerHeight.ini*(_layers+1),
-                l,th,col,rt,rh;
+                tt,l,th,col,rt,rh,upper,grpcolsh;
             // ensure height here
             if(force||h<cacuH)h=cacuH;
             
-            profile.getSubNodes(['HCELLS','GRPCELLBOX']).height(h);
-            profile.getSubNode('FHCELL').css({height:h-2+"px",'line-height':h-2+"px"});
+            profile.getSubNodes(['HCELLS1','HCELLS2','GRPCELLBOX1','GRPCELLBOX2']).height(h);
+            profile.getSubNode('FHCELL').css({height:h-2+"px"});
             if(!_layers){
-                 profile.getSubNode('HCELL',true).css({height:h-2+"px",'line-height':h-2+"px"});
+                 profile.getSubNode('HCELL',true).css({height:h-2+"px"});
                 // if(xui.browser.ie6) // ignore ie6 here
                 //    profile.getSubNode('HCELLA',true).css({'line-height':h-2+"px"});
             }else{
@@ -43975,15 +49095,28 @@ editorEvents
                     if(col=map[col]){
                         // group
                         if(col&&col._isgroup){
-                            xui(o).top(th*(col._layer-1));
-                            rh=th;
+                            upper=0;
+                            for(var i in map){
+                                tt=map[i];
+                                if(tt._isgroup && tt._layer<col._layer && tt. from <=col.to && tt['to']>=col['from']){
+                                    upper += tt.height || th;
+                                }
+                            }
+                            xui(o).top(upper);
+                            rh = col.height || th;
                         }else{
-                            if(col._grp&&(l=col._grp.length))
-                                rh=h-l*th;
-                            else
-                                rh=h;
+                            if(col._grp&&(l=col._grp.length)){
+                                grpcolsh=0;
+                                for(var i=0;i<l;i++){
+                                    if(tt=map2[col._grp[i]]){
+                                        grpcolsh += map[tt].height || th;
+                                    }
+                                }
+                                rh = h - grpcolsh;
+                            }else
+                                rh = h;
                         }
-                        xui(o).css({height:rh-2+"px",'line-height':rh-2+"px"});
+                        xui(o).css({height:rh-2+"px"});
                         // for IE6 // ignore ie6 here
                         //if(xui.browser.ie6)
                         //    xui(o).first().css({'line-height':rh-2+"px"});
@@ -44008,7 +49141,7 @@ editorEvents
                 cell = profile.cellMap[profile.getSubId(src)],
                 mode = p.activeMode, id;
 
-            if(!cell || cell._ignorefocus)return;
+            if(cell && cell._ignorefocus)return;
 
             if(cell){
                 var edit=false;
@@ -44042,11 +49175,27 @@ editorEvents
                         box._activeCell(profile, false);
                     }
                 }
+            }else{
+                var row = profile.rowMap[profile.getSubId(src)];
+                if(getPro(profile, row, 'editable')){
+                    if(getPro(profile, row, 'disabled')||getPro(profile, row, 'readonly')){
+                    }else{
+                        profile.boxing().editFirstCell(row);
+                    }
+                }
             }
             if(mode=='row'){
                 id = xui.use(src).parent(2).id();
                 box._activeRow(profile, id);
             }
+        },
+        _getToggleNode:function(profile, rowId){
+            var n;
+            if(profile.properties.treeMode=='infirstcell')
+                n = profile.getSubNode('ROWTOGGLE', _.get(profile.rowMap, [rowId, "cells", 0, "_serialId"])) ;
+            if(!n || n.isEmpty())
+                n=profile.getSubNode('ROWTOGGLE', rowId);
+            return n;
         },
         _showTips:function(profile, node, pos){
             if(profile.properties.disableTips)return;
@@ -44080,27 +49229,30 @@ editorEvents
         _adjustRelWith:function(profile){
             var prop=profile.properties,
                 cols=profile.colMap,
-                t2=profile.getSubNode('SCROLL'),
-                t3=profile.getSubNode('BODY'),
+                t2=profile.getSubNode('SCROLL22'),
+                t3=profile.getSubNode('BODY22'),
                 width=t2.width(),
                 borderW=0,
                 borderC=0;
 
             profile.getSubNodes('HCELL',true).each(function(hc){
                 if(hc.clientHeight){
-                    borderW=hc.offsetWidth-parseInt(hc.style.width);
+                    borderW = hc.offsetWidth - parseInt(hc.style.width);
                     return false;
                 }
             });
 
             var fixW=0,relWTotal=0,relWCol=[],relWCol2=[],overflowX;
-            if(prop.rowHandler){
-                borderC++;
-                fixW=prop.rowHandlerWidth;
-            }
+            //if(prop.rowHandler){
+                //borderC++;
+                //fixW=prop.rowHandlerWidth;
+            //}
             _.each(profile.colMap,function(col){
-                if(col.hidden)return;
-                if(!col.relWidth){
+                if(col.hidden || col._isgroup)return;
+                // ignore left region columns
+                if(col._region==1)return;
+
+                if(!col.flexSize){
                     fixW+=col.width;
                 }else{
                     relWTotal+=parseFloat(col.width);
@@ -44109,15 +49261,26 @@ editorEvents
                 }
                 borderC++;
             });
+            
+            var lcellw=profile.getSubNode("LHCELL").get(0).clientWidth || 0;
+            profile.getSubNodes('LCELL',true).each(function(hc){
+                if(hc.children.length){
+                    lcellw=Math.max(lcellw, hc.clientWidth);
+                }
+            });
+            profile.__lcellW = lcellw;
 
             if(!relWCol.length){
                 overflowX='auto';
+                profile.box._adjustColsWidth(profile);
                 return;
             }else{
                 overflowX='hidden';
                 if(t2.isScrollBarShowed('y'))
                     width-=xui.Dom.getScrollBarSize();
             }
+            
+            width -= profile.__lcellW;
 
             while(relWCol.length && width!=fixW+borderC*borderW){
                 var fW=width-(fixW+borderC*borderW),
@@ -44152,6 +49315,7 @@ editorEvents
                 if(retry===0||retry===l)
                     break;
             }
+            profile.box._adjustColsWidth(profile);
             if(relWCol2.length){
                 _.arr.each(relWCol2,function(col){
                     var n,nodes=[];
@@ -44194,24 +49358,53 @@ editorEvents
             }
         },
         _onresize:function(profile,width,height){
-            var css={};
-            if(width)css.width=width;
-            if(height)css.height=height;
+            profile.getSubNode('BORDER').cssSize({width:width||null,height:height||null});
 
-            var prop=profile.properties,
-                t1=profile.getSubNode('HEADER'),
-                t2=profile.getSubNode('SCROLL'),
-                cols=profile.colMap,
-                rh=0;
+            var prop = profile.properties,
+                w1 = prop.rowHandler?(prop.rowHandlerWidth + 2):0,
+                w2,
+                h1 = profile.getSubNode('HEADER1'),
+                h2 = profile.getSubNode('HEADER2'),
+                b12 = profile.getSubNode('BODY12'),
+                b21 = profile.getSubNode('BODY21'),
+                s11 = profile.getSubNode('SCROLL11'),
+                s12 = profile.getSubNode('SCROLL12'),
+                s21 = profile.getSubNode('SCROLL21'),
+                s22 = profile.getSubNode('SCROLL22'),
+                rh = h2.height(),
+                rr = b12.height();
 
-            profile.getSubNode('BORDER').cssSize(css);
-            profile.getSubNode('BOX').cssSize(css);
+            // adjust width
+            if(width){
+                // left region
+                if(prop.freezedColumn){
+                    _.arr.each(prop.header,function(col,i){
+                        if(i==prop.freezedColumn)return false;
+                        if(!col.hidden)w1 += col.width + 2;
+                    });
+                }
+                // for border-bottom
+                if(rr)rr-=1;
+                // for border-right
+                if(w1 && prop.freezedColumn)w1-=1;
 
-            if(width)t1.width(width);
-            if(height)rh=t1.offsetHeight();
+                w2 = width - w1;
+                profile._leftregionw = w1;
 
-            css.height=height?(height-rh):null;
-            t2.cssSize(css);
+                //h1.width(w1);
+                h2.width(w2);
+                //s21.width(w1);
+                s22.width(w2);
+            }
+
+
+            // adjust height
+            if(height){
+                s11.height((rr?rr:0) + "px");
+                s12.height((rr?rr:0) + "px");
+                s21.height((height - rh - rr)+'px');
+                s22.height((height - rh - rr)+'px');
+            }
 
             this._adjustBody(profile,'resize');
         }
@@ -44281,9 +49474,9 @@ editorEvents
                         _.tryF(callback);
                     };
                     if(p.status=='min')
-                        box._min(profile,null,fun, ignoreEffects);
+                        box._min(profile,'normal',fun, ignoreEffects);
                     else if(p.status=='max')
-                        box._max(profile,null,fun,ignoreEffects);
+                        box._max(profile,'normal',fun,ignoreEffects);
                     else{
                         // resize immidiately here, maybe max here
                         xui.UI.$doResize(profile, (tt&&tt[1])||p.width, (tt&&tt[2])||p.height);
@@ -44355,10 +49548,10 @@ editorEvents
                     return false;
                 }
             });
-            if(flag!==false && !ifocus){
-                try{profile.getSubNode('CAPTION').focus();}catch(e){}
-            }
             _.asyRun(function(){
+                if(flag!==false && !ifocus){
+                    try{profile.getSubNode('CAPTION').focus();}catch(e){}
+                }
                 if(self.onActivated)self.onActivated(profile);                        
             });
         },
@@ -44369,6 +49562,7 @@ editorEvents
     Initialize:function(){
         var ns=this, t=ns.getTemplate();
         _.merge(t.FRAME.BORDER,{
+            tabindex: '{tabindex}',
             TABSTOP1:{$order:-1},
             TBAR:{
                 tagName:'div',
@@ -44537,7 +49731,7 @@ editorEvents
                 position:'relative',
                 overflow:'auto',
                 'font-size':'12px',
-                'line-height':'1.22em'
+                'line-height':'auto'
             },
             CAPTION:{
                 'font-size':'12px',
@@ -44547,7 +49741,8 @@ editorEvents
             BORDER:{
                 position:'relative',
                 'font-size':0,
-                'line-height':0
+                'line-height':0,
+                outline:0
             }
         },
         Behaviors:{
@@ -44651,6 +49846,7 @@ if(xui.browser.ie){
                 beforeMousedown:function(profile, e, src){
                     if(xui.Event.getBtn(e)!="left")return;
                     if(profile.getKey(xui.Event.getSrc(e).parentNode.id)==profile.keys.BARCMDR)return;
+                    if(profile.properties.status=="max")return false;
 
                     if(profile.properties.movable && !profile._locked){
                         profile.box._active(profile);
@@ -44736,9 +49932,18 @@ if(xui.browser.ie){
                 onClick:function(profile, e, src){
                     profile.boxing().onLand(profile, e, src);
                 }
+            },
+            PANEL:{
+                onClick:function(profile, e, src){
+                    var p=profile.properties;
+                    if(p.disabled)return false;
+                    if(profile.onClickPanel)
+                        return profile.boxing().onClickPanel(profile, e, src);
+                }
             }
         },
         DataModel:{
+            rotate:null,
             selectable:true,
             tips:null,
             border:null,
@@ -44753,14 +49958,12 @@ if(xui.browser.ie){
             iframeAutoLoad:{
                 ini:"",
                 action:function(){
-                    this.getSubNode("PANEL").html("",false);
                     xui.UI.Div._applyAutoLoad(this);
                 }
             },
             ajaxAutoLoad:{
                 ini:"",
                 action:function(){
-                    this.getSubNode("PANEL").html("",false);
                     xui.UI.Div._applyAutoLoad(this);
                 }
             },
@@ -44916,7 +50119,8 @@ if(xui.browser.ie){
             onActivated:function(profile){},
             beforePin:function(profile, value){},
             beforeStatusChanged:function(profile, oldStatus, newStatus){},
-            afterStatusChanged:function(profile, oldStatus, newStatus){}
+            afterStatusChanged:function(profile, oldStatus, newStatus){},
+            onClickPanel:function(profile, e, src){}
         },
         RenderTrigger:function(){
             var ns=this;
@@ -44953,7 +50157,7 @@ if(xui.browser.ie){
             if(status=='min'||status=='max')
                 profile.$noR=1;
             if(_.isStr(data.overflow))
-                data._overflow = data.overflow.indexOf(':')!=-1?(data.overflow):("overflow:"+data.overflow);
+                data._overflow = data.overflow.indexOf(':')!=-1?(data.overflow):(data.overflow?("overflow:"+data.overflow):"");
             return data;
         },
 
@@ -45041,10 +50245,6 @@ if(xui.browser.ie){
                 profile.getSubNode('RESTORE').setInlineBlock();
             }
 
-            // set not movable
-            profile.old_m = t.movable;
-            t.movable=false;
-
             if(t.resizer && profile.$resizer)
                 ins._unResizer();
 
@@ -45088,8 +50288,6 @@ if(xui.browser.ie){
             profile.getSubNode('MAX').setInlineBlock();
             if(t.pinBtn)
                 profile.getSubNode('PIN').setInlineBlock();
-
-            t.movable=profile.old_m;
 
             if(t.shadow)
                 ins._shadow();
@@ -45261,7 +50459,7 @@ if(xui.browser.ie){
         _adjust:function(dialog,caption, content, left, top){
             caption = caption ||'';
             if(!_.isSet(content)){
-                content = caption;
+                content = xui.adjustRes(caption);
                 caption = "";
             }
 
@@ -45499,7 +50697,7 @@ if(xui.browser.ie){
                 KEY:'overflow:visible'
             });
 
-            dialog.append(cmd).append(div).render();;
+            dialog.append(cmd).append(div).render();
 
             var size=xui.UI.Dialog._adjust(dialog, title, content);
 

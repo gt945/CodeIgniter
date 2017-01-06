@@ -8,7 +8,9 @@
     yes:'да',
     no:'нет',
     noFlash:'не Flash!',
-    transparent:'прозрачный'
+    transparent:'прозрачный',
+    required:'Там нет необходимости заполнять поле',
+    invalid:'Недопустимое поле'
 };
 xui.Locale.ru.date={
     WEEKS:{

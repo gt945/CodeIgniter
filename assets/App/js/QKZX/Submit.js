@@ -1,4 +1,4 @@
-Class('App.QKZX.Submit', 'xui.Com',{
+Class('App.QKZX.Submit', 'xui.Module',{
     Instance:{
         autoDestroy : true,
         properties : {},

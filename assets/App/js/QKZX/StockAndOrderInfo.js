@@ -1,4 +1,4 @@
-Class('App.QKZX.StockAndOrderInfo', 'xui.Com',{
+Class('App.QKZX.StockAndOrderInfo', 'xui.Module',{
     Instance:{
         autoDestroy : true,
         properties : {},

@@ -1,5 +1,5 @@
-// 默认的代码是一个从 xui.Com 派生来的类
-Class('App.GridFilter', 'xui.Com',{
+// 默认的代码是一个从 xui.Module 派生来的类
+Class('App.GridFilter', 'xui.Module',{
     // 要确保键值对的值不能包含外部引用
     Instance:{
         // 本Com是否随着第一个控件的销毁而销毁
@@ -281,7 +281,7 @@ Class('App.GridFilter', 'xui.Com',{
         _select_beforecombopop:function (profile, pos,e ,src){
             var ns=this,ctrl=profile.boxing();
             var setting=ns.properties.gridSetting;
-            xui.ComFactory.newCom(ctrl.getProperties("app"), function(){
+            xui.ModuleFactory.newCom(ctrl.getProperties("app"), function(){
                 this.setProperties({
                     key:ns.properties.gridId,
                     field:ctrl.getDataField(),

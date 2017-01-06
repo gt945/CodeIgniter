@@ -7,7 +7,9 @@
     yes:'はい',
     no:'いいえ',
     noFlash:'No Flash PlugIn!',
-    transparent:'トランスペアレント'
+    transparent:'トランスペアレント',
+    required:'フィールドに記入する必要はありません',
+    invalid:'無効フィールド'
 };
 xui.Locale.ja.date={
     WEEKS:{

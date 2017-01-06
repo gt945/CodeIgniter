@@ -1,4 +1,4 @@
-Class('App.QKZX.PublishRecords', 'xui.Com',{
+Class('App.QKZX.PublishRecords', 'xui.Module',{
     Instance:{
         autoDestroy : true,
         properties : {},
@@ -35,7 +35,7 @@ Class('App.QKZX.PublishRecords', 'xui.Com',{
                 ids:ns.properties.recordIds,
                 field:ns.properties.field
             };
-            AJAX.callService('xui/request',ns.properties.gridId,"form",post,function(rsp){
+            AJAX.callService('xui/request',ns.properties.parentId,"form",post,function(rsp){
                 if(!ns.isDestroyed()){
                     ns.setProperties(rsp.data);
                     var setting=ns.properties.gridSetting;

@@ -1,4 +1,4 @@
-Class('App.AutoComplete', 'xui.Com',{
+Class('App.AutoComplete', 'xui.Module',{
 	Instance:{
 		autoDestroy : true,
 		properties : {},

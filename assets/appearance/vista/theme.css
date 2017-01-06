@@ -101,7 +101,7 @@ html, .xui-uibg-base{
 }
 
 /*common*/
-.xui-ui-inputdisabled, .xui-ui-disabled,  .xui-ui-itemdisabled,  .xui-ui-disabled input, .xui-ui-itemdisabled input, .xui-ui-disabled textarea, .xui-ui-itemdisabled textarea{
+.xui-ui-inputdisabled,   .xui-ui-itemdisabled,  .xui-ui-disabled input, .xui-ui-itemdisabled input, .xui-ui-disabled textarea, .xui-ui-itemdisabled textarea{
    background-color:#eee;
 }
 /*
@@ -178,7 +178,7 @@ html, .xui-uibg-base{
 }
 .xui-uicmd-close, .xui-uicmd-info, .xui-uicmd-opt, .xui-uicmd-pin, .xui-uicmd-refresh,
 .xui-uicmd-pop, .xui-uicmd-land, .xui-uicmd-min, .xui-uicmd-max, .xui-uicmd-restore{
-    width:28px;
+    width:16px;
     height:16px;
 }
 .xui-uicmd-toggle, .xui-uicmd-toggle2{
@@ -604,10 +604,10 @@ html, .xui-uibg-base{
 .xui-treegrid-cells-mouseover{
     background-color: #D9E8FB;
 }
-.xui-treegrid-cells-active, .xui-treegrid-cells-active .xui-treegrid-cella, .xui-treegrid-cell-active, .xui-treegrid-cell-active .xui-treegrid-cella{
+.xui-treegrid-cells-active, .xui-treegrid-cell-active, .xui-treegrid-cell-active .xui-treegrid-cella{
     background-color: #B0EAFA;
 }
-.xui-treegrid-cells-checked, .xui-treegrid-cells-checked .xui-treegrid-cella, .xui-treegrid-cell-checked, .xui-treegrid-cell-checked .xui-treegrid-cella{
+.xui-treegrid-cells-checked, .xui-treegrid-cell-checked, .xui-treegrid-cell-checked .xui-treegrid-cella{
     background-color: #7ba3cb;
     color:#fff;
 }
