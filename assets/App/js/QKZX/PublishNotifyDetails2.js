@@ -77,7 +77,7 @@ Class('App.QKZX.PublishNotifyDetails', 'xui.Com',{
             if(col.type=="listbox"){
                 var para = {field:grid.getColByCell(cell).id};
                 if(!elem._isset) {
-                    AJAX.callService('xui/request', ns.properties.gridName, "get_select", para,
+                    AJAX.callService('xui/request', ns.properties.gridId, "get_select", para,
                         function (rsp) {
                             if (!elem.isDestroyed()) {
                                 elem.setItems(rsp.data).setValue(null, true);
@@ -99,7 +99,7 @@ Class('App.QKZX.PublishNotifyDetails', 'xui.Com',{
             debugger;
             xui.ComFactory.newCom(ctrl.getProperties("app"), function(){
                 this.setProperties({
-                    key:ns.properties.gridName,
+                    key:ns.properties.gridId,
                     field:ctrl.getDataField(),
                     pos:ctrl.getRoot(),
                     cmd:ctrl.getProperties("cmd"),

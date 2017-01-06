@@ -183,12 +183,16 @@ Class('App.GridEditor', 'xui.Com',{
 			}
 		},
 		_openForm:function(recordIds){
-			var ns = this;
+			var ns = this,grid=ns.grid;
+			var row=grid.getActiveRow();
 			var prop={
 				recordIds:recordIds,
 				_gid:ns._ogid,
 				_pid:ns._opid
 			};
+			if (row){
+				prop['activeId']=row.id;
+			}
 			_.merge(prop, ns.properties);
 			if (ns.properties.gridForm) {
 				xui.ComFactory.newCom(ns.properties.gridForm,function(){
@@ -196,17 +200,20 @@ Class('App.GridEditor', 'xui.Com',{
 				},null,prop,{
 					afterCreated:function(data){
 						var rows=ns._buildRows(data);
-						if(ns.properties.gridTreeMode){
-							var row=ns.grid.getRowbyRowId(data.pid);
-							if(row){
-								if(row.sub){
-									ns.grid.toggleRow(data.pid,true);
-								}else{
-									ns.grid.updateRow(data.pid,{sub:[]});
+						_.arr.each(rows, function(r){
+							if(ns.properties.gridTreeMode){
+								var row=ns.grid.getRowbyRowId(r.pid);
+								if(row){
+									if(row.sub){
+										ns.grid.toggleRow(r.pid,true);
+									}else{
+										ns.grid.updateRow(r.pid,{sub:[]});
+									}
 								}
 							}
-						}
-						ns.grid.insertRows(rows,data.pid,null,false);
+							ns.grid.insertRows(r,r.pid,null,false);
+						});
+
 					},
 					afterUpdated:function(rowIds, hash, rows){
 						_.each(rowIds,function(rowId){
@@ -273,12 +280,12 @@ Class('App.GridEditor', 'xui.Com',{
 			}); 
 		},
 		_toolbar_onclick:function (profile, item, group, e, src){
-			var ns = this,ctrl=profile.boxing();
+			var ns=this,ctrl=profile.boxing();
 			switch(item.id){
 				case "filter":
 					ns._openFilter();
 					break;
-				case "new": 
+				case "new":
 					ns._openForm([]);
 					break;
 				case "edit":
@@ -288,7 +295,7 @@ Class('App.GridEditor', 'xui.Com',{
 						ns._openForm(ids);
 					}
 					break;
-				case "delete": 
+				case "delete":
 					var ids=ns.grid.getUIValue(true);
 					if(_.isStr(ids)){
 						ids=[ids];
@@ -305,7 +312,7 @@ Class('App.GridEditor', 'xui.Com',{
 					var setting=ns.properties.gridSetting;
 					xui.ComFactory.newCom('App.AdvSelect', function(){
 						this.setProperties({
-							key:ns.properties.gridName,
+							key:ns.properties.gridId,
 							field:ns.properties.gridGroup,
 							pos:src,
 							value:ns._gid,
@@ -337,17 +344,25 @@ Class('App.GridEditor', 'xui.Com',{
 					ns._openExporter();
 					break;
 				default:
-					if(typeof item.app == 'string'){
-						xui.ComFactory.newCom(item.app, function(){
-							this.show();
-						}, null, {editor: ns},{
-							refreshRow:function(id){
-								ns._refresh_row(id);
-							},
-							refreshGrid:function(){
-								ns.loadGridData(ns._curPage);
+					switch(group.id){
+
+						case "flow":
+							ns._flow_action(item.actionId);
+							break;
+						case "custom":
+							if(typeof item.app == 'string'){
+								xui.ComFactory.newCom(item.app, function(){
+									this.show();
+								}, null, {editor: ns},{
+									refreshRow:function(id){
+										ns._refresh_row(id);
+									},
+									refreshGrid:function(){
+										ns.loadGridData(ns._curPage);
+									}
+								});
 							}
-						});
+							break;
 					}
 					break;
 			}
@@ -377,7 +392,9 @@ Class('App.GridEditor', 'xui.Com',{
 				ns.toolbar.updateItem("edit",{disabled:!newValue});
 				if(newValue){
 					var values=newValue.split(';');
-					ctrl.setActiveRow(values[0]);
+					if (values.length==1){
+						ctrl.setActiveRow(values[0]);
+					}
 				}
 			}
 		},
@@ -415,6 +432,28 @@ Class('App.GridEditor', 'xui.Com',{
 			},function(){
 			},function(){
 			});
+		},
+		_flow_action:function(id){
+			var ns=this,grid=ns.grid;
+			var rows_id=grid.getUIValue();
+			if (rows_id) {
+				var values=rows_id.split(";");
+				if (values.length>0){
+					var post={
+						actionId:id,
+						ids:values
+					}
+					AJAX.callService('xui/request',ns.properties.gridId,"flow_action",post,function(rsp){
+					},function(){
+						xui.Dom.busy("正在处理 ...");
+					},function(){
+						xui.Dom.free();
+					});
+
+				}
+			}else{
+				xui.message("未选择条目!");
+			}
 		}
 	}
 });

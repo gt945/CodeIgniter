@@ -44,14 +44,14 @@ class Crud_before_del extends Crud_hook {
             }
         }
         if (count($ids)) {
-            $this->db2->where_in('PNID', $ids);
-            $details = $this->db2->get('publishnotifydetails')->result_array ();
+            $this->db->where_in('PNID', $ids);
+            $details = $this->db->get('publishnotifydetails')->result_array ();
             $tmp = array();
             $this->publishnotifydetails_del(null, null, $tmp, $details);
-            $this->db2->where_in('PNID', $ids);
-            $this->db2->delete('publishnotifydeliver');
-            $this->db2->where_in('PNID', $ids);
-            $this->db2->delete('publishnotifyprice');
+            $this->db->where_in('PNID', $ids);
+            $this->db->delete('publishnotifydeliver');
+            $this->db->where_in('PNID', $ids);
+            $this->db->delete('publishnotifyprice');
         }
 
         return $this->result(true);

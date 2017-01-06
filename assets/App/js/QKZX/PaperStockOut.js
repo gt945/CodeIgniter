@@ -344,7 +344,7 @@ Class('App.QKZX.PaperStockOut', 'xui.Com',{
             var db=ns.databinder;
             xui.ComFactory.newCom(ctrl.getProperties("app"), function(){
                 this.setProperties({
-                    key:ns.properties.gridName,
+                    key:ns.properties.gridId,
                     field:ctrl.getDataField(),
                     pos:ctrl.getRoot(),
                     cmd:ctrl.getProperties("cmd"),

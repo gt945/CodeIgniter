@@ -19,11 +19,11 @@ class JournalStockManage extends CI_Model {
         $this->year = $year;
         $this->no = $no;
 		$this->stock = null;
-		$this->db2->from($this->name);
-		$this->db2->where('JID', $jid);
-		$this->db2->where('Year', $year);
-		$this->db2->where('No', $no);
-		$this->stock = $this->db2->row();
+		$this->db->from($this->name);
+		$this->db->where('JID', $jid);
+		$this->db->where('Year', $year);
+		$this->db->where('No', $no);
+		$this->stock = $this->db->row();
 		if ($this->stock) {
 			return $this->stock;
 		} else {
@@ -54,13 +54,13 @@ class JournalStockManage extends CI_Model {
 				'StockTag'	=>	$tag,
                 'Note'  => $note
 			);
-			$this->db2->insert('stockmanagedetails', $save);
+			$this->db->insert('stockmanagedetails', $save);
 			$this->stock['Counts'] -= $count;
 			$save = array(
 				'Counts' => $this->stock['Counts']
 			);
-			$this->db2->where('id', $this->stock['id']);
-			$this->db2->update($this->name, $save);
+			$this->db->where('id', $this->stock['id']);
+			$this->db->update($this->name, $save);
 		}
 		
 	}
@@ -77,13 +77,13 @@ class JournalStockManage extends CI_Model {
 				'StockTag'	=>	$tag,
                 'Note'  => $note
 			);
-			$this->db2->insert('stockmanagedetails', $save);
+			$this->db->insert('stockmanagedetails', $save);
 			$this->stock['Counts'] += $count;
 			$save = array(
 				'Counts' => $this->stock['Counts']
 			);
-			$this->db2->where('id', $this->stock['id']);
-			$this->db2->update($this->name, $save);
+			$this->db->where('id', $this->stock['id']);
+			$this->db->update($this->name, $save);
 		} else if ($this->jid != -1) {
             $save = array(
                 'JID'	=>	$this->jid,
@@ -93,7 +93,7 @@ class JournalStockManage extends CI_Model {
                 'StockTag'	=>	$tag,
                 'Note'  => $note
             );
-            $this->db2->insert('stockmanagedetails', $save);
+            $this->db->insert('stockmanagedetails', $save);
             $save = array(
                 'JID'	=>	$this->jid,
                 'Year'	=>	$this->year,
@@ -101,7 +101,7 @@ class JournalStockManage extends CI_Model {
                 'Counts'	=>	$count,
                 'Note'  => $note
             );
-            $this->db2->insert($this->name, $save);
+            $this->db->insert($this->name, $save);
         }
 		
 	}

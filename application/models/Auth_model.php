@@ -42,7 +42,7 @@ class Auth_model extends CI_Model {
 				'password'   => hash_password($password),
 				'contact'    => $contact,
 				'remark'	 => $remark,
-				'rid'		 => 0,
+				'rid'		 => "",
 				'gid'		 => 0,
 				'state'		 => 0,
 				'create_date' => date('Y-m-j H:i:s'),
@@ -329,8 +329,23 @@ class Auth_model extends CI_Model {
 	
     public function check_role($role)
 	{
-		$rid = $_SESSION['userinfo']['rid'];
-		return check_str_bool($role, $rid);
+        if (strpos(",{$role},", ",-1,") !== false) {     //没有人有权限
+            return false;
+        }
+        if (strpos(",{$role},", ",0,") !== false) {     //任何人有权限
+            return true;
+        }
+        $rid = $_SESSION['userinfo']['rid'];
+        $rids = explode(',', $rid);
+        foreach ($rids as $r) {
+            if ($r == "") {
+                continue;
+            }
+            if (strpos(",{$role},", ",{$r},") !== false) {
+                return true;
+            }
+        }
+        return false;
 	}
 	
 	public function role()

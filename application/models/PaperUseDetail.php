@@ -13,10 +13,10 @@ class PaperUseDetail extends CI_Model {
 	public function prepare($id)
 	{
 		$this->data = null;
-		$this->db2->from($this->name);
-		$this->db2->where('id', $id);
+		$this->db->from($this->name);
+		$this->db->where('id', $id);
 
-		$this->data = $this->db2->row();
+		$this->data = $this->db->row();
 		if ($this->data) {
 			$this->id = $id;
 			return $this->data;
@@ -41,13 +41,13 @@ class PaperUseDetail extends CI_Model {
             "No" => $n['No'],
             "Type" => 0,
         );
-        $this->db2->insert($this->name, $save);
-        return $this->db2->insert_id ();
+        $this->db->insert($this->name, $save);
+        return $this->db->insert_id ();
     }
 	
 	public function delete(){
         if ($this->data) {
-            $this->db2->delete($this->name, array('id' => $this->id));
+            $this->db->delete($this->name, array('id' => $this->id));
         }
     }
 	

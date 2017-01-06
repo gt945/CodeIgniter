@@ -129,11 +129,11 @@ Class('App.AdvInput', 'xui.Com',{
                     	}
                     }else if(ns.properties.cmd=="multi"){
                     	value = ns.properties.value.split(",");
-                    	_.each(value,function(v,i){
-                    		if(_.isNaN(parseInt(v,10))){
-                    			value.splice(i,1);
-                    		}
-                    	});
+                    	// _.each(value,function(v,i){
+                    	// 	if(_.isNaN(parseInt(v,10))){
+                    	// 		value.splice(i,1);
+                    	// 	}
+                    	// });
                 	}
                     grid.setUIValue(value);
                 }
@@ -159,16 +159,20 @@ Class('App.AdvInput', 'xui.Com',{
         	if(ns.properties.cmd=="bit"){
         		value=0;
         		_.arr.each(ids,function(id){
-        			if(id!=""){
+					var cell=grid.getCellbyRowCol(id, 'caption');
+        			if(cell){
         				value+=parseInt(id,10);
-        				captions.push(grid.getCellbyRowCol(id, 'caption').value);
+        				captions.push(cell.value);
         			}
         		});
         		value=parseInt("0"+value,10);
         	}else if(ns.properties.cmd=="multi"){
         		value=ids.join(",");
         		_.arr.each(ids,function(id){
-        			captions.push(grid.getCellbyRowCol(id, 'caption').value);
+					var cell=grid.getCellbyRowCol(id, 'caption');
+					if (cell){
+						captions.push(cell.value);
+					}
         		});
         	}
         	if (captions.length){

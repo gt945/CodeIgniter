@@ -152,14 +152,16 @@ Class('App.AdvSelect', 'xui.Com',{
         },
         _filter_onchange:function(profile, oldValue, newValue, force, tag){
         	var ns=this,ctrl=profile.boxing(),grid=ns.grid;
-        	if (ns.properties.setting.tree){
-        		var items=grid.getItems();
-        		ns._filter(grid,items,(new RegExp(ctrl.getUIValue())));
-        		grid.toggleNode(null,true,true)
-        	}else{
-        		this.like=ctrl.getUIValue();
-        		this.loadGridData(1);
-        	}
+            if(newValue!=oldValue) {
+                if (ns.properties.setting.tree) {
+                    var items = grid.getItems();
+                    ns._filter(grid, items, (new RegExp(ctrl.getUIValue())));
+                    grid.toggleNode(null, true, true)
+                } else {
+                    ns.like = ctrl.getUIValue();
+                    ns.loadGridData(1);
+                }
+            }
         },
         _filter:function(grid,items,reg){
         	var ns=this,find=false;

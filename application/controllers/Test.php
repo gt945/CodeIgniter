@@ -255,4 +255,20 @@ EOD;
 
         echo "</pre>";
     }
+
+    public function test3()
+    {
+        $this->db->where('id', 1);
+        $this->db->from('test');
+        print_r($this->db->sheet());
+    }
+
+
+    public function test4()
+    {
+//        print_r(microtime(true) * 1000);
+//        list($s1, $s2) = explode(' ', microtime(true));
+//        print_r((floatval($s1) + floatval($s2)));
+        echo  sprintf('%.0f', microtime(true)  * 1000);
+    }
 }

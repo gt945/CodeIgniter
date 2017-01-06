@@ -15,7 +15,7 @@ Class('App.login', 'xui.Com',{
         iniComponents : function(){
             // [[Code created by CrossUI RAD Studio
             var host=this, children=[], append=function(child){children.push(child.get(0));};
-            
+
             append(
             	(new xui.DataBinder())
                 .setHost(host,"databinder")
@@ -26,7 +26,7 @@ Class('App.login', 'xui.Com',{
                 .setResponseType("JSON")
                 //.setQueryURL(SITEURL+'user/login')
             );
-            
+
             append(
                 (new xui.UI.Dialog())
                 .setHost(host,"dialog")
@@ -37,7 +37,7 @@ Class('App.login', 'xui.Com',{
                 .setMaxBtn(false)
                 .setCloseBtn(false)
             );
-            
+
             host.dialog.append(
                 (new xui.UI.ComboInput())
                 .setHost(host,"username")
@@ -51,7 +51,7 @@ Class('App.login', 'xui.Com',{
                 .setLabelCaption("用户名　")
                 .setShowDirtyMark(false)
                 );
-            
+
             host.dialog.append(
                 (new xui.UI.ComboInput())
                 .setHost(host,"password")
@@ -65,7 +65,7 @@ Class('App.login', 'xui.Com',{
                 .setLabelCaption("密　码　")
                 .setShowDirtyMark(false)
                 );
-            
+
             host.dialog.append(
                 (new xui.UI.ComboInput())
                 .setHost(host,"captcha")
@@ -79,7 +79,7 @@ Class('App.login', 'xui.Com',{
                 .setLabelCaption("验证码　")
                 .setShowDirtyMark(false)
                 );
-            
+
             host.dialog.append(
             	(new xui.UI.Pane())
             	.setHost(host,"captcha_block")
@@ -88,7 +88,7 @@ Class('App.login', 'xui.Com',{
                 .setWidth(120)
                 .setHeight(50)
             	);
-            
+
             host.captcha_block.append(
 	            (new xui.UI.Image())
 	            .setHost(host,"captcha_image")
@@ -107,7 +107,7 @@ Class('App.login', 'xui.Com',{
                 .setCaption("登　录")
                 .onClick("_login_onclick")
                 );
-            
+
             return children;
             // ]]Code created by CrossUI RAD Studio
         },
@@ -140,7 +140,7 @@ Class('App.login', 'xui.Com',{
         	var ns=this;
             xui.Event.keyboardHook("enter", 0, 0, 0, function(){
             	var db = ns.databinder.updateDataFromUI(true);
-            	if (db.getData("username").value.length 
+            	if (db.getData("username").value.length
             			&&db.getData("password").value.length
             			&&db.getData("captcha").value.length){
             		ns._login_onclick();
@@ -153,7 +153,7 @@ Class('App.login', 'xui.Com',{
             var ps=db.getData("password").value;
             vp=md5(md5(ps),db.getData("captcha").value,false);
             ve=ns.encrypt.encrypt(vp);
-            
+
             args={
              		username:db.getData("username").value,
             		password:ve,
@@ -172,7 +172,7 @@ Class('App.login', 'xui.Com',{
             				}
             			},
             			function(){
-            				
+
             			},
             			function(){
             				ns.dialog.busy(true);

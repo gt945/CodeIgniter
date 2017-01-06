@@ -42,6 +42,7 @@ Class('App.TableSetting', 'xui.Com',{
                 .setDirtyMark(false)
                 .setLeft(20)
                 .setTop(30)
+                .setWidth(150)
                 .setType("listbox")
                 .setCaption("选择数据表")
                 .onChange("_table_select_onchange")
@@ -53,6 +54,7 @@ Class('App.TableSetting', 'xui.Com',{
                 .setDirtyMark(false)
                 .setLeft(20)
                 .setTop(90)
+                .setWidth(150)
                 .setDropKeys("fl")
                 .setDragKey("fl")
             );

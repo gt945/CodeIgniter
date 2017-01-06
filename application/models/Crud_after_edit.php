@@ -28,12 +28,12 @@ union
 select '本社' as DeliverTarget, orderCount DeliverCount from (select IfNULL(sum(orderCount),0) as orderCount from `qkzx_journalorders` where JID = {$d['JID']} and saleStyle in(1,2,6,8) and jyear = {$d['Year']} and nostart <= {$d['No']} and noend >= {$d['No']}) d
 
 EOF;
-            $ret = $this->db2->query($sql);
+            $ret = $this->db->query($sql);
             $rows = $ret->result_array();
             foreach($rows as $r) {
                 $r['PNID'] = $ids[0];
                 $r['CreateTime'] = date('Y-m-d h:i:s');
-                $ret = $this->db2->insert('publishnotifydeliver', $r);
+                $ret = $this->db->insert('publishnotifydeliver', $r);
             }
 
 

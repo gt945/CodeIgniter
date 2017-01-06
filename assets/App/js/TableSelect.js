@@ -8,13 +8,15 @@ Class('App.TableSelect', 'xui.Com',{
             var ns=this;
             ns._search=false;
             ns._filters={};
+            ns.like='';
+            ns.initOk=false;
         },
         iniComponents : function(){
             var host=this, children=[], append=function(child){children.push(child.get(0));};
             
             append(
-                (new xui.UI.Panel())
-	            .setHost(host,"mainPanel")
+                (new xui.UI.Dialog())
+	            .setHost(host,"mainDlg")
 	            .setDock("none")
 	            .setLeft(0)
 	            .setTop(0)
@@ -23,10 +25,10 @@ Class('App.TableSelect', 'xui.Com',{
 	            .setZIndex(1)
 	            .setCaption("选择窗口")
 	            .setCloseBtn(true)
-	            .beforeClose("_mainpanel_beforeclose")
+	            .beforeClose("_dialog_beforeclose")
             );
             
-            host.mainPanel.append(
+            host.mainDlg.append(
                 (new xui.UI.TreeGrid())
 	            .setHost(host,"grid")
 	            .setRowHandlerWidth(27)
@@ -35,7 +37,7 @@ Class('App.TableSelect', 'xui.Com',{
                     .onDblclickRow("_grid_ondblclickrow")
             );
 
-            host.mainPanel.append(
+            host.mainDlg.append(
                 (new xui.UI.Block())
 	            .setHost(host,"ctl_block8")
 	            .setDock("top")
@@ -68,7 +70,7 @@ Class('App.TableSelect', 'xui.Com',{
 	            .onClick("_ctl_sbutton1_onclick")
             );
             
-            host.mainPanel.append(
+            host.mainDlg.append(
             	(new xui.UI.Block())
 	            .setHost(host,"ctl_block9")
 	            .setDock("bottom")
@@ -103,13 +105,13 @@ Class('App.TableSelect', 'xui.Com',{
             grid.setRows(rows);
             grid.activate();
         },
-        _mainpanel_beforeclose:function (profile){
+        _dialog_beforeclose:function (profile){
             this.fireEvent("onCancel");
         },
         customAppend : function(parent, subId, left, top){
-            var ns=this, root=ns.mainPanel,
+            var ns=this, root=ns.mainDlg,
                 domId=root.getDomId();
-            root.getRoot().popToTop(ns.properties.pos);
+            this.mainDlg.showModal(parent, left, top);
             root.getRoot().setBlurTrigger(domId, function(){
                 ns.fireEvent("onCancel");
                 ns.destroy(); 
@@ -125,11 +127,12 @@ Class('App.TableSelect', 'xui.Com',{
         loadGridData:function(curPage){
             var ns=this, 
                 grid=ns.grid;
-            this._curPage=curPage;
+            ns._curPage=curPage;
             AJAX.callService('xui/request',ns.properties.key,"table_select",{
             	field:ns.properties.field,
                 page:curPage,
                 size:20,
+                like:ns.like,
                 filters:ns._filters,
                 search:ns._search
             },function(rsp){
@@ -139,7 +142,10 @@ Class('App.TableSelect', 'xui.Com',{
                     }else{
                         ns.properties.gridFilter=rsp.data.gridFilter;
                         ns.properties.gridSetting=rsp.data.gridSetting;
-                        ns.toolbar.setItems(_.unserialize(rsp.data.gridToolBarItems));
+                        if(!ns.initOk){
+                            ns.toolbar.setItems(_.unserialize(rsp.data.gridToolBarItems));
+                            ns.initOk=true;
+                        }
                         ns.pagebar.setValue("1:"+curPage+":"+( Math.ceil(parseInt(rsp.data.count,10)/20) ),true);
                         ns._fillGrid(rsp.data.headers, rsp.data.rows);
                         // grid.setUIValue(ns.properties.value);
@@ -226,6 +232,13 @@ Class('App.TableSelect', 'xui.Com',{
             });
             ns.fireEvent("onSelect",[{value:row.id,caption:caption},extra]);
             ns.destroy();
+        },
+        _search_onchange:function(profile, oldValue, newValue, force, tag){
+            var ns=this,ctrl=profile.boxing();
+            if(newValue!=oldValue){
+                ns.like=ctrl.getUIValue();
+                ns.loadGridData(1);
+            }
         }
     }
 });

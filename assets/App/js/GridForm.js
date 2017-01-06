@@ -120,10 +120,12 @@ Class('App.GridForm', 'xui.Com',{
 						pane.setDisabled(true);
 					} else {
 						xui.ComFactory.newCom(setting[f].app,function(){
-							host._widgets['widgets_'+this.properties.index]=this;
-							this.show(null,this.properties.pane);
+							if(!_.isEmpty(this)){
+								host._widgets['widgets_'+this.properties.index]=this;
+								this.show(null,this.properties.pane);
+							}
 						},null,{
-							name:host.properties.gridName,
+							parentId:host.properties.gridId,
 							field:f,
 							filter:{},
 							pane:pane,
@@ -224,7 +226,7 @@ Class('App.GridForm', 'xui.Com',{
 				}
 			});
 			if(_.isSet(recordIds)&&recordIds.length>0){
-				this.updateUIfromService(recordIds[0]);
+				this.updateUIfromService(ns.properties.activeId);
 			}
 			this.setDirty(false);
 		},
@@ -280,11 +282,6 @@ Class('App.GridForm', 'xui.Com',{
 						}
 					}
 				}
-				// _.each(hash,function(o,i){
-				// 	if(_.isDate(o)){
-				//        hash[i]=xui.Date.format(o, "yyyy-mm-dd hh:nn:ss");
-				// 	}
-				// });
 
 				if(recordIds.length>0){
 					var rqsD={
@@ -403,7 +400,7 @@ Class('App.GridForm', 'xui.Com',{
 			}
 			_.each(ns._widgets,function(ele){
 				var relate=ns._get_relate(ele.properties.setting.relate);
-				_.tryF(ele._update,[relate,db],ele);
+				_.tryF(ele._update,[relate,db,profile],ele);
 			});
 		},
 		_ctl_sbutton486_onclick:function (profile, e, src, value){
@@ -472,7 +469,7 @@ Class('App.GridForm', 'xui.Com',{
 			var db=ns.databinder;
 			xui.ComFactory.newCom(ctrl.getProperties("app"), function(){
 				this.setProperties({
-					key:ns.properties.gridName,
+					key:ns.properties.gridId,
 					field:ctrl.getDataField(),
 					pos:ctrl.getRoot(),
 					cmd:ctrl.getProperties("cmd"),

@@ -58,7 +58,6 @@ class Xui extends MY_Controller {
 		$this->load->library( 'xui_utils' );
 		$ret = new stdClass ();
 		$grid_info = $this->grid_model->grid_info();
-		$ret->gridName = $this->grid_model->name;
 		$ret->gridPrimary = $this->grid_model->primary;
         if ($this->grid_model->crud_table['_role_c'] || $this->grid_model->crud_table['_role_u']) {
             $ret->gridForm = "App.GridForm";
@@ -91,23 +90,22 @@ class Xui extends MY_Controller {
             }
         }
 
-		$db = "db_".__LINE__;
-		$this->load->model ('Crud_model', $db);
-		$this->$db->table("custom_item");
-		$this->$db->prepare();
+		$this->db->from("custom_item");
 		$mid = 0;
 		if (isset($paras->mid)) {
 			$mid = substr($paras->mid, 1);
 		}
-		$this->$db->where('mid', $mid);
-		$items = $this->$db->sheet();
+		$this->db->where('mid', $mid);
+		$custom_items = $this->db->sheet();
+
+        $flow_items = $this->grid_model->get_flow_items();
 		$ret->gridHeaders = $grid_info->headers;
 		$ret->gridId = (int)$this->grid_model->crud_table['id'];
 		$ret->gridSetting = $grid_info->setting;
 		$ret->gridFormWidth = (int)$this->grid_model->crud_table['w'];
 		$ret->gridFormHeight = (int)$this->grid_model->crud_table['h'];
 		$ret->gridTreeMode = ($this->grid_model->pid != null)?$this->grid_model->pid:null;
-		$ret->gridToolBarItems = $this->grid_model->grid_toolbar_items($items);
+		$ret->gridToolBarItems = $this->grid_model->grid_toolbar_items($flow_items, $custom_items);
 		$ret->gridGroup = ($this->grid_model->group != null)?"gid":null;
 		$ret->gridPrimary = $this->grid_model->primary;
 		$ret->dataFilter = $this->grid_model->crud_table['filter'];
@@ -271,11 +269,9 @@ class Xui extends MY_Controller {
 	
 	function request_tables($paras)
 	{
-		$db = "db_".__LINE__;
-		$this->load->model ('db_model', $db);
-		$this->$db->select("id,name,caption,w,h");
-		$this->$db->from(Crud_model::CRUD_TABLE);
-		$ret = $this->$db->sheet();
+		$this->db->select("id,name,caption,w,h");
+		$this->db->from(Crud_model::CRUD_TABLE);
+		$ret = $this->db->sheet();
 		return $ret;
 	}
 	
@@ -479,6 +475,24 @@ class Xui extends MY_Controller {
 		if ($field_info['type'] != Crud_model::TYPE_SELECT) {
 			return 3;
 		}
+		if (isset($paras->like) && strlen($paras->like)){
+            $paras->search = true;
+            $paras->filters = (object) array(
+                "groupOp" => "OR",
+                "rules" => array(
+                    (object) array(
+                        "data" => $paras->like,
+                        "op" => "eq",
+                        "field" => $field_info['join_value']
+                    ),
+                    (object) array(
+                        "data" => $paras->like,
+                        "op" => "cn",
+                        "field" => $field_info['join_caption']
+                    )
+                )
+            );
+        }
 		$data = $this->$db->wrapper_sheet($paras);
 
 		$grid_info = $this->$db->grid_info();
@@ -493,7 +507,7 @@ class Xui extends MY_Controller {
 		foreach($ret->headers as &$h) {
 			if( !in_array($h->id, $extra_field )
                 && !in_array(strtolower($h->id), $extra_field )
-                && strtolower($h->id) != $field_info['join_caption']) {
+                && strcasecmp($h->id, $field_info['join_caption'])) {
 				$h->hidden = true;
 			} else{
                 $h->hidden = false;
@@ -522,12 +536,10 @@ class Xui extends MY_Controller {
 	
 	function request_resize($paras)
 	{
-		$db = "db_".__LINE__;
-		$this->load->model ('db_model', $db);
 		if (isset($this->grid_model->crud_field[$paras->name])) {
-			$this->$db->set("width", $paras->width);
-			$this->$db->where("id", $this->grid_model->crud_field[$paras->name]['id']);
-			$this->$db->update ( Crud_model::CRUD_FIELD );
+			$this->db->set("width", $paras->width);
+			$this->db->where("id", $this->grid_model->crud_field[$paras->name]['id']);
+			$this->db->update ( Crud_model::CRUD_FIELD );
 			return 1;
 		}
 		return 0;
@@ -541,10 +553,9 @@ class Xui extends MY_Controller {
         $this->$db->table($field_info['join_table'], explode(',',$field_info['join_extra']));
         $this->$db->prepare();
         $ret = new stdClass ();
-        $grid_info = $this->$db->grid_info("inline");
-        $ret->gridName = $this->$db->name;
+        $grid_info = $this->$db->grid_info("inline", $field_info);
+        $ret->gridId = (int)$this->$db->crud_table['id'];
         $ret->gridPrimary = $this->$db->primary;
-
         $ret->gridHeaders = $grid_info->headers;
         $ret->gridSetting = $grid_info->setting;
 
@@ -580,7 +591,7 @@ class Xui extends MY_Controller {
         $this->$db->prepare();
         $ret = new stdClass ();
         $grid_info = $this->$db->grid_info();
-        $ret->gridName = $this->$db->name;
+        $ret->gridId = (int)$this->$db->crud_table['id'];
         $ret->gridPrimary = $this->$db->primary;
         $ret->gridSetting = $grid_info->setting;
         return $ret;
@@ -591,7 +602,7 @@ class Xui extends MY_Controller {
         $ret = new stdClass();
         $db = "db_".__LINE__;
         $this->load->model('grid_model', $db);
-        $this->$db->table($paras->name);
+        $this->$db->table($paras->grid);
         $field_info = $this->$db->crud_field[$paras->field];
         foreach($paras->data as $d) {
             $row = (object) array(
@@ -623,5 +634,19 @@ class Xui extends MY_Controller {
             $ret->rows[] = $row;
         }
         return $ret;
+    }
+
+    function request_flow_action($paras)
+    {
+        $flow_items = $this->grid_model->get_flow_items($paras->actionId);
+        if (count($flow_items)) {
+            $item = $flow_items[0];
+            $this->db->where_in($this->grid_model->primary, $paras->ids);
+            $this->db->where($item['field'], $item['stage']);
+            $this->db->set($item['field'], $item['actionStage']);
+            $this->db->update($this->grid_model->name);
+        }
+
+        return 1;
     }
 }

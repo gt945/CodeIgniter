@@ -1,4 +1,4 @@
-Class('App.QKZX.Check', 'xui.Com',{
+Class('App.QKZX.Check2', 'xui.Com',{
     autoDestroy : true,
     Instance:{
         initialize : function(){
@@ -155,7 +155,7 @@ Class('App.QKZX.Check', 'xui.Com',{
                 var paras={
                     ids:ids
                 };
-                AJAX.callService("QKZX/request", null, "publishnotify_check", paras, function(rsp){
+                AJAX.callService("QKZX/request", null, "publishnotify_check2", paras, function(rsp){
                     if(!ns.isDestroyed()){
                         xui.message("审核成功据");
                         ns.fireEvent("refreshRows", [ids]);

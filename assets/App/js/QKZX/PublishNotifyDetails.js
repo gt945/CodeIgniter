@@ -13,17 +13,9 @@ Class('App.QKZX.PublishNotifyDetails', 'xui.Com',{
                 .setHost(host,"grid")
                 .setShowDirtyMark(false)
                 .setSelMode("single")
-                .setEditable(true)
                 .setRowNumbered(true)
                 .setRowHandlerWidth(26)
                 .setTreeMode(false)
-                .onInitHotRow("_grid_oninithotrow")
-                .beforeHotRowAdded("_grid_beforehotrowadded")
-                .afterHotRowAdded("_grid_afterhotrowadded")
-                .afterCellUpdated("_grid_aftercellupdated")
-                .beforeComboPop("_grid_beforecombopop")
-                .onCommand("_grid_oncommand")
-                .onRowHover("_grid_onmousehover")
             );
 
             host.grid.append((new xui.UI.Image())
@@ -45,28 +37,39 @@ Class('App.QKZX.PublishNotifyDetails', 'xui.Com',{
         },
         events:{"onRender":"_com_onrender"},
         _com_onrender:function (com, threadid){
-            var ns=this;
+            var ns=this,grid=ns.grid;
+            if(!ns.properties.setting.readonly){
+                grid.setEditable(true);
+                grid.onInitHotRow("_grid_oninithotrow");
+                grid.beforeHotRowAdded("_grid_beforehotrowadded");
+                grid.afterHotRowAdded("_grid_afterhotrowadded");
+                grid.afterCellUpdated("_grid_aftercellupdated");
+                grid.beforeComboPop("_grid_beforecombopop");
+                grid.onCommand("_grid_oncommand");
+                grid.onRowHover("_grid_onmousehover");
+            }
             ns.fireEvent("onWidgetReady",[ns]);
         },
         _load:function(relate){
             var ns=this,grid=ns.grid;
             var post={
-                name:ns.properties.name,
                 ids:ns.properties.recordIds,
                 field:ns.properties.field,
                 relate:relate
             };
-            AJAX.callService('xui/request',ns.properties.name,"inline_grid",post,function(rsp){
+            AJAX.callService('xui/request',ns.properties.parentId,"inline_grid",post,function(rsp){
                 if(!ns.isDestroyed()){
                     ns.setProperties(rsp.data);
                     grid.setHeader(rsp.data.gridHeaders);
-                    grid.setHotRowMode("show");
+                    if(!ns.properties.setting.readonly){
+                        grid.setHotRowMode("show");
+                        if(!ns.properties.recordIds.length){
+                            grid.setEditable(false);
+                        }
+                    }
                     grid.setActiveRow(null);
                     grid.setUIValue(null,true);
                     grid.setRows(rsp.data.rows);
-                    if(!ns.properties.recordIds.length){
-                        grid.setEditable(false);
-                    }
                 }
 
             },function() {
@@ -79,7 +82,7 @@ Class('App.QKZX.PublishNotifyDetails', 'xui.Com',{
             //return {caption:"*", cells:[{caption:"<span style='color:#888'>(点击新增)</span>"}]};
         },
         _grid_beforehotrowadded:function (profile,row,leaveGrid){
-            return row.cells[0].value !== "";
+            return row.cells[0].value!==""&&row.cells[0].value!==null;
         },
         _grid_aftercellupdated:function (profile,cell,options,isHotRow){
             if(isHotRow) {
@@ -95,7 +98,7 @@ Class('App.QKZX.PublishNotifyDetails', 'xui.Com',{
             if(col.type=="listbox"){
                 var para = {field:grid.getColByCell(cell).id};
                 if(!elem._isset) {
-                    AJAX.callService('xui/request', ns.properties.gridName, "get_select", para,function (rsp) {
+                    AJAX.callService('xui/request', ns.properties.gridId, "get_select", para,function (rsp) {
                         if (!elem.isDestroyed()) {
                             elem.setItems(rsp.data).setValue(null, true);
                             elem.onChange(function () {
@@ -112,7 +115,7 @@ Class('App.QKZX.PublishNotifyDetails', 'xui.Com',{
                 var setting=ns.properties.gridSetting;
                 xui.ComFactory.newCom(col.app, function(){
                     this.setProperties({
-                        key:ns.properties.gridName,
+                        key:ns.properties.gridId,
                         field:col.id,
                         pos:elem.getRoot(),
                         cmd:elem.getProperties("cmd"),
@@ -181,7 +184,7 @@ Class('App.QKZX.PublishNotifyDetails', 'xui.Com',{
             var setting=ns.properties.gridSetting;
             xui.ComFactory.newCom(ctrl.getProperties("app"), function(){
                 this.setProperties({
-                    key:ns.properties.gridName,
+                    key:ns.properties.gridId,
                     field:ctrl.getDataField(),
                     pos:ctrl.getRoot(),
                     cmd:ctrl.getProperties("cmd"),
@@ -229,7 +232,7 @@ Class('App.QKZX.PublishNotifyDetails', 'xui.Com',{
                 xui.confirm('删除', '确定删除此行?', function () {
                     btn.setDisplay('none');
                     ns.grid.append(btn);
-                    AJAX.callService('xui/request',ns.properties.gridName,"delete",{ids:[currowid]},function(rsp){
+                    AJAX.callService('xui/request',ns.properties.gridId,"delete",{ids:[currowid]},function(rsp){
                         grid.removeRows([currowid]);
                     },function(){
                         xui.Dom.busy("正在处理 ...");
@@ -266,7 +269,7 @@ Class('App.QKZX.PublishNotifyDetails', 'xui.Com',{
                 var tmp={},post={
                     ids:ns.properties.recordIds,
                     data:[],
-                    name:ns.properties.name,
+                    grid:ns.properties.parentId,
                     field:ns.properties.field
 
                 };
@@ -284,7 +287,7 @@ Class('App.QKZX.PublishNotifyDetails', 'xui.Com',{
                         rowid:i
                     });
                 });
-                AJAX.callService('xui/request', ns.properties.gridName, "inline_save", post, function (rsp) {
+                AJAX.callService('xui/request', ns.properties.gridId, "inline_save", post, function (rsp) {
                     if (rsp.data == 1 || typeof(rsp.data) === 'object') {
                         _.arr.each(rsp.data.rows,function(row){
                             if(!row.error){

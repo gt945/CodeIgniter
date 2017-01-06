@@ -35,7 +35,7 @@ Class('App.QKZX.PublishRecords', 'xui.Com',{
                 ids:ns.properties.recordIds,
                 field:ns.properties.field
             };
-            AJAX.callService('xui/request',ns.properties.name,"form",post,function(rsp){
+            AJAX.callService('xui/request',ns.properties.gridId,"form",post,function(rsp){
                 if(!ns.isDestroyed()){
                     ns.setProperties(rsp.data);
                     var setting=ns.properties.gridSetting;
@@ -68,27 +68,32 @@ Class('App.QKZX.PublishRecords', 'xui.Com',{
                 // grid.free();
             });
         },
-        _update:function(relate,db){
+        _update:function(relate,db,profile){
             var ns=this,db=ns.databinder2,data={};
             var post={
                 relate:relate
-            }
-            AJAX.callService('QKZX/request',null,"publishrecords",post,function(rsp){
-                if(rsp.data && _.isArr(rsp.data.rows)&&rsp.data.rows.length){
-                    var cells=rsp.data.rows[0].cells,
-                        settings=ns.properties.gridSetting;
-                    var i=0;
-                    _.each(settings, function(s,n){
-                        if(!s.object&&!s.virtual){
-                            data[n]=cells[i];
-                            i++;
+            };
+            if (profile){
+                if (relate[profile.boxing().getDataField()]){
+                    AJAX.callService('QKZX/request',null,"publishrecords",post,function(rsp){
+                        if(rsp.data && _.isArr(rsp.data.rows)&&rsp.data.rows.length){
+                            var cells=rsp.data.rows[0].cells,
+                                settings=ns.properties.gridSetting;
+                            var i=0;
+                            _.each(settings, function(s,n){
+                                if(!s.object&&!s.virtual){
+                                    data[n]=cells[i];
+                                    i++;
+                                }
+                            });
                         }
+                        db.setData(data).updateDataToUI();
+                    },function(){
+                    },function(){
                     });
                 }
-                db.setData(data).updateDataToUI();
-            },function(){
-            },function(){
-            });
+            }
+
         },
         _width:function(v){
             v=parseInt(v,10);

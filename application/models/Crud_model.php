@@ -16,6 +16,8 @@ class Crud_model extends Db_Model {
 	const TYPE_BIT          = 10;
 	const TYPE_AUTOCOMPLETE = 11;
 	const TYPE_HELPER       = 12;
+
+
 	const TYPE_MAX       	= 99;
 	const TYPE_BUTTON       = 100;
 	const TYPE_WIDGET       = 101;
@@ -62,13 +64,13 @@ class Crud_model extends Db_Model {
 	
 	const CRUD_TABLE = 'crud_table';
 	const CRUD_FIELD = 'crud_field';
-	
+	const CRUD_FLOW = 'crud_flow';
+
 
 	public function __construct()
 	{
 		parent::__construct ();
 		$this->load->model( 'auth_model' );
-		$this->load->model ('db_model', "db2");
 	}
 	
 	public function table($name, $select = array())
@@ -77,12 +79,12 @@ class Crud_model extends Db_Model {
 		$crud_field = array();
 		$fields = array();
 		
-		$this->db2->where ( 'name', $name );
-		$this->db2->or_where ( 'id', $name );
-		$this->db2->or_where ( 'caption', $name );
-		$this->db2->limit(1);
-		$this->db2->from ( Crud_model::CRUD_TABLE );
-		$crud_table = $this->db2->row();
+		$this->db->where ( 'name', $name );
+		$this->db->or_where ( 'id', $name );
+		$this->db->or_where ( 'caption', $name );
+		$this->db->limit(1);
+		$this->db->from ( Crud_model::CRUD_TABLE );
+		$crud_table = $this->db->row();
 		if ($crud_table) {
             parent::table($crud_table['name'], $select);
 
@@ -101,10 +103,10 @@ class Crud_model extends Db_Model {
                 $crud_table['_role_u'] = $this->auth_model->check_role($crud_table['role_u'] );
                 $crud_table['_role_d'] = $this->auth_model->check_role($crud_table['role_d'] );
             }
-			$this->db2->where ( 'tid', $crud_table ['id'] );
-			$this->db2->order_by ( 'seq', 'asc' );
-			$this->db2->from (Crud_model::CRUD_FIELD);
-			$crud_field = $this->db2->sheet();
+			$this->db->where ( 'tid', $crud_table ['id'] );
+			$this->db->order_by ( 'seq', 'asc' );
+			$this->db->from (Crud_model::CRUD_FIELD);
+			$crud_field = $this->db->sheet();
 			foreach ( $crud_field as $k => $f ) {
 				$f['_role_r'] = $this->auth_model->check_role($f['role_r']);
 				$f['_role_u'] = $this->auth_model->check_role($f['role_u']);
@@ -131,7 +133,7 @@ class Crud_model extends Db_Model {
 			} else {
 				$this->pid = $crud_table['pid_field'];
 			}
-			if (isset($crud_field['gid']) && $name !== 'user_group') {	//user group
+			if (isset($crud_field['gid']) && $crud_table['name'] !== 'user_group') {	//user group
 					$this->group = $this->get_group_ids($_SESSION['userinfo']['gid'], true);
 //                  $dbContextGroup = $this->table("user_group");
 // 					$this->groupTree = $this->get_tree_data_by_id($dbContextGroup, $_SESSION['userinfo']['gid'], true);
@@ -172,9 +174,9 @@ class Crud_model extends Db_Model {
 // 			$this->where_in("a.gid", $this->group);
 // 		}
 		
-		if ($this->user) {
-			$this->where("a.uid", $_SESSION['userinfo']['id']);
-		}
+//		if ($this->user) {
+//			$this->where("a.uid", $_SESSION['userinfo']['id']);
+//		}
 		
 		$i = 1;
 		foreach ( $this->crud_field as &$f ) {
@@ -306,7 +308,7 @@ class Crud_model extends Db_Model {
 							$data ['prop'] |= Crud_model::PROP_FIELD_SORT;
 						}
 						if ($f->name === 'rid') {
-							$data ['type'] = Crud_model::TYPE_SELECT;
+							$data ['type'] = Crud_model::TYPE_MULTI;
 							$data['join_table'] = 'user_role';
 							$data['join_value'] = 'id';
 							$data['join_caption'] = 'rolename';
@@ -351,22 +353,22 @@ class Crud_model extends Db_Model {
 		//$db = $this->load->database ('default', true);
 // 		if ( ! $result = $this->cache->get($cache_id)) {
 			
-			$this->db2->select('tree_code');
-			$this->db2->from('user_group');
-			$this->db2->where('id', $gid);
-			$tree_code = $this->db2->cell('tree_code');
+			$this->db->select('tree_code');
+			$this->db->from('user_group');
+			$this->db->where('id', $gid);
+			$tree_code = $this->db->cell('tree_code');
 			
 			if (!$tree_code) {
 				return null;
 			}
-			$this->db2->select('id');
-			$this->db2->from('user_group');
+			$this->db->select('id');
+			$this->db->from('user_group');
 			if ($sub_tree) {
-				$this->db2->like('tree_code', $tree_code, 'after');
+				$this->db->like('tree_code', $tree_code, 'after');
 			} else {
-				$this->db2->where('tree_code', $tree_code);
+				$this->db->where('tree_code', $tree_code);
 			}
-			$data = $this->db2->sheet();
+			$data = $this->db->sheet();
 			$result = array();
 			foreach ($data as $d) {
 				array_push($result, $d['id']);
@@ -382,10 +384,10 @@ class Crud_model extends Db_Model {
 	
 	public function get_group_tree_code($gid)
 	{
-		$this->db2->select('tree_code');
-		$this->db2->from('user_group');
-		$this->db2->where('id', $gid);
-		$tree_code = $this->db2->cell('tree_code');
+		$this->db->select('tree_code');
+		$this->db->from('user_group');
+		$this->db->where('id', $gid);
+		$tree_code = $this->db->cell('tree_code');
 		return $tree_code;
 	}
 
@@ -430,12 +432,11 @@ class Crud_model extends Db_Model {
 	public function check_pid_confilct($ids, $pid)
 	{
 		
-		
 		while($pid) {
-			$this->db2->select("id,{$this->pid}");
-			$this->db2->from($this->name);
-			$this->db2->where('id', $pid);
-			$data = $this->db2->row();
+			$this->db->select("id,{$this->pid}");
+			$this->db->from($this->name);
+			$this->db->where('id', $pid);
+			$data = $this->db->row();
 			$pid = $data[$this->pid];
 			if (array_search($data['id'], $ids, false) !== false) {
 				return false;
@@ -447,48 +448,65 @@ class Crud_model extends Db_Model {
 	public function build_all_tree_code($table, $id = 1, $pid_field = 'pid')
 	{
 		
-		
-		$this->db2->trans_start ();
-		$this->db2->select("id,{$pid_field},tree_code");
-		$this->db2->from($table);
-		$this->db2->where('id' , $id);
-		$data = $this->db2->row();
+		$this->db->trans_start ();
+		$this->db->select("id,{$pid_field},tree_code");
+		$this->db->from($table);
+		$this->db->where('id' , $id);
+		$data = $this->db->row();
 		if ($data) {
 			if ($data[$pid_field] == 0) {
 				$new_tree_code = "{$data['id']},";
 			} else {
-				$this->db2->select("id,{$pid_field},tree_code");
-				$this->db2->from($table);
-				$this->db2->where('id' , $data[$pid_field]);
-				$parent_data = $this->db2->row();
+				$this->db->select("id,{$pid_field},tree_code");
+				$this->db->from($table);
+				$this->db->where('id' , $data[$pid_field]);
+				$parent_data = $this->db->row();
 				$new_tree_code = "{$parent_data['tree_code']}{$data['id']},";
 			}
 			if (strcmp ($data['tree_code'],  $new_tree_code)) {
-				$this->db2->set('tree_code', $new_tree_code);
-				$this->db2->where('id', $id);
-				$this->db2->update($table);
+				$this->db->set('tree_code', $new_tree_code);
+				$this->db->where('id', $id);
+				$this->db->update($table);
 			}
 			$this->build_children_tree_code($table, $id, $new_tree_code, $pid_field);
 		}
-		$this->db2->trans_complete ();
+		$this->db->trans_complete ();
 	}
 
 	public function build_children_tree_code($table, $pid, $tree_code, $pid_field = 'pid')
 	{
 		
-		
-		$this->db2->select("id,{$pid_field},tree_code");
-		$this->db2->from($table);
-		$this->db2->where($pid_field , $pid);
-		$data = $this->db2->sheet();
+		$this->db->select("id,{$pid_field},tree_code");
+		$this->db->from($table);
+		$this->db->where($pid_field , $pid);
+		$data = $this->db->sheet();
 		foreach($data as &$d) {
 			$new_tree_code = "{$tree_code}{$d['id']},";
 			if (strcmp ($d['tree_code'],  $new_tree_code)) {
-				$this->db2->set('tree_code', $new_tree_code);
-				$this->db2->where('id', $d['id']);
-				$this->db2->update($table);
+				$this->db->set('tree_code', $new_tree_code);
+				$this->db->where('id', $d['id']);
+				$this->db->update($table);
 			}
 			$this->build_children_tree_code($table, $d['id'], $new_tree_code, $pid_field);
 		}
 	}
+
+	public function get_flow_items($id = null)
+    {
+        $flow_items = array();
+        $this->db->from(Crud_model::CRUD_FLOW);
+        $this->db->where('tid', $this->crud_table['id']);
+        if ($id) {
+            $this->db->where('id', $id);
+        }
+        $data = $this->db->sheet();
+        foreach($data as $d) {
+            $d['name'] = $d['actionName'];
+            $d['icon'] = $d['actionIcon'];
+            $flow_items[] = $d;
+
+        }
+        return $flow_items;
+    }
+
 }

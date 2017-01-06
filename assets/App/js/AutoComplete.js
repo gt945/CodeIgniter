@@ -152,29 +152,13 @@ Class('App.AutoComplete', 'xui.Com',{
 				}
 			});
 		},
-		// _filter_beforeComboPop:function(profile, pos){
-		// 	var ns=this,ctrl=profile.boxing();
-		// 	ctrl.setUIValue("",true);
-		// },
 		_filter_onchange:function(profile, oldValue, newValue, force, tag){
 			var ns=this,ctrl=profile.boxing(),grid=ns.grid;
-				this.like=ctrl.getUIValue();
-				this.loadGridData(1);
+			if(newValue!=oldValue) {
+				ns.like=ctrl.getUIValue();
+				ns.loadGridData(1);
+			}
 		},
-		// _filter:function(grid,items,reg){
-		// 	var ns=this,find=false;
-		// 	for(i in items){
-		// 		var o=items[i];
-		// 		if ((!(typeof o.sub == "object" && o.sub.length && ns._filter(grid, o.sub, reg)))
-		// 				&& (!reg.test(o.id) && !reg.test(o.caption) && !reg.test(o.key))){
-		// 			grid.hideItems(o.id);
-		// 		}else{
-		// 			grid.showItems(o.id);
-		// 			find=true;
-		// 		}
-		// 	}
-		// 	return find;
-		// },
 		_ctl_sbutton1_onclick:function (profile, e, src, value){
 			this.loadGridData(this._curPage);
 		},

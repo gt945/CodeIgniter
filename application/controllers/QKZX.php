@@ -30,18 +30,18 @@ class QKZX extends MY_Controller
 	
 	public function request_generate_new_plan()
 	{
-		$this->load->model('crud_model');
-		$dbContext = $this->crud_model->table('journalbaseinfo');
-		$this->crud_model->prepare($dbContext, false);
-		$this->crud_model->parm($dbContext, 'where', 'year', '2014');
-		$data = $this->crud_model->sheet($dbContext);
-
-		foreach($data as &$d) {
-			unset($d['id']);
-			$d['year'] = '2015';
-			$this->crud_model->insert($dbContext, $d);
-
-		}
+//		$this->load->model('crud_model');
+//		$dbContext = $this->crud_model->table('journalbaseinfo');
+//		$this->crud_model->prepare($dbContext, false);
+//		$this->crud_model->parm($dbContext, 'where', 'year', '2014');
+//		$data = $this->crud_model->sheet($dbContext);
+//
+//		foreach($data as &$d) {
+//			unset($d['id']);
+//			$d['year'] = '2015';
+//			$this->crud_model->insert($dbContext, $d);
+//
+//		}
 		$this->reply(200, "Success");
 	}
 	
@@ -280,9 +280,7 @@ select '本社' as orderUnit, orderCount from (select IfNULL(sum(orderCount),0) 
 
 EOF;
 //        $sql = "select '编辑部' as orderUnit, orderCount from (select ifnull(sum(orderCount),0) as orderCount from `qkzx_journalorders` where JID = ? and saleStyle = 5 and jyear =? and nostart <= ? and noend >=?) a";
-        $db = "db_".__LINE__;
-        $this->load->model ('grid_model', $db);
-        $ret = $this->$db->query($sql);
+        $ret = $this->db->query($sql);
 		$data->rows = $ret->result();
         return $data;
 	}
@@ -327,10 +325,8 @@ select "赠刊" as orderunit,counts from (select sum(jo.orderCount) as counts fr
 UNION
 select "付费订购" as orderunit,counts from (select sum(jo.orderCount) as counts from qkzx_journalorders jo where jo.jid = {$this->paras->relate->JID} and year = {$this->paras->relate->Year} and {$this->paras->relate->No} between nostart and noend and jo.isneedDeliver = 1 and jo.saleStyle in (1,5,6,7)) d
 EOF;
-//        $sql = "select '编辑部' as orderUnit, orderCount from (select ifnull(sum(orderCount),0) as orderCount from `qkzx_journalorders` where JID = ? and saleStyle = 5 and jyear =? and nostart <= ? and noend >=?) a";
-        $db = "db_".__LINE__;
-        $this->load->model ('grid_model', $db);
-        $ret = $this->$db->query($sql);
+
+        $ret = $this->db->query($sql);
 		$data->rows = $ret->result();
         $data->total = 0;
         foreach($data->rows as $row) {
@@ -421,11 +417,20 @@ EOF;
 
     public function request_publishnotify_check()
     {
-        $this->load->model('db_model');
         if (isset($this->paras->ids)) {
-            $this->db_model->where_in('id', $this->paras->ids);
-            $this->db_model->where('Status', 0);
-            $this->db_model->update('publishnotify', array('Status' => 1));
+            $this->db->where_in('id', $this->paras->ids);
+            $this->db->where('Status', 0);
+            $this->db->update('publishnotify', array('Status' => 1));
+        }
+        return 1;
+    }
+
+    public function request_publishnotify_check2()
+    {
+        if (isset($this->paras->ids)) {
+            $this->db->where_in('id', $this->paras->ids);
+            $this->db->where('Status', 3);
+            $this->db->update('publishnotify', array('Status' => 2, 'finaceApprove' => 1));
         }
         return 1;
     }
@@ -433,21 +438,20 @@ EOF;
     public function request_publishnotify_submit()
     {
         $change =array();
-        $this->load->model('db_model');
         if (isset($this->paras->ids)) {
-            $this->db_model->where_in('id', $this->paras->ids);
-            $this->db_model->where('Status', 1);
-            $data = $this->db_model->get('publishnotify')->result_array();
+            $this->db->where_in('id', $this->paras->ids);
+            $this->db->where('Status', 1);
+            $data = $this->db->get('publishnotify')->result_array();
             foreach($data as $d) {
-                $this->db_model->query("set @AID ='{$d['AID']}'");
-                $this->db_model->query("set @AName ='{$d['AName']}'");
-                $this->db_model->query("set @PNID ={$d['id']}");
-                $this->db_model->query("CALL SubmitFinanceCostProc(@AID, @AName, @PNID)");
+                $this->db->query("set @AID ='{$d['AID']}'");
+                $this->db->query("set @AName ='{$d['AName']}'");
+                $this->db->query("set @PNID ={$d['id']}");
+                $this->db->query("CALL SubmitFinanceCostProc(@AID, @AName, @PNID)");
                 $change[] = $d['id'];
             }
             if (count($change)) {
-                $this->db_model->where_in('id', $change);
-                $this->db_model->update('publishnotify', array('Status' => 3));
+                $this->db->where_in('id', $change);
+                $this->db->update('publishnotify', array('Status' => 3));
             }
         }
         return 1;
@@ -490,7 +494,6 @@ EOF;
             }
         }
 
-        $db = "db_".__LINE__;
         $ret->gridHeaders = $grid_info->headers;
         $ret->gridId = (int)$this->grid_model->crud_table['id'];
         $ret->gridSetting = $grid_info->setting;
@@ -556,12 +559,11 @@ EOF;
         $CID = $this->paras->CID->value;
         $AID = 0;
         $BatchID = date('ymd');
-        $this->load->model('db_model');
-        $this->db_model->query("set @CID={$CID}");
-        $this->db_model->query("set @AID={$AID}");
-        $this->db_model->query("set @BatchID='{$BatchID}'");
-        $this->db_model->query("set @result=''");
-        $result = $this->db_model->query("call DeliveryCustomProc2(@CID,@AID,@BatchID,@result)");
+        $this->db->query("set @CID={$CID}");
+        $this->db->query("set @AID={$AID}");
+        $this->db->query("set @BatchID='{$BatchID}'");
+        $this->db->query("set @result=''");
+        $result = $this->db->query("call DeliveryCustomProc2(@CID,@AID,@BatchID,@result)");
         //FIXME: 检查返回值
         return 1;
     }
@@ -573,20 +575,18 @@ EOF;
         $No = $this->paras->No->value;
         $AID = 0;
         $BatchID = date('ymd');
-        $this->load->model('db_model');
-        $this->db_model->query("set @JID={$JID}");
-        $this->db_model->query("set @Year={$Year}");
-        $this->db_model->query("set @No={$No}");
-        $this->db_model->query("set @AID={$AID}");
-        $this->db_model->query("set @BatchID='{$BatchID}'");
-        $this->db_model->query("set @result=''");
-        $result = $this->db_model->query("call DeliveryBatchByJournal(@JID,@Year,@No,@BatchID,@AID,@result)");
+        $this->db->query("set @JID={$JID}");
+        $this->db->query("set @Year={$Year}");
+        $this->db->query("set @No={$No}");
+        $this->db->query("set @AID={$AID}");
+        $this->db->query("set @BatchID='{$BatchID}'");
+        $this->db->query("set @result=''");
+        $result = $this->db->query("call DeliveryBatchByJournal(@JID,@Year,@No,@BatchID,@AID,@result)");
         //FIXME: 检查返回值
         return 1;
     }
     public function request_delivery()
     {
-        $this->load->model('db_model');
         $BatchID = date('ymd');
         foreach($this->paras->data as $d){
             $save = array(
@@ -603,22 +603,21 @@ EOF;
                 "YingFa" => $d->NeedCounts,
                 'DaiFa' => $d->NeedCounts - $d->RealCounts
             );
-            $this->db_model->insert('deliverydetails', $save);
+            $this->db->insert('deliverydetails', $save);
         }
         return 1;
     }
 
     public function request_delivery_retail()
     {
-        $this->load->model('db_model');
         $BatchID = date('ymd');
         foreach($this->paras->data as $d){
-            $this->db_model->where('JID', $d->JID);
-            $this->db_model->where('CID', $d->CID);
-            $this->db_model->where('Year', $d->Year);
-            $this->db_model->where('No', $d->No);
-            $this->db_model->where_in('StockTag', array(10,11));
-            $smd = $this->db_model->get('stockmanagedetails')->row_array();
+            $this->db->where('JID', $d->JID);
+            $this->db->where('CID', $d->CID);
+            $this->db->where('Year', $d->Year);
+            $this->db->where('No', $d->No);
+            $this->db->where_in('StockTag', array(10,11));
+            $smd = $this->db->get('stockmanagedetails')->row_array();
             if ($smd) {
                 if ($smd['StockTag'] == '10') {
                     $smd['StockTag'] = '2';
@@ -639,11 +638,11 @@ EOF;
                     "DeliveryTime" => date('Y-m-d h:i:s'),
                     "DeliveStatus" => $smd['StockTag']
                 );
-                $this->db_model->insert('deliverydetails', $save);
+                $this->db->insert('deliverydetails', $save);
 
 
-                $this->db_model->where('id', $smd['id']);
-                $this->db_model->update('stockmanagedetails', $smd);
+                $this->db->where('id', $smd['id']);
+                $this->db->update('stockmanagedetails', $smd);
 
             }
         }
@@ -652,7 +651,6 @@ EOF;
 
     public function request_delivery_stock()
     {
-        $this->load->model('crud_model');
         $this->load->model('JournalStockManage');
         foreach($this->paras->data as $d){
             $this->JournalStockManage->prepare($d->JID, $d->Year, $d->No);
@@ -663,7 +661,6 @@ EOF;
 
     public function request_delivery_append()
     {
-        $this->load->model('crud_model');
         $this->load->model('JournalStockManage');
         $BatchID = date('ymd');
         foreach($this->paras->data as $d){
@@ -681,7 +678,7 @@ EOF;
                     "DeliveStatus" => $d->DeliveStatus,
                     "Note" => "从库存补发!"
                 );
-                $this->crud_model->insert('deliverydetails', $save);
+                $this->db->insert('deliverydetails', $save);
                 $this->JournalStockManage->stock_out($d->RealCounts, 5, $d->CID, "补发出库");
             }
         }

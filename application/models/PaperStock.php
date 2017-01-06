@@ -13,10 +13,10 @@ class PaperStock extends CI_Model {
 	public function prepare($id)
 	{
 		$this->stock = null;
-		$this->db2->from($this->name);
-		$this->db2->where('id', $id);
+		$this->db->from($this->name);
+		$this->db->where('id', $id);
 
-		$this->stock = $this->db2->row();
+		$this->stock = $this->db->row();
 		if ($this->stock) {
 			$this->id = $id;
 			return $this->stock;
@@ -42,8 +42,8 @@ class PaperStock extends CI_Model {
             $save = array(
                 'Counts'	=>	(double)$this->stock['Counts'] - (double)$count
             );
-            $this->db2->where('id', $this->id);
-            $this->db2->update($this->name, $save);
+            $this->db->where('id', $this->id);
+            $this->db->update($this->name, $save);
         }
 	}
 	
@@ -55,8 +55,8 @@ class PaperStock extends CI_Model {
 				'Counts'	=>	(double)$this->stock['Counts'] + (double)$count,
                 'CreateTime'    => date('Y-m-j H:i:s')
 			);
-			$this->db2->where('id', $this->id);
-			$this->db2->update($this->name, $save);
+			$this->db->where('id', $this->id);
+			$this->db->update($this->name, $save);
 		}
 	}
 	

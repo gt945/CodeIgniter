@@ -14,9 +14,9 @@ class DeliveryDetail extends CI_Model {
 	public function prepare($id)
 	{
 		$this->data = null;
-		$this->db2->from($this->name);
-		$this->db2->where('id', $id);
-		$this->data = $this->db2->row();
+		$this->db->from($this->name);
+		$this->db->where('id', $id);
+		$this->data = $this->db->row();
 		if ($this->data) {
 			$this->id = $id;
 			return $this->data;
@@ -42,7 +42,7 @@ class DeliveryDetail extends CI_Model {
             "YingFa" => $d->NeedCounts,
             'DaiFa' => $d->NeedCounts - $d->RealCounts
         );
-        $this->db2->insert($this->name, $save);
-        return $this->db2->insert_id ();
+        $this->db->insert($this->name, $save);
+        return $this->db->insert_id ();
     }
 }

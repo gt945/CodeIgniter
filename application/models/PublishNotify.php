@@ -13,9 +13,9 @@ class PublishNotify extends CI_Model {
 	public function prepare($id)
 	{
 		$this->data = null;
-		$this->db2->from($this->name);
-		$this->db2->where('id', $id);
-		$this->data = $this->db2->row();
+		$this->db->from($this->name);
+		$this->db->where('id', $id);
+		$this->data = $this->db->row();
 		if ($this->data) {
 			$this->id = $id;
 			return $this->data;

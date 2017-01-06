@@ -150,7 +150,7 @@ Class('App.GridExporter', 'xui.Com',{
 				sord:ns.properties._sord
 			};
 			
-			xui.IAjax.post(SITEURL+'data/export',{key:ns.properties.gridName,paras:paras});
+			xui.IAjax.post(SITEURL+'data/export',{key:ns.properties.gridId,paras:paras});
 		}
 	}
 });

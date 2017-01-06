@@ -32,13 +32,17 @@ class Crud_before_edit extends Crud_hook {
 	
 	function user_edit($oper, $model, &$data, $old)
 	{
-		if (isset($data['password'])) {
-			$data['password'] = md5($data['password']);
-		}
-		if ($oper == 'create') {
-			$data['create_date'] = date('Y-m-j H:i:s');
-		}
-        return $this->result();
+        if ($oper == 'create') {
+            $d = &$data[0];
+            $d['create_date'] = date('Y-m-j H:i:s');
+        }
+        foreach ($data as &$d) {
+            if (isset($d['password'])) {
+                $d['password'] = md5($d['password']);
+            }
+        }
+
+        return $this->result(true);
 	}
 	
 	function group_edit($oper, $model, &$data, $old)
@@ -51,14 +55,12 @@ class Crud_before_edit extends Crud_hook {
 	{
 
 		if ($oper == 'create') {
-            $d = $data[0];
+            $d = &$data[0];
 			$this->load->model('JournalStockManage');
 			if ($d['OrderType'] == 1) {														/* 收订 - 预留库存 */
 			
 				/*get customer info*/
-				$this->db2->from('customers');
-				$this->db2->where('id', $d['CID']);
-				$customer = $this->db2->row();
+				$customer = $this->db->get_where('customers', array('id' => $d['CID']))->row_array();
 
 				if($customer['CType'] == 2) {													/* 收订 - 预留库存 */
 					$d['SaleStyle'] = 2;
@@ -104,9 +106,7 @@ class Crud_before_edit extends Crud_hook {
 					}
 				
 										
-					$this->db2->from('journalbaseinfo');
-					$journalbaseinfo = $this->db2->row();
-					
+                    $journalbaseinfo = $this->db->get_where('journalbaseinfo', array('id' => $d['JID']))->row_array();
 					
 					unset($data[0]);
 					for ($i = $NoStart; $i <= $NoEnd; $i++) {
@@ -136,19 +136,19 @@ class Crud_before_edit extends Crud_hook {
 								$this->JournalStockManage->prepare($d['JID'], $d['Jyear'], $i);
 								$stockcount = $this->JournalStockManage->stock_count();
 								if($stockcount === null) {										/* 收订 - 其他客户 - 非代理类期刊 - 报数表有记录 - 无库存*/
-									$this->db2->from('publishnotify');
-									$this->db2->where('Year', $d['Jyear']);
-									$this->db2->where('JID', $d['JID']);
-									$this->db2->where('No', $i);
-									$publishnotify = $this->db2->row();
+									$this->db->from('publishnotify');
+									$this->db->where('Year', $d['Jyear']);
+									$this->db->where('JID', $d['JID']);
+									$this->db->where('No', $i);
+									$publishnotify = $this->db->row();
 									if($publishnotify) {										/* 收订 - 其他客户 - 非代理类期刊 - 报数表有记录 - 无库存 - 有印制单*/
-										$this->db2->from('journalorders');
-										$this->db2->where('Jyear', $d['Jyear']);
-										$this->db2->where('JID', $d['JID']);
-										$this->db2->where('NoStart', $i);
-										$this->db2->where('NoEnd', $i);
-										$this->db2->where('SaleStyle', 2);
-										$reserved = $this->db2->row();
+										$this->db->from('journalorders');
+										$this->db->where('Jyear', $d['Jyear']);
+										$this->db->where('JID', $d['JID']);
+										$this->db->where('NoStart', $i);
+										$this->db->where('NoEnd', $i);
+										$this->db->where('SaleStyle', 2);
+										$reserved = $this->db->row();
 										if ($reserved) {										/* 收订 - 其他客户 - 非代理类期刊 - 报数表有记录 - 无库存 - 有印制单 - 有预留库存*/
 											if ($reserved['OrderCount'] < $d['OrderCount']) {	/* 收订 - 其他客户 - 非代理类期刊 - 报数表有记录 - 无库存 - 有印制单 - 有预留库存 - 预留库存不够*/
 												//TODO 预留库存不够
@@ -158,8 +158,8 @@ class Crud_before_edit extends Crud_hook {
 												$save = array(
 													'OrderCount' => $reserved['OrderCount']
 												);
-												$this->db2->where('id', $reserved['id']);
-												$this->db2->update('journalorders', $save);
+												$this->db->where('id', $reserved['id']);
+												$this->db->update('journalorders', $save);
 											}
 										} else {												/* 收订 - 其他客户 - 非代理类期刊 - 报数表有记录 - 无库存 - 有印制单 - 无预留库存*/
 											//TODO 无预留库存
@@ -204,13 +204,13 @@ class Crud_before_edit extends Crud_hook {
 				$NoEnd = (int)$d['NoEnd'];
 				unset($data[0]);
 				for ($i = $NoStart; $i <= $NoEnd; $i++) {
-					$this->db2->from('journalorders');
-					$this->db2->where('Year', $d['Jyear']);
-					$this->db2->where('JID', $d['JID']);
-					$this->db2->where('CID', $d['CID']);
-					$this->db2->where('NoStart', $i);
-					$this->db2->where('NoEnd', $i);
-					$journalorders = $this->db2->sheet();
+					$this->db->from('journalorders');
+					$this->db->where('Year', $d['Jyear']);
+					$this->db->where('JID', $d['JID']);
+					$this->db->where('CID', $d['CID']);
+					$this->db->where('NoStart', $i);
+					$this->db->where('NoEnd', $i);
+					$journalorders = $this->db->sheet();
 					$totalcount = 0;
 					foreach($journalorders as $order) {											/* 退订 - 计算订单总数*/
 						$totalcount += $order['OrderCount'];
@@ -220,12 +220,12 @@ class Crud_before_edit extends Crud_hook {
 						//TODO 数据有误
 						continue;
 					} else {																	/* 退订 - 退订数量小于等于订单总数*/
-						$this->db2->from('deliverydetails');
-						$this->db2->where('Year', $d['Jyear']);
-						$this->db2->where('JID', $d['JID']);
-						$this->db2->where('No', $i);
-						$this->db2->where('CID', $d['CID']);
-						$deliverydetails = $this->db2->row();
+						$this->db->from('deliverydetails');
+						$this->db->where('Year', $d['Jyear']);
+						$this->db->where('JID', $d['JID']);
+						$this->db->where('No', $i);
+						$this->db->where('CID', $d['CID']);
+						$deliverydetails = $this->db->row();
 						if ($deliverydetails) {													/* 退订 - 退订数量小于等于订单总数 - 已发货*/
 							$this->JournalStockManage->prepare($d['JID'], $d['Jyear'], $i);
 							$this->JournalStockManage->stock_in($d['OrderCount'], 1);
@@ -254,14 +254,14 @@ class Crud_before_edit extends Crud_hook {
 			$OrderCount = (int)$d['OrderCount'];
 			$CostDiscount = (int)$d['CostDiscount'];
 			$SaleDiscount = (int)$d['SaleDiscount'];
-			$this->db2->where('id', $d['JID']);
-			$this->db2->from('journalbaseinfo');
-			$Price = $this->db2->cell('Price');
+			$this->db->where('id', $d['JID']);
+			$this->db->from('journalbaseinfo');
+			$Price = $this->db->cell('Price');
 			if ($NoEnd >= $NoStart) {
-				$Count = ($NoEnd - $NoStart +1) * $d['OrderCount'];
+				$Count = ($NoEnd - $NoStart +1) * $OrderCount;
 				$d['TotalPrice'] = $Count * $Price;
-				$d['SalesTotal'] = $d['TotalPrice']  * $d['SaleDiscount'] / 100;
-				$d['CostTotal'] = $d['TotalPrice']  * $d['CostDiscount'] / 100;
+				$d['SalesTotal'] = $d['TotalPrice']  * $SaleDiscount / 100;
+				$d['CostTotal'] = $d['TotalPrice']  * $CostDiscount / 100;
 			}
 		}
         return $this->result();
@@ -282,11 +282,11 @@ class Crud_before_edit extends Crud_hook {
 					'ReportStatus'	=> 1
 				);
 				
-				$this->db2->where('Jyear', $data['Year']);
-				$this->db2->where('JID', $data['JID']);
-				$this->db2->where('NoStart', $data['No']);
-				$this->db2->where('NoEnd', $data['No']);
-				$this->db2->update('journalorders', $save);
+				$this->db->where('Jyear', $data['Year']);
+				$this->db->where('JID', $data['JID']);
+				$this->db->where('NoStart', $data['No']);
+				$this->db->where('NoEnd', $data['No']);
+				$this->db->update('journalorders', $save);
 			}
 		}
         return $this->result();
@@ -427,24 +427,115 @@ class Crud_before_edit extends Crud_hook {
     public function arrivalmanage_edit($oper, $model, &$data, $old)
     {
         if ($oper == 'create') {
-            $d = $data[0];
+            $d = &$data[0];
             $sql = "select sum(jo.orderCount) as counts from qkzx_journalorders jo where jo.jid = ? and year = ? and ? between nostart and noend and ( (jo.isneedDeliver = 1 and jo.saleStyle in (1,5,6,7,8,9) ) or (jo.saleStyle = 2))";
-            $result = $this->db2->query($sql, array($d['JID'], $d['Year'], $d['No']));
+            $result = $this->db->query($sql, array($d['JID'], $d['Year'], $d['No']));
             $counts = $result->row_array();
             if ($d['Counts'] >= $counts['counts']) {
-                $this->db2->query("set @BatchID ='{$d['BatchID']}'");
-                $this->db2->query("set @JID ={$d['JID']}");
-                $this->db2->query("set @AID = 11");
-                $this->db2->query("set @Year = '{$d['Year']}'");
-                $this->db2->query("set @Volume = ''");
-                $this->db2->query("set @No = {$d['No']}");
-                $this->db2->query("set @Counts ={$d['Counts']}");
-                $this->db2->query("set @Note ='{$d['Note']}'");
-                $this->db2->query("call AddArrivalAndDelivery(@BatchID, @JID, @AID, @Year, @Volume, @No, @Counts, @Note)");
+                $this->db->query("set @BatchID ='{$d['BatchID']}'");
+                $this->db->query("set @JID ={$d['JID']}");
+                $this->db->query("set @AID = 11");
+                $this->db->query("set @Year = '{$d['Year']}'");
+                $this->db->query("set @Volume = ''");
+                $this->db->query("set @No = {$d['No']}");
+                $this->db->query("set @Counts ={$d['Counts']}");
+                $this->db->query("set @Note ='{$d['Note']}'");
+                $this->db->query("call AddArrivalAndDelivery(@BatchID, @JID, @AID, @Year, @Volume, @No, @Counts, @Note)");
                 //TODO: 检查返回状态
             }
 
         }
+        return $this->result(true);
+    }
+
+    public function journalfeemaster_edit_type1($oper, $model, &$data, $old)
+    {
+        if ($oper == 'create') {
+            $d = &$data[0];
+            if (!isset($d['No'])){
+                return $this->result(false, "未填写期次");
+            }
+            $d['Type'] = 1;
+            $d['Status'] = 1;
+            $d['BatchNo'] = sprintf('%.0f', microtime(true)  * 1000);
+            $d['CreateTime'] = date('Y-m-d h:i:s');
+        }
+        return $this->result(true);
+    }
+    public function journalfeemaster_edit_type2($oper, $model, &$data, $old)
+    {
+        if ($oper == 'create') {
+            $d = &$data[0];
+            if (!isset($d['No'])){
+                return $this->result(false, "未填写期次");
+            }
+            $d['Type'] = 2;
+            $d['Status'] = 1;
+            $d['BatchNo'] = sprintf('%.0f', microtime(true)  * 1000);
+            $d['CreateTime'] = date('Y-m-d h:i:s');
+        }
+        return $this->result(true);
+    }
+    public function journalfeemaster_edit_type3($oper, $model, &$data, $old)
+    {
+        if ($oper == 'create') {
+            $d = &$data[0];
+            if (!isset($d['No'])){
+                return $this->result(false, "未填写期次");
+            }
+            $d['Type'] = 3;
+            $d['Status'] = 1;
+            $d['BatchNo'] = sprintf('%.0f', microtime(true)  * 1000);
+            $d['CreateTime'] = date('Y-m-d h:i:s');
+        }
+        return $this->result(true);
+    }
+
+    /**
+     * @param $oper
+     * @param $model
+     * @param $data
+     * @param $old
+     *
+     * 印制责任卡
+     *
+     * 检查编辑部要刊数,并自动生成订单
+     */
+    public function publishrecords_edit($oper, $model, &$data, $old)
+    {
+//        if ($oper == 'create') {
+//            $d = &$data[0];
+//            if (isset($d['EditOfficeNeedCount']) && isset($d['JID'])) {         //获取期刊信息
+//                $j_info = $this->db->get_where('journalbaseinfo', array('id' => $d['JID']))->row_array();
+//                if ($j_info) {                                                  //获取编辑部信息
+//                    $eo_info = $this->db->get_where('editorialoffice', array('id' => $j_info['EID']))->row_array();
+//                    if ($eo_info) {
+//                        if(!$eo_info['CID']) {                                  //没有编辑部对应的客户
+//                            $save_customer = array(
+//                                'name' => $eo_info['Name'],
+//                                'ctype' => 5
+//                            );
+//                            $this->db->insert('customers', $save_customer);
+//                            $eo_info['CID'] = $this->db->insert_id();
+//                            $this->db->update('editorialoffice', array('CID' => $eo_info['CID']), array('id' => $eo_info['id']));
+//                        }
+//                        $save_order = array(
+//                            'CID' => $eo_info['CID'],
+//                            'JID' => $d['JID'],
+//                            'EID' => $j_info['EID'],
+//                            'Year' => $j_info['year'],
+//                            'Jyear' => $j_info['year'],
+//                            'NoStart' => 1,
+//                            'NoEnd' => 1,
+//                            'OrderCount' => $d['EditOfficeNeedCount']
+//                        );
+////                        $this->db->insert('journalorders', $save_order);
+//                    }
+//                }
+//            }
+//        } else {
+//
+//        }
         return $this->result(true);
     }
 }
