@@ -133,7 +133,7 @@ class Xui extends MY_Controller {
 		$ret->count = $data->count;
 		$ret->sql = $data->sql;
 		$ret->rows = $this->grid_model->sheet_to_grid($data->data);
-		
+
 		return $ret;
 	}
 	

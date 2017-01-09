@@ -99,6 +99,22 @@ class System extends MY_Controller {
                 }
             }
             $this->db->update('crud_table', array($tr => implode(',', $role)), array('id' => $d->id));
+
+            if ($tr == 'role_r' || $tr == 'role_u'){
+                $data = $this->db->get_where('crud_field', array('tid' => $d->id))->result_array();
+                foreach($data as $d2) {
+                    $role = explode(",", $d2[$tr]);
+                    foreach($d->fields as $f) {
+                        if (!$f->value && in_array($f->role, $role)) {
+                            array_splice($role, array_search($f->role, $role), 1);
+                        } else if ($f->value && !in_array($f->role, $role)) {
+                            $role[] = $f->role;
+                        }
+                        $this->db->update('crud_field', array($tr => implode(',', $role)), array('id' => $d2['id']));
+                    }
+                }
+            }
+
         }
         return 1;
     }
@@ -170,5 +186,10 @@ class System extends MY_Controller {
             $this->db->update('crud_field', array($tr => implode(',', $role)), array('id' => $d->id));
         }
         return 1;
+    }
+
+    private function request_workyear()
+    {
+        $_SESSION['userinfo']['workyear'] = (int)$this->paras->value;
     }
 }

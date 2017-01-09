@@ -1,4 +1,4 @@
-Class('App.QKZX.DeliveryRetail', 'xui.Module',{
+Class('App.QKZX.DeliverySpecial', 'xui.Module',{
 	autoDestroy : true,
 	Instance:{
 		initialize : function(){
@@ -16,7 +16,7 @@ Class('App.QKZX.DeliveryRetail', 'xui.Module',{
 				.setResizer(true)
 				.setResizerProp({vertical:true,horizontal:true,minHeight:300,minWidth:300})
 				.setOverflow("hidden")
-				.setCaption("确认发货信息")
+				.setCaption("确认出库信息")
 				.setMinBtn(false)
 				// .setMaxBtn(false)
 				.onResize("_dialog_resize")
@@ -58,7 +58,7 @@ Class('App.QKZX.DeliveryRetail', 'xui.Module',{
 				.setLeft(480/ 2 - 100)
 				.setTop(5)
 				.setWidth(70)
-				.setCaption("确认发货")
+				.setCaption("确认出库")
 				.onClick("_ctl_sbutton14_onclick")
 			);
 
@@ -83,11 +83,11 @@ Class('App.QKZX.DeliveryRetail', 'xui.Module',{
 			var ns=this,grid=ns.grid,pgrid=ns.properties.editor.grid;
 			var editor_prop=ns.properties.editor.properties;
 			var headers=editor_prop.gridHeaders;
-			var i=_.arr.subIndexOf(headers, "id", "RealCounts");
+			var i=_.arr.subIndexOf(headers, "id", "Counts");
 			if (i>=0){
-				// headers[i].editable=false;
-				// headers[i].cellStyle=null;
-				headers[i].caption="发货数量";
+				headers[i].editable=true;
+				headers[i].cellStyle="background-color:#B0C4DE;";
+				headers[i].caption="出库数量";
 			}
 			grid.setHeader(editor_prop.gridHeaders);
 			var rows_id=pgrid.getUIValue();
@@ -154,7 +154,7 @@ Class('App.QKZX.DeliveryRetail', 'xui.Module',{
 			var datas=[];
 			_.arr.each(rows,function(row){
 				var data={};
-				_.arr.each(['CID','JID','Year','No','Counts'], function(i){
+				_.arr.each(['JID','Year','No','Counts'], function(i){
 					var cell=grid.getCellbyRowCol(row.id,i);
 					data[i]=cell.value;
 				});
@@ -163,12 +163,12 @@ Class('App.QKZX.DeliveryRetail', 'xui.Module',{
 			var paras={
 				data:datas
 			};
-			AJAX.callService('QKZX/request',null,"delivery_retail",paras,function (rsp) {
+			AJAX.callService('QKZX/request',null,"delivery_special",paras,function (rsp) {
 				if (typeof(rsp.data)==='string') {
 					xui.message(rsp.data);
 				} else {
 					ns.fireEvent("refreshGrid");
-					xui.message("发货成功!");
+					xui.message("出库成功!");
 					ns.mainDlg.close(false);
 				}
 			}, function(){

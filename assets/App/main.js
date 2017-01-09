@@ -42,8 +42,8 @@ Class('App.main', 'xui.Module',{
                     "id" : "grp1",
                     "sub" : [{
                         "id" : "message",
-                        "image" : "@xui_ini.appPath@image/user.png",
-                        "caption" : "发送消息"
+                        "image" : "@xui_ini.appPath@image/message.png",
+                        "caption" : "消息"
                     },{
                         "id" : "logout",
                         "image" : "@xui_ini.appPath@image/logout.png",
@@ -89,6 +89,7 @@ Class('App.main', 'xui.Module',{
                 }])
                 .setValue("main")
                 .beforePageClose("_xui_ui_main_tabs_beforepageclose")
+                .onIniPanelView("_tabs_oninipanelview")
                 , "main");
             return children;
             // ]]Code created by CrossUI RAD Studio
@@ -158,6 +159,18 @@ Class('App.main', 'xui.Module',{
             	uictrl.removeItems(item.id);
             //});
             return false;
+        },
+        _tabs_oninipanelview:function(profile, item){
+            var tabs=SPA.main_tabs;
+            var id=item.id;
+            if (id=="main"){
+                xui.ModuleFactory.newCom("App.Dashboard",function(){
+                    (new xui.UI.Div())
+                        .setDock("fill")
+                        .append(this)
+                        .show(tabs,id);
+                });
+            }
         }
     }
 });

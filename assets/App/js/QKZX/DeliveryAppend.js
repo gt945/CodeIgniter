@@ -18,7 +18,7 @@ Class('App.QKZX.DeliveryAppend', 'xui.Module',{
 				.setOverflow("hidden")
 				.setCaption("确认发货信息")
 				.setMinBtn(false)
-				.setMaxBtn(false)
+				// .setMaxBtn(false)
 				.onResize("_dialog_resize")
 			);
 

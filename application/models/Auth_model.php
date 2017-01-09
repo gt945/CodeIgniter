@@ -329,7 +329,7 @@ class Auth_model extends CI_Model {
 	
     public function check_role($role)
 	{
-        if (strpos(",{$role},", ",-1,") !== false) {     //没有人有权限
+        if (strpos(",{$role},", ",-1,") !== false) {    //没有人有权限
             return false;
         }
         if (strpos(",{$role},", ",0,") !== false) {     //任何人有权限
@@ -341,7 +341,7 @@ class Auth_model extends CI_Model {
             if ($r == "") {
                 continue;
             }
-            if (strpos(",{$role},", ",{$r},") !== false) {
+            if (strpos(",1,{$role},", ",{$r},") !== false) {
                 return true;
             }
         }

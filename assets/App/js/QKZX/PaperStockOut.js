@@ -39,7 +39,6 @@ Class('App.QKZX.PaperStockOut', 'xui.Module',{
                 .setOverflow("overflow-x:hidden;overflow-y:auto")
             );
             var setting=host.properties.gridSetting;
-            var recordIds=host.properties.recordIds;
             var groups=host.properties.gridFormGroups;
             _.each(groups,function (g) {
                 var ele=(new xui.UI.Group())
@@ -59,7 +58,7 @@ Class('App.QKZX.PaperStockOut', 'xui.Module',{
                 var dataField=f;
                 if(setting[f].form) {
                     var ele=_.unserialize(setting[f].form);
-                    if(setting[f].template&&recordIds.length==0){
+                    if(setting[f].template){
                         ele.setProperties('initialValue',{value:setting[f].template});
                     }
                     if(f=='PaperStyleID'&&row){
@@ -160,7 +159,6 @@ Class('App.QKZX.PaperStockOut', 'xui.Module',{
         },
         _com_onrender:function (com, threadid){
             var ns=this;
-            var recordIds=this.properties.recordIds;
             this.databinder.updateDataToUI();
             var prfs=this.databinder.get(0)._n;
             _.arr.each(prfs,function(prf){
@@ -175,9 +173,6 @@ Class('App.QKZX.PaperStockOut', 'xui.Module',{
                     }
                 }
             });
-            if(_.isSet(recordIds)&&recordIds.length>0){
-                this.updateUIfromService(recordIds[0]);
-            }
             this.setDirty(false);
         },
         setDirty:function(dirty){
@@ -200,11 +195,10 @@ Class('App.QKZX.PaperStockOut', 'xui.Module',{
             if(db.isDirtied() || ns.isGridDirty()){
 
                 if(!ns._checkValid()){
-                    xui.message("错误发生!");
+                    xui.message("输入格式错误!");
                     return;
                 }
-                var recordIds=this.properties.recordIds,
-                    hash=db.getDirtied(),
+                var hash=db.getDirtied(),
                     hashPair=db.getDirtied(true);
 
                 if (hash && !_.isEmpty(hash)) {

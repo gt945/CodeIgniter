@@ -250,7 +250,7 @@ Class('App.GridFilter', 'xui.Module',{
         _xui_ui_button_reset_onclick:function(profile,e,src){
         	var ns = this;
         	_.arr.each(ns.xui_ui_block3.getChildren(null, false), function(o, i) {
-				if (o.alias!="xui_ui_c_bar"){
+				if (o.alias!="xui_ui_c_bar"&&o.key=="xui.UI.Pane"){
 					o.boxing().removePanel();
 				}
         	});

@@ -22,7 +22,7 @@ Class('App.QKZX.DeliveryByCID', 'xui.Module',{
 				.setOverflow("hidden")
 				.setCaption("确认发货信息")
 				.setMinBtn(false)
-				.setMaxBtn(false)
+				// .setMaxBtn(false)
 			);
 
 			host.mainDlg.append((new xui.UI.Block())

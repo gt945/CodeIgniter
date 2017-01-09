@@ -1,4 +1,4 @@
-Class('App.Validate.Publishrecords', 'xui.Module',{
+Class('App.Validate.Order', 'xui.Module',{
     Instance:{
         autoDestroy : true,
         iniComponents : function(){
@@ -10,25 +10,15 @@ Class('App.Validate.Publishrecords', 'xui.Module',{
         },
         autoComplete:function(db){
             data=db.getUIValue();
-            var sp=parseInt('0'+data.StartPage,10);
-            var ep=parseInt('0'+data.EndPage,10);
-            if(sp<=ep&&sp&&ep) {
-                var bp=parseInt('0'+data.BeforePageCount,10);
-                var ap=parseInt('0'+data.AfterPageCount,10);
-                var tp=bp+ap+ep-sp+1;
-                db.getUI("TotalPageCount").setUIValue(tp, true);
-                var kai=parseInt('0'+data.KaiId,10);
-                var ps;
-                if (kai==1){
-                    ps=tp/16;
-                }else if(kai==2){
-                    ps=tp/32;
-                }else{
-                    ps=0;
-                    xui.message('开数错误')
-                }
-                db.getUI("PrintSheetCount").setUIValue((ps*2+0.4999).toFixed(0)/2, true);
+            debugger;
+            var price=parseFloat("0"+data.CostTotal);
+            var discount=parseInt("0"+data.SaleDiscount,10);
 
+            /*
+            var sp=parseInt(data.StartPage,10);
+            var ep=parseInt(data.EndPage,10);
+            if(sp<=ep&&sp&&ep) {
+                db.getUI("PrintSheetCount").setUIValue(ep - sp + 1, true);
             }else{
                 db.getUI("PrintSheetCount").setUIValue(0, true);
             }
@@ -40,6 +30,8 @@ Class('App.Validate.Publishrecords', 'xui.Module',{
             }else{
                 db.getUI("PicPageCount").setUIValue(0,true);
             }
+            */
+
         }
     }
 });

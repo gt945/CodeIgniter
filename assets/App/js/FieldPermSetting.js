@@ -125,29 +125,33 @@ Class('App.FieldPermSetting', 'xui.Module',{
                     data:[]
                 };
                 var tmp=[];
-                _.each(data, function(p){
-                    if(!_.isDefined(tmp[p.rowId])){
-                        tmp[p.rowId]=[];
-                    }
-                    tmp[p.rowId].push({role:p.colId,value:p.value});
-                });
-                _.each(tmp,function(d,i){
-                    post.data.push({
-                        id:parseInt(i,10),
-                        fields:d
-                    });
-                });
-                if (post.data.length) {
-                    AJAX.callService('system/request',null,"field_permission_save",post,function(rsp){
-                        if(rsp.data==1){
-                            grid.resetGridValue();
+                var tid=grid.getProperties("tid");
+                if (tid==ns._tid){
+                    _.each(data, function(p){
+                        if(!_.isDefined(tmp[p.rowId])){
+                            tmp[p.rowId]=[];
                         }
-                    },function(){
-                        grid.busy("正在处理 ...");
-                    },function(){
-                        grid.free();
+                        tmp[p.rowId].push({role:p.colId,value:p.value});
                     });
+                    _.each(tmp,function(d,i){
+                        post.data.push({
+                            id:parseInt(i,10),
+                            fields:d
+                        });
+                    });
+                    if (post.data.length) {
+                        AJAX.callService('system/request',null,"field_permission_save",post,function(rsp){
+                            if(rsp.data==1){
+                                grid.resetGridValue();
+                            }
+                        },function(){
+                            grid.busy("正在处理 ...");
+                        },function(){
+                            grid.free();
+                        });
+                    }
                 }
+
             });
         }
     }

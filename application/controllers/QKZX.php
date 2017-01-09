@@ -193,17 +193,17 @@ class QKZX extends MY_Controller
 		if (!isset($this->paras->relate->JID)){
 			$this->reply(501, "未选择期刊");
 		}else{
-            $this->paras->relate->JID = (int) $this->paras->relate->JID;
+            $JID = (int) $this->paras->relate->JID;
         }
 		if (!isset($this->paras->relate->Year)){
 			$this->reply(501, "未选择年份");
 		}else{
-            $this->paras->relate->Year = (int) $this->paras->relate->Year;
+            $Year = (int) $this->paras->relate->Year;
         }
 		if (!isset($this->paras->relate->No)){
 			$this->reply(501, "未选择期次");
 		}else {
-            $this->paras->relate->No = (int) $this->paras->relate->No;
+            $No = (int) $this->paras->relate->No;
         }
 		$this->paras->search = true;
 		$this->paras->filters = (object) array(
@@ -266,17 +266,17 @@ class QKZX extends MY_Controller
             )
         );
         $sql = <<<EOF
-select '编辑部' as orderUnit, orderCount from (select ifnull(sum(orderCount),0) as orderCount from `qkzx_journalorders` where JID = {$this->paras->relate->JID} and saleStyle = 5 and jyear = {$this->paras->relate->Year} and nostart <= {$this->paras->relate->No} and noend >= {$this->paras->relate->No}) a
+select '编辑部' as orderUnit, orderCount from (select ifnull(sum(orderCount),0) as orderCount from `qkzx_journalorders` where JID = {$JID} and saleStyle = 5 and jyear = {$Year} and nostart <= {$No} and noend >= {$No}) a
 union
-select '邮局外埠' as orderUnit, orderCount from (select IfNULL(sum(orderCount),0) as orderCount from `qkzx_journalorders` where JID = {$this->paras->relate->JID} and saleStyle = 4 and jyear ={$this->paras->relate->Year}  and nostart <= {$this->paras->relate->No} and noend >={$this->paras->relate->No}) b
+select '邮局外埠' as orderUnit, orderCount from (select IfNULL(sum(orderCount),0) as orderCount from `qkzx_journalorders` where JID = {$JID} and saleStyle = 4 and jyear ={$Year}  and nostart <= {$No} and noend >={$No}) b
 union
-select '邮局本市' as orderUnit, orderCount from (select IfNULL(sum(orderCount),0) as orderCount  from `qkzx_journalorders`  where JID = {$this->paras->relate->JID} and saleStyle = 3 and jyear ={$this->paras->relate->Year} and nostart <= {$this->paras->relate->No} and noend >= {$this->paras->relate->No}) c
+select '邮局本市' as orderUnit, orderCount from (select IfNULL(sum(orderCount),0) as orderCount  from `qkzx_journalorders`  where JID = {$JID} and saleStyle = 3 and jyear ={$Year} and nostart <= {$No} and noend >= {$No}) c
 union
-SELECT '邮局本市东' AS orderUnit, orderCount FROM (SELECT IfNULL(SUM(orderCount),0) AS orderCount FROM `qkzx_journalorders` WHERE JID = {$this->paras->relate->JID} AND saleStyle =20 AND Jyear ={$this->paras->relate->Year}  AND nostart = {$this->paras->relate->No}) e
+SELECT '邮局本市东' AS orderUnit, orderCount FROM (SELECT IfNULL(SUM(orderCount),0) AS orderCount FROM `qkzx_journalorders` WHERE JID = {$JID} AND saleStyle =20 AND Jyear ={$Year}  AND nostart = {$No}) e
 union
-SELECT '邮局本市西' AS orderUnit, orderCount FROM(SELECT IfNULL(SUM(orderCount),0) AS orderCount FROM `qkzx_journalorders` WHERE JID = {$this->paras->relate->JID} AND saleStyle = 21 AND Jyear ={$this->paras->relate->Year} AND nostart ={$this->paras->relate->No} ) f
+SELECT '邮局本市西' AS orderUnit, orderCount FROM(SELECT IfNULL(SUM(orderCount),0) AS orderCount FROM `qkzx_journalorders` WHERE JID = {$JID} AND saleStyle = 21 AND Jyear ={$Year} AND nostart ={$No} ) f
 union
-select '本社' as orderUnit, orderCount from (select IfNULL(sum(orderCount),0) as orderCount from `qkzx_journalorders` where JID = {$this->paras->relate->JID} and saleStyle in(1,2,6,8) and jyear = {$this->paras->relate->Year} and nostart <= {$this->paras->relate->No} and noend >= {$this->paras->relate->No}) d
+select '本社' as orderUnit, orderCount from (select IfNULL(sum(orderCount),0) as orderCount from `qkzx_journalorders` where JID = {$JID} and saleStyle in(1,2,6,8) and jyear = {$Year} and nostart <= {$No} and noend >= {$No}) d
 
 EOF;
 //        $sql = "select '编辑部' as orderUnit, orderCount from (select ifnull(sum(orderCount),0) as orderCount from `qkzx_journalorders` where JID = ? and saleStyle = 5 and jyear =? and nostart <= ? and noend >=?) a";
@@ -291,17 +291,17 @@ EOF;
 		if (!isset($this->paras->relate->JID)){
 			$this->reply(501, "未选择期刊");
 		}else{
-            $this->paras->relate->JID = (int) $this->paras->relate->JID;
+            $JID = (int) $this->paras->relate->JID;
         }
 		if (!isset($this->paras->relate->Year)){
 			$this->reply(501, "未选择年份");
 		}else{
-            $this->paras->relate->Year = (int) $this->paras->relate->Year;
+            $Year = (int) $this->paras->relate->Year;
         }
 		if (!isset($this->paras->relate->No)){
 			$this->reply(501, "未选择期次");
 		}else {
-            $this->paras->relate->No = (int) $this->paras->relate->No;
+            $No = (int) $this->paras->relate->No;
         }
 
         $data->headers = array(
@@ -317,13 +317,13 @@ EOF;
             )
         );
         $sql = <<<EOF
-select "预留库存" as orderunit,counts from (select sum(jo.orderCount) as counts from qkzx_journalorders jo where jo.jid = {$this->paras->relate->JID} and year = {$this->paras->relate->Year} and {$this->paras->relate->No} between nostart and noend and jo.saleStyle=2) a
+select "预留库存" as orderunit,counts from (select sum(jo.orderCount) as counts from qkzx_journalorders jo where jo.jid = {$JID} and year = {$Year} and {$No} between nostart and noend and jo.saleStyle=2) a
 UNION
-select "补刊" as orderunit,counts from (select sum(jo.orderCount) as counts from qkzx_journalorders jo where jo.jid = {$this->paras->relate->JID} and year = {$this->paras->relate->Year} and {$this->paras->relate->No} between nostart and noend and jo.isneedDeliver = 1 and jo.saleStyle=9) b
+select "补刊" as orderunit,counts from (select sum(jo.orderCount) as counts from qkzx_journalorders jo where jo.jid = {$JID} and year = {$Year} and {$No} between nostart and noend and jo.isneedDeliver = 1 and jo.saleStyle=9) b
 UNION
-select "赠刊" as orderunit,counts from (select sum(jo.orderCount) as counts from qkzx_journalorders jo where jo.jid = {$this->paras->relate->JID} and year = {$this->paras->relate->Year} and {$this->paras->relate->No} between nostart and noend and jo.isneedDeliver = 1 and jo.saleStyle=8) c
+select "赠刊" as orderunit,counts from (select sum(jo.orderCount) as counts from qkzx_journalorders jo where jo.jid = {$JID} and year = {$Year} and {$No} between nostart and noend and jo.isneedDeliver = 1 and jo.saleStyle=8) c
 UNION
-select "付费订购" as orderunit,counts from (select sum(jo.orderCount) as counts from qkzx_journalorders jo where jo.jid = {$this->paras->relate->JID} and year = {$this->paras->relate->Year} and {$this->paras->relate->No} between nostart and noend and jo.isneedDeliver = 1 and jo.saleStyle in (1,5,6,7)) d
+select "付费订购" as orderunit,counts from (select sum(jo.orderCount) as counts from qkzx_journalorders jo where jo.jid = {$JID} and year = {$Year} and {$No} between nostart and noend and jo.isneedDeliver = 1 and jo.saleStyle in (1,5,6,7)) d
 EOF;
 
         $ret = $this->db->query($sql);
@@ -680,6 +680,17 @@ EOF;
                 );
                 $this->db->insert('deliverydetails', $save);
                 $this->JournalStockManage->stock_out($d->RealCounts, 5, $d->CID, "补发出库");
+            }
+        }
+        return 1;
+    }
+
+    public function request_delivery_special()
+    {
+        $this->load->model('JournalStockManage');
+        foreach($this->paras->data as $d){
+            if ($this->JournalStockManage->prepare($d->JID, $d->Year, $d->No)) {
+                $this->JournalStockManage->stock_out($d->Counts, 4, NULL, "特殊出库");
             }
         }
         return 1;

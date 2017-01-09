@@ -66,8 +66,8 @@ class Grid_model extends Crud_Model
                 }
             }
 
-            if (isset($this->$db->fields['AID']) && (!isset($this->$db->crud_field['AID']) || !$this->$db->crud_field['AID']['_role_u'])) {
-                $this->$db->where('AID', $_SESSION['userinfo']['id']);
+            if (isset($this->$db->fields['AID']) && (!isset($this->$db->crud_field['AID']) || !$this->$db->crud_field['AID']['_role_r'])) {
+                $this->$db->where('a.AID', $_SESSION['userinfo']['id']);
             }
 
             switch ($field_info['type']) {
@@ -79,8 +79,8 @@ class Grid_model extends Crud_Model
                     } else {
                         $ret->type = "number";
                     }
-                    $this->$db->select ( "{$field_info['join_value']} _value");
-                    $this->$db->select ( "{$field_info['join_caption']} _caption" );
+                    $this->$db->select ( "a.{$field_info['join_value']} _value");
+                    $this->$db->select ( "a.{$field_info['join_caption']} _caption" );
     // 				if($this->$db->pid) {
     // 					$this->$db->select ( "{$$this->$db->pid} _pid" );
     // 				}
@@ -104,8 +104,8 @@ class Grid_model extends Crud_Model
                     $ret->data = $this->$db->sheet();
                     break;
                 case Crud_model::TYPE_AUTOCOMPLETE :
-                    $this->$db->select ( "{$field_info['join_value']} _value");
-                    $this->$db->select ( "{$field_info['join_caption']} _caption");
+                    $this->$db->select ( "a.{$field_info['join_value']} _value");
+                    $this->$db->select ( "a.{$field_info['join_caption']} _caption");
                     if (isset($paras->like)) {
                         $this->$db->group_start();
                         $this->$db->like($field_info['join_value'], $paras->like, 'both');
@@ -375,8 +375,15 @@ class Grid_model extends Crud_Model
             }
         }
 
+        //workyear
+        if ($this->crud_table['prop'] & Crud_model::PROP_TABLE_YEAR
+            && isset($_SESSION['userinfo']['workyear'])
+            && $_SESSION['userinfo']['workyear'] > 0){
+            $this->$db->parse_rules("AND", "Year", "eq", $_SESSION['userinfo']['workyear'], $alias);
+        }
+
         //user
-        if (isset($this->fields['AID']) && (!isset($this->crud_field['AID']) || !$this->crud_field['AID']['_role_u'])) {
+        if (isset($this->fields['AID']) && isset($this->crud_field['AID']) && !$this->crud_field['AID']['_role_r']) {
             $this->$db->where('AID', $_SESSION['userinfo']['id']);
         }
 
@@ -447,7 +454,7 @@ class Grid_model extends Crud_Model
             $sord = $paras->sord;
             $sord = ($sord === 'asc') ? 'asc' : 'desc';
             if (isset($this->crud_field[$sort]) && ($this->crud_field[$sort]['prop'] & Crud_model::PROP_FIELD_SORT)) {
-                $this->$db->order_by("b.{$sort}", $sord);
+                $this->$db->order_by("{$alias}.{$sort}", $sord);
                 $this->order_by("a.{$sort}", $sord);
                 /*
                                 if ($this->crud_field[$sort]['type'] == Crud_model::TYPE_SELECT) {
@@ -462,6 +469,9 @@ class Grid_model extends Crud_Model
 
         if ($this->pid) {
             $nodeid = isset($paras->nodeid) ? (int)$paras->nodeid : 0;
+            if ($this->name = 'user_group' && !$nodeid) {
+                $nodeid = $_SESSION['userinfo']['gid'];
+            }
             if ($this->search == false) {
                 $this->$db->where("b.{$this->pid}", $nodeid);
             }
@@ -784,10 +794,13 @@ class Grid_model extends Crud_Model
 
             if ($f['type'] < Crud_model::TYPE_MAX) {
                 $form_obj->properties->labelSize = 110;
-                $form_obj->properties->labelCaption = "{$f['caption']} ";
+                $form_obj->properties->labelCaption = "{$f['caption']}";
+                if (($f['prop'] & Crud_model::PROP_FIELD_REQUIRED)) {
+                    $form_obj->properties->labelCaption .= "<span style='color:red'>*</span>";
+                }
                 $form_obj->CS = (object)array(
                     "LABEL" => (object)array(
-                        "text-align" => "center"
+                        "text-align" => "left"
                     )
                 );
 
@@ -961,7 +974,7 @@ class Grid_model extends Crud_Model
                 $save = array();
                 if ($oper == 'create') {
                     unset($data[$this->primary]);
-                    if (isset($this->fields['AID']) && (!isset($this->crud_field['AID']) || !$this->crud_field['AID']['_role_u'])) {
+                    if (isset($this->fields['AID']) && !isset($this->crud_field['AID']) ) {
                         $data['AID'] = $_SESSION['userinfo']['id'];
                     }
                     $save[] = $data;
@@ -1197,12 +1210,14 @@ class Grid_model extends Crud_Model
                 "caption" => "flow"
             );
             foreach ($flow_items as $k => $item) {
-                $items[1]->sub[] = (object)array(
-                    "id" => "flow{$k}",
-                    "image" => "@xui_ini.appPath@image/{$item['icon']}",
-                    "caption" => "{$item['name']}",
-                    "actionId" => $item['id']
-                );
+                if ($this->auth_model->check_role($item['role_r'])) {
+                    $items[1]->sub[] = (object)array(
+                        "id" => "flow{$k}",
+                        "image" => "@xui_ini.appPath@image/{$item['icon']}",
+                        "caption" => "{$item['name']}",
+                        "actionId" => $item['id']
+                    );
+                }
             }
         }
         if (count($custom_items) > 0) {
@@ -1212,12 +1227,15 @@ class Grid_model extends Crud_Model
                 "caption" => "custom"
             );
             foreach ($custom_items as $k => $item) {
-                $items[1]->sub[] = (object)array(
-                    "id" => "custom{$k}",
-                    "image" => "@xui_ini.appPath@image/{$item['icon']}",
-                    "caption" => "{$item['name']}",
-                    "app" => "{$item['app']}"
-                );
+                if ($this->auth_model->check_role($item['role_r'])) {
+                    $items[1]->sub[] = (object)array(
+                        "id" => "custom{$k}",
+                        "image" => "@xui_ini.appPath@image/{$item['icon']}",
+                        "caption" => "{$item['name']}",
+                        "app" => "{$item['app']}"
+                    );
+                }
+
             }
         }
         $json = json_encode($items);
@@ -1272,6 +1290,8 @@ class Grid_model extends Crud_Model
                                 $ok = false;
                             }
                             break;
+                        case '@':
+                            break;
                         default:
                             if ($data[$i] != $field['mask'][$i]) {
                                 $ok = false;
@@ -1288,6 +1308,13 @@ class Grid_model extends Crud_Model
 
             if (strlen($field['format'])) {
                 if (!preg_match("/{$field['format']}/", $data)){
+                    $error = $field['caption'];
+                    break;
+                }
+            }
+
+            if ($field['type'] == Crud_model::TYPE_NUMBER) {
+                if (!preg_match("/^-?(\\d\\d*\\.\\d*$)|(^-?\\d\\d*$)|(^-?\\.\\d\\d*$)/", $data)){
                     $error = $field['caption'];
                     break;
                 }

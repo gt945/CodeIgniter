@@ -44,6 +44,7 @@ class Crud_model extends Db_Model {
 	const PROP_TABLE_EXPORT = 0x0001;
 	const PROP_TABLE_IMPORT = 0x0002;
     const PROP_TABLE_VIEW   = 0x0004;
+    const PROP_TABLE_YEAR   = 0x0008;
 
 	const SEARCH_OPTION_EQ = 0x0001;
 	const SEARCH_OPTION_NE = 0x0002;

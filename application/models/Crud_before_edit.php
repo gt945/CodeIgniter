@@ -56,6 +56,7 @@ class Crud_before_edit extends Crud_hook {
 
 		if ($oper == 'create') {
             $d = &$data[0];
+            $d['Year'] = $d['Jyear'];
 			$this->load->model('JournalStockManage');
 			if ($d['OrderType'] == 1) {														/* 收订 - 预留库存 */
 			
@@ -117,7 +118,7 @@ class Crud_before_edit extends Crud_hook {
 
 							$this->JournalStockManage->prepare($d['JID'], $d['Jyear'], $i);
 							$stockcount = $this->JournalStockManage->stock_count();
-							if($stockcount === null) {
+							if($stockcount === null) {                                          /* 收订 - 其他客户 - 代理类期刊 - 无库存*/
 								$d['ReportStatus'] = 0;
 							} else if ($stockcount < $d['OrderCount']) {						/* 收订 - 其他客户 - 代理类期刊 - 库存不够*/
 								//TODO 库存不够
@@ -199,7 +200,7 @@ class Crud_before_edit extends Crud_hook {
 					
 					
 				}
-			} else if ($data['OrderType'] == 2) {												/* 退订*/
+			} else if ($d['OrderType'] == 2) {												/* 退订*/
 				$NoStart = (int)$d['NoStart'];
 				$NoEnd = (int)$d['NoEnd'];
 				unset($data[0]);
@@ -217,8 +218,7 @@ class Crud_before_edit extends Crud_hook {
 					}
 					
 					if ($d['OrderCount'] > $totalcount) {										/* 退订 - 退订数量大于订单总数*/
-						//TODO 数据有误
-						continue;
+                        return $this->result(false, "退订数量超过订阅数量");
 					} else {																	/* 退订 - 退订数量小于等于订单总数*/
 						$this->db->from('deliverydetails');
 						$this->db->where('Year', $d['Jyear']);
@@ -226,28 +226,32 @@ class Crud_before_edit extends Crud_hook {
 						$this->db->where('No', $i);
 						$this->db->where('CID', $d['CID']);
 						$deliverydetails = $this->db->row();
+                        //FIXME
 						if ($deliverydetails) {													/* 退订 - 退订数量小于等于订单总数 - 已发货*/
-							$this->JournalStockManage->prepare($d['JID'], $d['Jyear'], $i);
-							$this->JournalStockManage->stock_in($d['OrderCount'], 1);
-						} else {																/* 退订 - 退订数量小于等于订单总数 - 未发货*/
-							// Do Nothing
+                            // Do Nothing
+                        } else {																/* 退订 - 退订数量小于等于订单总数 - 未发货*/
+                            $this->JournalStockManage->prepare($d['JID'], $d['Jyear'], $i);
+                            $this->JournalStockManage->stock_in($d['OrderCount'], 1);
 						}
-						$d['OrderCount'] = -$d['OrderCount'];
+						$td = $d;
+						$td['OrderCount'] = -$d['OrderCount'];
+                        $td['NoStart'] = $i;
+                        $td['NoEnd'] = $i;
+
 					}
-					
-					$data[] = $d;
+
+					$data[] = $td;
 				}
 			}
 
-		}
+		} else {
+            $field = array(
+                'JID', 'NoStart', 'NoEnd', 'OrderCount', 'CostDiscount', 'SaleDiscount', 'TotalPrice', 'SalesTotal', 'CostTotal'
+            );
 
+            $this->array_merge_by_primary($model->primary, $data, $old, $field);
+        }
 
-
-		$field = array(
-			'JID', 'NoStart', 'NoEnd', 'OrderCount', 'CostDiscount', 'SaleDiscount', 'TotalPrice', 'SalesTotal', 'CostTotal'
-		);
-
-		$this->array_merge_by_primary($model->primary, $data, $old, $field);
 		foreach($data as &$d) {
 			$NoStart = (int)$d['NoStart'];
 			$NoEnd = (int)$d['NoEnd'];
@@ -256,15 +260,15 @@ class Crud_before_edit extends Crud_hook {
 			$SaleDiscount = (int)$d['SaleDiscount'];
 			$this->db->where('id', $d['JID']);
 			$this->db->from('journalbaseinfo');
-			$Price = $this->db->cell('Price');
+			$Price = (float)$this->db->cell('Price');
 			if ($NoEnd >= $NoStart) {
-				$Count = ($NoEnd - $NoStart +1) * $OrderCount;
+				$Count = ($NoEnd - $NoStart + 1) * $OrderCount;
 				$d['TotalPrice'] = $Count * $Price;
 				$d['SalesTotal'] = $d['TotalPrice']  * $SaleDiscount / 100;
 				$d['CostTotal'] = $d['TotalPrice']  * $CostDiscount / 100;
 			}
 		}
-        return $this->result();
+        return $this->result(true);
 	}
 	
 	public function report_hook ($oper, $model, &$data, $old)
@@ -442,6 +446,8 @@ class Crud_before_edit extends Crud_hook {
                 $this->db->query("set @Note ='{$d['Note']}'");
                 $this->db->query("call AddArrivalAndDelivery(@BatchID, @JID, @AID, @Year, @Volume, @No, @Counts, @Note)");
                 //TODO: 检查返回状态
+            } else {
+                return $this->result(false, "到货数量小于订单数量");
             }
 
         }

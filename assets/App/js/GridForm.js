@@ -245,12 +245,14 @@ Class('App.GridForm', 'xui.Module',{
 		},
 		_ctl_sbutton14_onclick:function (profile,e,src,value){
 			var ns=this;
-			this.saveUI(function(o,s){
-				ns._waitWidget--;
-				if (s==1&&ns._waitWidget<0){
-					o.close(false);
-				}
-			});
+			xui.confirm("确认", "确定修改?", function(){
+				ns.saveUI(function(o,s){
+					ns._waitWidget--;
+					if (s==1&&ns._waitWidget<0){
+						o.close(false);
+					}
+				});
+			}, null);
 		},
 		saveUI:function(callback){
 			var ns=this, db=ns.databinder;
@@ -537,10 +539,10 @@ Class('App.GridForm', 'xui.Module',{
 					return false;
 				}
 			});
-			if(!_.tryF(ns._dataFilter._checkValid,[db],ele,true)){
-				valid=false;
-				return false;
-			}
+			// if(!_.tryF(ns._dataFilter._checkValid,[db],ele,true)){
+			// 	valid=false;
+			// 	return false;
+			// }
 			return valid;
 		}
 

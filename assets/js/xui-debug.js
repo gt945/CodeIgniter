@@ -24285,7 +24285,7 @@ new function(){
                 if(path!=xui.ini.img_bg2){
                     var i=new Image();
                     i.onload=function(){
-                        if(!profile||profile.isDestroyed)return;
+                        if(!profile||profile.destroyed)return;
                         var prop=profile.properties,
                             size=profile.box._adjust(profile, _.isFinite(prop.width)?prop.width:i.width,_.isFinite(prop.height)?prop.height:i.height);
                         if(profile.$afterLoad)profile.$afterLoad.apply(profile.host, [profile, path, size[0], size[1]]);
@@ -28145,7 +28145,8 @@ Class("xui.UI.Slider", ["xui.UI","xui.absValue"],{
     		'a':'[A-Za-z]',
     		'u':'[A-Z]',
     		'l':'[a-z]',
-    		'*':'[A-Za-z0-9]'
+    		'*':'[A-Za-z0-9]',
+            '@':'[\\s\\S]'
         },
         _maskSpace:'_',
         Appearances:{
@@ -28850,7 +28851,7 @@ Class("xui.UI.Slider", ["xui.UI","xui.absValue"],{
                     //get corret string according to maskTxt
                     var a=[];
                     _.arr.each(maskTxt.split(''),function(o,i){
-                        a.push( (new RegExp('^'+(map[o]?map[o]:'\\'+o)+'$').test(t.charAt(i))) ? t.charAt(i) : maskStr.charAt(i))
+                        a.push( map[o]?(((new RegExp('^'+map[o]+'$')).test(t.charAt(i))) ? t.charAt(i) : maskStr.charAt(i)):maskStr.charAt(i))
                     });
     
                     //if input visible char
@@ -31058,7 +31059,7 @@ Class("xui.UI.ComboInput", "xui.UI.Input",{
                             // trigger events
                             instance.setUIValue(v,null,null,'onchange');
                             // input/textarea is special, ctrl value will be set before the $UIvalue
-                            if(p.$UIvalue!==v)instance._setCtrlValue(p.$UIvalue);
+                            profile.properties.$UIvalue=v;
                             if(o!==profile._inValid) if(profile.renderId)instance._setDirtyMark();
                         }
                     }
@@ -42888,7 +42889,7 @@ Class("xui.UI.TreeGrid",["xui.UI","xui.absValue"],{
         isDirtied:function(){
             var dirty=false;
             _.each(this.get(0).cellMap,function(v){
-                if(v._oValue!==v.value){
+                if(v._oValue!==v.value||v.dirty){
                     dirty=true;
                     return false;
                 }
@@ -44067,7 +44068,7 @@ Class("xui.UI.TreeGrid",["xui.UI","xui.absValue"],{
         getDirtied:function(rowId, colId){
             var map={};
             _.each(this.get(0).cellMap,function(v){
-                if(v._oValue!==v.value &&(rowId?(rowId==v._row.id):1) &&(colId?(colId==v._col.id):1)){
+                if((v._oValue!==v.value||v.dirty)&&(rowId?(rowId==v._row.id):1) &&(colId?(colId==v._col.id):1)){
                     map[v.id]={rowId:v._row.id, colId:v._col.id, value:v.value, _oValue:v._oValue};
                 }
             });
