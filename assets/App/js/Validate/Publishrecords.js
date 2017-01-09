@@ -19,10 +19,8 @@ Class('App.Validate.Publishrecords', 'xui.Module',{
                 db.getUI("TotalPageCount").setUIValue(tp, true);
                 var kai=parseInt('0'+data.KaiId,10);
                 var ps;
-                if (kai==1){
-                    ps=tp/16;
-                }else if(kai==2){
-                    ps=tp/32;
+                if (kai>0){
+                    ps=tp/kai;
                 }else{
                     ps=0;
                     xui.message('开数错误')
