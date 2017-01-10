@@ -788,6 +788,9 @@ class Grid_model extends Crud_Model
             ) {
                 $form_obj->properties->readonly = true;
                 $header_inline->editable = false;
+                if (!$f['_role_u']) {
+                    $form_obj->properties->visibility = "hidden";
+                }
             } else {
                 $header_inline->editable = true;
             }
@@ -826,7 +829,8 @@ class Grid_model extends Crud_Model
                 $data->cols[] = $f['name'];
             } else {
                 $setting->app = $f['app'];
-                if ($f['prop'] & Crud_model::PROP_FIELD_READONLY) {
+                if (!$f['_role_u'] || ($f['prop'] & Crud_model::PROP_FIELD_READONLY)
+                    || ($field_info && $field_info['prop'] & Crud_model::PROP_FIELD_READONLY)) {
                     $setting->readonly = true;
                 } else {
                     $setting->readonly = false;
@@ -976,6 +980,9 @@ class Grid_model extends Crud_Model
                     unset($data[$this->primary]);
                     if (isset($this->fields['AID']) && !isset($this->crud_field['AID']) ) {
                         $data['AID'] = $_SESSION['userinfo']['id'];
+                    }
+                    if (isset($this->fields['CreateTime'])) {
+                        $data['CreateTime'] = date('Y-m-d h:i:s');
                     }
                     $save[] = $data;
                     $old = array();

@@ -25,7 +25,7 @@ Class('App.AdvInput', 'xui.Module',{
             	(new xui.UI.TreeGrid())
 	            .setHost(host,"grid")
 	            .setSelMode("multibycheckbox")
-	            .setRowHandlerWidth(27)
+	            .setRowHandlerWidth(40)
 	            .setRowHandler(true)
 	            .setTreeMode(false)
             );
