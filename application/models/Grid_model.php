@@ -789,7 +789,7 @@ class Grid_model extends Crud_Model
                 $form_obj->properties->readonly = true;
                 $header_inline->editable = false;
 //                if (!$f['_role_u']) {
-                    $form_obj->properties->visibility = "hidden";
+//                    $form_obj->properties->visibility = "hidden";
 //                }
             } else {
                 $header_inline->editable = true;
