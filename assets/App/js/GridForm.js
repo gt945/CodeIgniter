@@ -211,7 +211,8 @@ Class('App.GridForm', 'xui.Module',{
 		_com_onrender:function (com, threadid){
 			var ns=this;
 			var recordIds=this.properties.recordIds;
-			this.databinder.updateDataToUI();
+			var db=ns.databinder;
+			db.updateDataToUI();
 			var prfs=this.databinder.get(0)._n;
 			_.arr.each(prfs,function(prf){
 				if(_.isSet(prf.properties.initialValue)){
@@ -226,7 +227,9 @@ Class('App.GridForm', 'xui.Module',{
 				}
 			});
 			if(_.isSet(recordIds)&&recordIds.length>0){
-				this.updateUIfromService(ns.properties.activeId);
+				ns.updateUIfromService(ns.properties.activeId);
+			}else if(ns._dataFilter){
+				_.tryF(ns._dataFilter.autoComplete,[db]);
 			}
 			this.setDirty(false);
 		},
@@ -377,6 +380,9 @@ Class('App.GridForm', 'xui.Module',{
 				_.asyRun(function(){
 					ns.btnClose.activate();
 				});
+				if(ns._dataFilter){
+					_.tryF(ns._dataFilter.autoComplete,[db]);
+				}
 
 			},function(){
 				ns.mainDlg.busy("正在处理 ...");

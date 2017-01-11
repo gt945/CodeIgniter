@@ -497,51 +497,36 @@ class Crud_before_edit extends Crud_hook {
         return $this->result(true);
     }
 
-    /**
-     * @param $oper
-     * @param $model
-     * @param $data
-     * @param $old
-     *
-     * 印制责任卡
-     *
-     * 检查编辑部要刊数,并自动生成订单
-     */
     public function publishrecords_edit($oper, $model, &$data, $old)
     {
-//        if ($oper == 'create') {
-//            $d = &$data[0];
-//            if (isset($d['EditOfficeNeedCount']) && isset($d['JID'])) {         //获取期刊信息
-//                $j_info = $this->db->get_where('journalbaseinfo', array('id' => $d['JID']))->row_array();
-//                if ($j_info) {                                                  //获取编辑部信息
-//                    $eo_info = $this->db->get_where('editorialoffice', array('id' => $j_info['EID']))->row_array();
-//                    if ($eo_info) {
-//                        if(!$eo_info['CID']) {                                  //没有编辑部对应的客户
-//                            $save_customer = array(
-//                                'name' => $eo_info['Name'],
-//                                'ctype' => 5
-//                            );
-//                            $this->db->insert('customers', $save_customer);
-//                            $eo_info['CID'] = $this->db->insert_id();
-//                            $this->db->update('editorialoffice', array('CID' => $eo_info['CID']), array('id' => $eo_info['id']));
-//                        }
-//                        $save_order = array(
-//                            'CID' => $eo_info['CID'],
-//                            'JID' => $d['JID'],
-//                            'EID' => $j_info['EID'],
-//                            'Year' => $j_info['year'],
-//                            'Jyear' => $j_info['year'],
-//                            'NoStart' => 1,
-//                            'NoEnd' => 1,
-//                            'OrderCount' => $d['EditOfficeNeedCount']
-//                        );
-////                        $this->db->insert('journalorders', $save_order);
-//                    }
-//                }
-//            }
-//        } else {
-//
-//        }
         return $this->result(true);
     }
+
+    public function cashdailybook_edit($oper, $model, &$data, $old)
+    {
+        foreach($data as &$d){
+            $field = array(
+                'RIDFlag'
+            );
+            $this->array_merge_by_primary($model->primary, $data, $old, $field);
+            $flag = $d['RIDFlag'];
+            if ($flag != 1) {
+                $d['JID'] = '';
+            }else if (!isset($d['JID'])){
+                return $this->result(false, '未选择期刊');
+            }
+            if ($flag != 2) {
+                $d['PID'] = '';
+            }else if (!isset($d['PID'])){
+                return $this->result(false, '未选择印厂');
+            }
+            if ($flag != 3) {
+                $d['EID'] = '';
+            }else if (!isset($d['EID'])){
+                return $this->result(false, '未选择编辑部');
+            }
+        }
+        return $this->result(true);
+    }
+
 }

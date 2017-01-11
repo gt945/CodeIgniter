@@ -91,12 +91,15 @@ class QKZX extends MY_Controller
 					"field" => "CID"
 				);
 				break;
+            case "e":
+                $this->grid_model->table("publishrecords",array("JID","Year","EditOfficeNeedCount", "No"), true);
+                break;
 		}
 
 		$this->grid_model->prepare();
 		foreach($this->grid_model->crud_field as &$f){
 			$f['prop'] &= ~(Crud_model::PROP_FIELD_MINIFY | Crud_model::PROP_FIELD_HIDE);
-			$f['width'] = 60;
+			$f['width'] = 70;
 			if ($f['name'] == 'JID' || $f['name'] == 'CID') {
 				$f['width'] = 180;
 			}

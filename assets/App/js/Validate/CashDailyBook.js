@@ -1,4 +1,4 @@
-Class('App.Validate.Order', 'xui.Module',{
+Class('App.Validate.CashDailyBook', 'xui.Module',{
     Instance:{
         autoDestroy : true,
         iniComponents : function(){
@@ -10,8 +10,26 @@ Class('App.Validate.Order', 'xui.Module',{
         },
         autoComplete:function(db){
             data=db.getUIValue();
-            // var price=parseFloat("0"+data.CostTotal);
-            // var discount=parseInt("0"+data.SaleDiscount,10);
+            var flag=data.RIDFlag;
+
+            db.getUI("JID").setDisabled(true);
+            db.getUI("PID").setDisabled(true);
+            db.getUI("EID").setDisabled(true);
+            if(flag!="1"){
+                db.getUI("JID").setUIValue(null, true);
+            } else{
+                db.getUI("JID").setDisabled(false);
+            }
+            if(flag!="2"){
+                db.getUI("PID").setUIValue(null, true);
+            } else{
+                db.getUI("PID").setDisabled(false);
+            }
+            if(flag!="3"){
+                db.getUI("EID").setUIValue(null, true);
+            } else{
+                db.getUI("EID").setDisabled(false);
+            }
 
             /*
             var sp=parseInt(data.StartPage,10);

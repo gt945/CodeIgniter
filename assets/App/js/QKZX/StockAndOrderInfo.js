@@ -36,11 +36,14 @@ Class('App.QKZX.StockAndOrderInfo', 'xui.Module',{
                     },{
                         "id" : "d",
                         "caption" : "发货情况"
+                    },{
+                        "id" : "e",
+                        "caption" : "编辑部要刊数"
                     }])
                     .setValue("a")
                     .onIniPanelView("_tabs_oninipanelview")
             );
-            var tabs=["a","b","c","d"];
+            var tabs=["a","b","c","d","e"];
 
             _.arr.each(tabs,function(i){
                 host.tabs.append(
