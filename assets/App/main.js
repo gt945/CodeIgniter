@@ -85,7 +85,7 @@ Class('App.main', 'xui.Module',{
                 .setHost(host,"main_tabs")
                 .setItems([{
                     "id" : "main",
-                    "caption" : "main",
+                    "caption" : "main"
                 }])
                 .setValue("main")
                 .beforePageClose("_xui_ui_main_tabs_beforepageclose")

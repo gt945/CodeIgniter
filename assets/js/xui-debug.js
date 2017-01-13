@@ -1800,7 +1800,7 @@ new function(){
             if(d.addEventListener ) {
               d.removeEventListener("DOMContentLoaded", f, false );
               w.removeEventListener("load", f, false );
-            } else {
+            } else if(f) {
               d.detachEvent("onreadystatechange", f);
               w.detachEvent("onload", f);
             }
