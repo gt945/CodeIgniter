@@ -978,7 +978,7 @@ class Grid_model extends Crud_Model
                 $save = array();
                 if ($oper == 'create') {
                     unset($data[$this->primary]);
-                    if (isset($this->fields['AID']) && (!isset($data['AID']) ) {
+                    if (isset($this->fields['AID']) && (!isset($data['AID'])) ) {
                         $data['AID'] = $_SESSION['userinfo']['id'];
                     }
                     if (isset($this->fields['CreateTime'])) {
