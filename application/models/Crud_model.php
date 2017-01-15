@@ -89,8 +89,6 @@ class Crud_model extends Db_Model {
 		if ($crud_table) {
             parent::table($crud_table['name'], $select);
 
-			
-
             if ($crud_table['prop'] & Crud_model::PROP_TABLE_VIEW) {
                 $this->primary = null;
                 $crud_table['_role_c'] = false;
@@ -122,6 +120,16 @@ class Crud_model extends Db_Model {
 				}
 				$crud_field [$f ['name']] = $f;
 			}
+            if ($crud_table['order'] ) {
+                $def_order = explode(":", $crud_table['order']);
+                if (isset($crud_field[$def_order[0]])) {
+                    $this->order = (object)array (
+                        "field" => $def_order[0],
+                        "order" => strtolower($def_order[1])
+                    );
+
+                }
+            }
 		}
 		if (is_array($crud_table) && is_array($crud_field)) {
 			$this->tree_code = $_SESSION['groupinfo']['tree_code'];

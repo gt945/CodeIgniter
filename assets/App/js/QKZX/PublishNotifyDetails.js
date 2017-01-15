@@ -32,9 +32,6 @@ Class('App.QKZX.PublishNotifyDetails', 'xui.Module',{
             return children;
             // ]]Code created by CrossUI RAD Studio
         },
-        customAppend : function(parent, subId, left, top){
-            return false;
-        },
         events:{"onRender":"_com_onrender"},
         _com_onrender:function (com, threadid){
             var ns=this,grid=ns.grid;

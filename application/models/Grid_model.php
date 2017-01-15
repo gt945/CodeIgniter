@@ -17,7 +17,7 @@ class Grid_model extends Crud_Model
         if ($result && $join) {
             foreach ($this->crud_field as &$f) {
                 switch ($f ['type']) {
-//					case Crud_model::TYPE_SELECT:
+					case Crud_model::TYPE_SELECT:
                     case Crud_model::TYPE_MULTI:
                     case Crud_model::TYPE_BIT:
                         $f ['_joined_data'] = $this->get_left_join_for_check($f ['name']);
@@ -38,7 +38,9 @@ class Grid_model extends Crud_Model
             $field_info = $this->crud_field[$field];
             $db = "db_".__LINE__;
             $this->load->model('Crud_model', $db);
-            $this->$db->table($field_info['join_table']);
+            if (!$this->$db->table($field_info['join_table'])){
+                return false;
+            };
             $this->$db->prepare(false);
 
             if (isset($paras->relate)){
@@ -121,7 +123,7 @@ class Grid_model extends Crud_Model
                     $ret->data = $this->$db->sheet();
                     break;
                 default :
-                    return 3;
+                    return false;
                     break;
             }
             $this->$db->flush_cache();
@@ -450,8 +452,13 @@ class Grid_model extends Crud_Model
 
         //sort
         if (isset($paras->sidx) && isset($paras->sord)) {
+            if (isset($this->order) && !$paras->sidx) {
+                $paras->sidx = $this->order->field;
+                $paras->sord = $this->order->order;
+            }
             $sort = $paras->sidx;
             $sord = $paras->sord;
+
             $sord = ($sord === 'asc') ? 'asc' : 'desc';
             if (isset($this->crud_field[$sort]) && ($this->crud_field[$sort]['prop'] & Crud_model::PROP_FIELD_SORT)) {
                 $this->$db->order_by("{$alias}.{$sort}", $sord);
@@ -627,7 +634,7 @@ class Grid_model extends Crud_Model
                 $setting->search_option = (int)$f['search_option'];
                 $setting->mask = $f['mask'];
                 $setting->format = $f['format'];
-                $setting->template = $f['template'];
+                $setting->template = array("value" => $f['template']);
                 $setting->currency = $f['currency'];
                 $setting->width = (int)$f['width'];
                 $setting->tree = ($this->pid == $f['name'] || $f['name'] == "gid") ? true : false;
@@ -669,12 +676,14 @@ class Grid_model extends Crud_Model
                         $form_obj->properties->currencyTpl = $f['currency'];
                         $header_inline->type = "currency";
                         $header_inline->currencyTpl = $f['currency'];
+                        $header->type = "currency";
+                        $header->currencyTpl = $f['currency'];
                     } else {
                         $form_obj->properties->type = "none";
                         $header_inline->type = "input";
+                        $header->type = "number";
                     }
 
-                    $header->type = "number";
                     break;
                 case Crud_model::TYPE_DATE :
                     $form_class = "xui.UI.ComboInput";
@@ -713,6 +722,22 @@ class Grid_model extends Crud_Model
                         $form_obj->properties->type = "listbox";
                         $form_obj->events->beforePopShow = "_select_beforepopshow";
                         $header_inline->type = "listbox";
+                    }
+                    if ($setting->template['value'] && isset($f['_joined_data']->data[$setting->template['value']])) {
+                        $setting->template['caption'] = $f['_joined_data']->data[$setting->template['value']]['_caption'];
+                    } else if ($f['name'] == 'AID'){
+                        $setting->template = array(
+                            "value" => $_SESSION['userinfo']['id'],
+                            "caption" => $_SESSION['userinfo']['username']
+                        );
+                    } else {
+                        foreach($f['_joined_data']->data as $k=>$v) {
+                            $setting->template = array(
+                                "value" => $v["_value"],
+                                "caption" => $v["_caption"]
+                            );
+                            break;
+                        }
                     }
                     break;
                 case Crud_model::TYPE_MULTI :
@@ -777,7 +802,7 @@ class Grid_model extends Crud_Model
                     $header_inline->$key = $value;
                 }
             }
-
+            $form_obj->properties->tips = $f['tip'];
             if (($f['prop'] & Crud_model::PROP_FIELD_REQUIRED) && $setting->format == "") {
                 $setting->format = "[^.*]";
                 $header_inline->format = "[^.*]";
@@ -1043,22 +1068,27 @@ class Grid_model extends Crud_Model
                 }
 
                 if ($this->crud_table['fields_return'] || $oper == "create") {
-                    $this->pop_cache();
-                    $this->where_in("a.{$this->primary}", $ids);
-                    $result = $this->sheet();
-                    if ($oper == "set") {
-                        $fields = explode(",", $this->crud_table['fields_return']);
-                        $newdata = $this->sheet_to_grid($result, false, true, $fields);
-                    } else {
-                        $newdata = $this->sheet_to_grid($result);
-                    }
-                    if ($oper == "create" && $this->pid) {
-                        $index = 0;
-                        foreach($newdata as &$nd) {
-                            $nd->pid = $result[$index++][$this->pid];
+                    if (count($ids)) {
+                        $this->pop_cache();
+                        $this->where_in("a.{$this->primary}", $ids);
+                        $result = $this->sheet();
+                        if ($oper == "set") {
+                            $fields = explode(",", $this->crud_table['fields_return']);
+                            $newdata = $this->sheet_to_grid($result, false, true, $fields);
+                        } else {
+                            $newdata = $this->sheet_to_grid($result);
                         }
+                        if ($oper == "create" && $this->pid) {
+                            $index = 0;
+                            foreach($newdata as &$nd) {
+                                $nd->pid = $result[$index++][$this->pid];
+                            }
+                        }
+                        $ret->data = $newdata;
+                    } else {
+                        $ret->data = 1;
                     }
-                    $ret->data = $newdata;
+
                 } else {
                     $ret->data = null;
                 }
@@ -1239,7 +1269,11 @@ class Grid_model extends Crud_Model
                         "id" => "custom{$k}",
                         "image" => "@xui_ini.appPath@image/{$item['icon']}",
                         "caption" => "{$item['name']}",
-                        "app" => "{$item['app']}"
+                        "app" => "{$item['app']}",
+                        "uri" => "{$item['uri']}",
+                        "target" => "{$item['target']}",
+                        "field" => "{$item['field']}",
+                        "field2" => "{$item['field2']}"
                     );
                 }
 
@@ -1255,9 +1289,7 @@ class Grid_model extends Crud_Model
     {
         $result = false;
         $error = "";
-
         do {
-
             if (strlen($field['mask'])) {
                 if (strlen($data) != strlen($field['mask'])) {
                     $error = $field['caption'];

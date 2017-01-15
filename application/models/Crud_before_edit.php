@@ -56,18 +56,30 @@ class Crud_before_edit extends Crud_hook {
 
 		if ($oper == 'create') {
             $d = &$data[0];
+            $NoStart = (int)$d['NoStart'];
+            $NoEnd = (int)$d['NoEnd'];
+            $OrderCount = (int)$d['OrderCount'];
+            $journalbaseinfo = $this->db->get_where('journalbaseinfo', array('id' => $d['JID']))->row_array();
+            if (!$journalbaseinfo) {
+                return $this->result(false, "不存在该期刊");
+            }
+            if($NoStart <= 0 || $NoStart > $journalbaseinfo['NofPerYear'] || $NoEnd < $NoStart || $NoEnd > $journalbaseinfo['NofPerYear']) {
+                return $this->result(false, "期次错误");
+            }
+            if ($OrderCount <= 0) {
+                return $this->result(false, "订阅数量错误");
+            }
             $d['Year'] = $d['Jyear'];
 			$this->load->model('JournalStockManage');
-			if ($d['OrderType'] == 1) {														/* 收订 - 预留库存 */
+			if ($d['OrderType'] == 1) {														        /* 收订 - 预留库存 */
 			
 				/*get customer info*/
 				$customer = $this->db->get_where('customers', array('id' => $d['CID']))->row_array();
 
-				if($customer['CType'] == 2) {													/* 收订 - 预留库存 */
+				if($customer['CType'] == 2) {													    /* 收订 - 预留库存 */
 					$d['SaleStyle'] = 2;
 					$d['ReportStatus'] = 0;
-					$NoStart = (int)$d['NoStart'];
-					$NoEnd = (int)$d['NoEnd'];
+
 
 					unset($data[0]);
 					for ($i = $NoStart; $i <= $NoEnd; $i++) {
@@ -75,13 +87,10 @@ class Crud_before_edit extends Crud_hook {
 						$d['NoEnd'] = $i;
 						$data[] = $d;
 					}
-				} else if($customer['CType'] == 9) {											/* 收订 - 补刊 */
+				} else if($customer['CType'] == 9) {											    /* 收订 - 补刊 */
 					$d['SaleStyle'] = 9;
 					$d['ReportStatus'] = 1;
-					$NoStart = (int)$d['NoStart'];
-					$NoEnd = (int)$d['NoEnd'];
 
-					
 					unset($data[0]);
 					for ($i = $NoStart; $i <= $NoEnd; $i++) {
 						$d['NoStart'] = $i;
@@ -89,60 +98,57 @@ class Crud_before_edit extends Crud_hook {
 						
 						$this->JournalStockManage->prepare($d['JID'], $d['Jyear'], $i);
 						$stockcount = $this->JournalStockManage->stock_count();
-						if ($stockcount < $d['OrderCount']) {									/* 收订 - 补刊 - 库存不够*/
+						if ($stockcount < $OrderCount) {									    /* 收订 - 补刊 - 库存不够*/
 							//TODO 库存不够
 							//Do Nothing
-						} else {																/* 收订 - 补刊 - 减库存并记录*/
-							$this->JournalStockManage->stock_out($d['OrderCount'], 11, $d['CID']);
-						}
-						
-						$data[] = $d;
-					}
+						} else {																    /* 收订 - 补刊 - 减库存并记录*/
+							$this->JournalStockManage->stock_out($OrderCount, 11, $d['CID']);
+                            $data[] = $d;
+                        }
 
-				} else {																		/* 收订 - 一般客户和其他客户 */
-                    $NoStart = (int)$d['NoStart'];
-                    $NoEnd = (int)$d['NoEnd'];
-					if($customer['CType'] != 1) {												/* 收订 - 一般客户 */
+                    }
+
+				} else {																		    /* 收订 - 一般客户和其他客户 */
+					if($customer['CType'] != 1) {												    /* 收订 - 一般客户 */
 						$d['SaleStyle'] = $customer['CType'];
-					}
-				
-										
-                    $journalbaseinfo = $this->db->get_where('journalbaseinfo', array('id' => $d['JID']))->row_array();
-					
+					} else {
+                        $d['SaleStyle'] = 1;
+                    }
+
 					unset($data[0]);
 					for ($i = $NoStart; $i <= $NoEnd; $i++) {
 						$d['NoStart'] = $i;
 						$d['NoEnd'] = $i;
 						
-						if ($journalbaseinfo['Classify'] == 1) {								/* 收订 - 其他客户 - 代理类期刊*/
+						if ($journalbaseinfo['Classify'] == 1) {								    /* 收订 - 其他客户 - 代理类期刊*/
 
 							$this->JournalStockManage->prepare($d['JID'], $d['Jyear'], $i);
 							$stockcount = $this->JournalStockManage->stock_count();
-							if($stockcount === null) {                                          /* 收订 - 其他客户 - 代理类期刊 - 无库存*/
+							if($stockcount === null) {                                              /* 收订 - 其他客户 - 代理类期刊 - 无库存*/
 								$d['ReportStatus'] = 0;
-							} else if ($stockcount < $d['OrderCount']) {						/* 收订 - 其他客户 - 代理类期刊 - 库存不够*/
+							} else if ($stockcount < $OrderCount) {						    /* 收订 - 其他客户 - 代理类期刊 - 库存不够*/
 								//TODO 库存不够
 								continue;
-							} else {															/* 收订 - 其他客户 - 代理类期刊 - 减库存并记录*/
+							} else {															    /* 收订 - 其他客户 - 代理类期刊 - 减库存并记录*/
 								$d['ReportStatus']  = 1;
 								$d['SaleStyle'] = 7;
-								$this->JournalStockManage->stock_out($d['OrderCount'], 10, $d['CID']);
+								$this->JournalStockManage->stock_out($OrderCount, 10, $d['CID']);
 							}
-						} else {																/* 收订 - 其他客户 - 非代理类期刊*/
+						} else {																    /* 收订 - 其他客户 - 非代理类期刊*/
 							$this->load->model('ReportCounts');
 							$this->ReportCounts->prepare($d['JID'], $d['Jyear'], $i);
 							$reportcounts = $this->ReportCounts->report_count();
-							if ($reportcounts !== null) {										/* 收订 - 其他客户 - 非代理类期刊 - 报数表有记录*/
+							if ($reportcounts !== null) {										    /* 收订 - 其他客户 - 非代理类期刊 - 报数表有记录*/
 
 								$this->JournalStockManage->prepare($d['JID'], $d['Jyear'], $i);
 								$stockcount = $this->JournalStockManage->stock_count();
-								if($stockcount === null) {										/* 收订 - 其他客户 - 非代理类期刊 - 报数表有记录 - 无库存*/
+								if($stockcount === null) {										    /* 收订 - 其他客户 - 非代理类期刊 - 报数表有记录 - 无库存*/
 									$this->db->from('publishnotify');
 									$this->db->where('Year', $d['Jyear']);
 									$this->db->where('JID', $d['JID']);
 									$this->db->where('No', $i);
 									$publishnotify = $this->db->row();
-									if($publishnotify) {										/* 收订 - 其他客户 - 非代理类期刊 - 报数表有记录 - 无库存 - 有印制单*/
+									if($publishnotify) {										    /* 收订 - 其他客户 - 非代理类期刊 - 报数表有记录 - 无库存 - 有印制单*/
 										$this->db->from('journalorders');
 										$this->db->where('Jyear', $d['Jyear']);
 										$this->db->where('JID', $d['JID']);
@@ -150,47 +156,47 @@ class Crud_before_edit extends Crud_hook {
 										$this->db->where('NoEnd', $i);
 										$this->db->where('SaleStyle', 2);
 										$reserved = $this->db->row();
-										if ($reserved) {										/* 收订 - 其他客户 - 非代理类期刊 - 报数表有记录 - 无库存 - 有印制单 - 有预留库存*/
-											if ($reserved['OrderCount'] < $d['OrderCount']) {	/* 收订 - 其他客户 - 非代理类期刊 - 报数表有记录 - 无库存 - 有印制单 - 有预留库存 - 预留库存不够*/
+										if ($reserved) {										    /* 收订 - 其他客户 - 非代理类期刊 - 报数表有记录 - 无库存 - 有印制单 - 有预留库存*/
+											if ($reserved['OrderCount'] < $OrderCount) {	    /* 收订 - 其他客户 - 非代理类期刊 - 报数表有记录 - 无库存 - 有印制单 - 有预留库存 - 预留库存不够*/
 												//TODO 预留库存不够
 												continue;
-											} else {											/* 收订 - 其他客户 - 非代理类期刊 - 报数表有记录 - 无库存 - 有印制单 - 有预留库存 - 减预留库存*/
-												$reserved['OrderCount'] -= $d['OrderCount'];
+											} else {											    /* 收订 - 其他客户 - 非代理类期刊 - 报数表有记录 - 无库存 - 有印制单 - 有预留库存 - 减预留库存*/
+												$reserved['OrderCount'] -= $OrderCount;
 												$save = array(
 													'OrderCount' => $reserved['OrderCount']
 												);
 												$this->db->where('id', $reserved['id']);
 												$this->db->update('journalorders', $save);
 											}
-										} else {												/* 收订 - 其他客户 - 非代理类期刊 - 报数表有记录 - 无库存 - 有印制单 - 无预留库存*/
+										} else {												    /* 收订 - 其他客户 - 非代理类期刊 - 报数表有记录 - 无库存 - 有印制单 - 无预留库存*/
 											//TODO 无预留库存
 											continue;
 										}
-									} else {													/* 收订 - 其他客户 - 非代理类期刊 - 报数表有记录 - 无库存 - 无印制单*/
+									} else {													    /* 收订 - 其他客户 - 非代理类期刊 - 报数表有记录 - 无库存 - 无印制单*/
 										$d['ReportStatus'] = 1;
-										$this->ReportCounts->report_in($d['OrderCount']);
+										$this->ReportCounts->report_in($OrderCount);
 									}
-								} else if ($stockcount < $d['OrderCount']) {					/* 收订 - 其他客户 - 非代理类期刊 - 报数表有记录 - 库存不够*/
+								} else if ($stockcount < $OrderCount) {					    /* 收订 - 其他客户 - 非代理类期刊 - 报数表有记录 - 库存不够*/
 									//TODO 库存不够
 									continue;
-								} else {														/* 收订 - 其他客户 - 非代理类期刊 - 报数表有记录 - 减库存并记录*/
+								} else {														    /* 收订 - 其他客户 - 非代理类期刊 - 报数表有记录 - 减库存并记录*/
 									$d['ReportStatus']  = 1;
 									$d['SaleStyle'] = 7;
-									$this->JournalStockManage->stock_out($d['OrderCount'], 10, $d['CID']);
+									$this->JournalStockManage->stock_out($OrderCount, 10, $d['CID']);
 								}
-							} else {															/* 收订 - 其他客户 - 非代理类期刊 - 报数表无记录*/
+							} else {															    /* 收订 - 其他客户 - 非代理类期刊 - 报数表无记录*/
 
 								$this->JournalStockManage->prepare($d['JID'], $d['Jyear'], $i);
 								$stockcount = $this->JournalStockManage->stock_count();
-								if($stockcount === null) {										/* 收订 - 其他客户 - 非代理类期刊 - 报数表无记录 - 无库存*/
+								if($stockcount === null) {										    /* 收订 - 其他客户 - 非代理类期刊 - 报数表无记录 - 无库存*/
 									$d['ReportStatus']  = 0;
-								} else if ($stockcount < $d['OrderCount']) {					/* 收订 - 其他客户 - 非代理类期刊 - 报数表无记录 - 库存不够*/
+								} else if ($stockcount < $OrderCount) {					    /* 收订 - 其他客户 - 非代理类期刊 - 报数表无记录 - 库存不够*/
 									//TODO 库存不够
 									continue;
-								} else {														/* 收订 - 其他客户 - 非代理类期刊 - 报数表无记录 - 减库存并记录*/
+								} else {														    /* 收订 - 其他客户 - 非代理类期刊 - 报数表无记录 - 减库存并记录*/
 									$d['ReportStatus']  = 1;
 									$d['SaleStyle'] = 7;
-									$this->JournalStockManage->stock_out($d['OrderCount'], 10, $d['CID']);
+									$this->JournalStockManage->stock_out($OrderCount, 10, $d['CID']);
 								}
 							}
 						}
@@ -200,48 +206,84 @@ class Crud_before_edit extends Crud_hook {
 					
 					
 				}
-			} else if ($d['OrderType'] == 2) {												/* 退订*/
-				$NoStart = (int)$d['NoStart'];
-				$NoEnd = (int)$d['NoEnd'];
-				unset($data[0]);
-				for ($i = $NoStart; $i <= $NoEnd; $i++) {
-					$this->db->from('journalorders');
-					$this->db->where('Year', $d['Jyear']);
-					$this->db->where('JID', $d['JID']);
-					$this->db->where('CID', $d['CID']);
-					$this->db->where('NoStart', $i);
-					$this->db->where('NoEnd', $i);
-					$journalorders = $this->db->sheet();
-					$totalcount = 0;
-					foreach($journalorders as $order) {											/* 退订 - 计算订单总数*/
-						$totalcount += $order['OrderCount'];
-					}
-					
-					if ($d['OrderCount'] > $totalcount) {										/* 退订 - 退订数量大于订单总数*/
+			} else if ($d['OrderType'] == 2) {												        /* 退订*/
+
+                unset($data[0]);
+                for ($i = $NoStart; $i <= $NoEnd; $i++) {
+                    $this->db->from('journalorders');
+                    $this->db->where('Year', $d['Jyear']);
+                    $this->db->where('JID', $d['JID']);
+                    $this->db->where('CID', $d['CID']);
+                    $this->db->where('NoStart', $i);
+                    $this->db->where('NoEnd', $i);
+                    $journalorders = $this->db->sheet();
+                    $totalcount = 0;
+                    foreach($journalorders as $order) {											    /* 退订 - 计算订单总数*/
+                        $totalcount += $OrderCount;
+                    }
+
+                    if ($OrderCount > $totalcount) {										    /* 退订 - 退订数量大于订单总数*/
                         return $this->result(false, "退订数量超过订阅数量");
-					} else {																	/* 退订 - 退订数量小于等于订单总数*/
-						$this->db->from('deliverydetails');
-						$this->db->where('Year', $d['Jyear']);
-						$this->db->where('JID', $d['JID']);
-						$this->db->where('No', $i);
-						$this->db->where('CID', $d['CID']);
-						$deliverydetails = $this->db->row();
-                        //FIXME
-						if ($deliverydetails) {													/* 退订 - 退订数量小于等于订单总数 - 已发货*/
-                            // Do Nothing
-                        } else {																/* 退订 - 退订数量小于等于订单总数 - 未发货*/
-                            $this->JournalStockManage->prepare($d['JID'], $d['Jyear'], $i);
-                            $this->JournalStockManage->stock_in($d['OrderCount'], 1);
-						}
-						$td = $d;
-						$td['OrderCount'] = -$d['OrderCount'];
-                        $td['NoStart'] = $i;
-                        $td['NoEnd'] = $i;
+                    } else {																	    /* 退订 - 退订数量小于等于订单总数*/
+                        if ($journalbaseinfo['Classify'] == 1) {                                    /* 退订 - 退订数量小于等于订单总数 - 代理类期刊*/
+                            $this->db->from('deliverydetails');
+                            $this->db->where('Year', $d['Jyear']);
+                            $this->db->where('JID', $d['JID']);
+                            $this->db->where('No', $i);
+                            $this->db->where('CID', $d['CID']);
+                            $deliverydetails = $this->db->row();
+                            if ($deliverydetails) {                                                 /* 退订 - 退订数量小于等于订单总数 - 代理类期刊 - 已发货*/
+                                $this->JournalStockManage->prepare($d['JID'], $d['Jyear'], $i);
+                                $this->JournalStockManage->stock_in($OrderCount, 1);
+                            } else {                                                                /* 退订 - 退订数量小于等于订单总数 - 代理类期刊 - 未发货*/
+                                // Do Nothing
+                            }
+                        } else {                                                                    /* 退订 - 退订数量小于等于订单总数 - 非代理类期刊*/
+                            $this->db->from('publishnotify');
+                            $this->db->where('Year', $d['Jyear']);
+                            $this->db->where('JID', $d['JID']);
+                            $this->db->where('No', $i);
+                            $publishnotify = $this->db->row();
+                            if ($publishnotify) {                                                   /* 退订 - 退订数量小于等于订单总数 - 非代理类期刊 - 有印制单*/
+                                $this->db->from('deliverydetails');
+                                $this->db->where('Year', $d['Jyear']);
+                                $this->db->where('JID', $d['JID']);
+                                $this->db->where('No', $i);
+                                $this->db->where('CID', $d['CID']);
+                                $deliverydetails = $this->db->row();
+                                //FIXME
+                                if ($deliverydetails) {											    /* 退订 - 退订数量小于等于订单总数 - 非代理类期刊 - 有印制单 - 已发货*/
+                                    $this->JournalStockManage->prepare($d['JID'], $d['Jyear'], $i);
+                                    $this->JournalStockManage->stock_in($OrderCount, 1);
+                                } else {															/* 退订 - 退订数量小于等于订单总数 - 非代理类期刊 - 有印制单 - 未发货*/
+                                    $customer = $this->db->get_where('customers', array('id' => $d['CID']))->row_array();
+                                    if($customer['CType'] == 9 || $customer['CType'] == 7) {                                   /* 退订 - 退订数量小于等于订单总数 - 非代理类期刊 - 有印制单 - 未发货 - 补刊*/
+                                        $this->JournalStockManage->prepare($d['JID'], $d['Jyear'], $i);
+                                        $this->JournalStockManage->stock_in($OrderCount, 1);
+                                    }
+                                }
+                            } else {                                                                /* 退订 - 退订数量小于等于订单总数 - 非代理类期刊 - 无印制单*/
+                                // Do Nothing
+                            }
+                        }
+                    }
+                    $td = $d;
+                    $td['OrderCount'] = -$OrderCount;
+                    $td['NoStart'] = $i;
+                    $td['NoEnd'] = $i;
+                    $data[] = $td;
+                }
 
-					}
 
-					$data[] = $td;
-				}
+                if ($journalbaseinfo['Classify'] == 1) {                                            /* 退订 - 代理类期刊*/
+                    unset($data[0]);
+                    for ($i = $NoStart; $i <= $NoEnd; $i++) {
+                        $data[] = $td;
+                    }
+                } else {
+
+                }
+
 			}
 
 		} else {
@@ -275,21 +317,22 @@ class Crud_before_edit extends Crud_hook {
 	{
 		if ($oper == 'create') {
 			//TODO 'UID'
-			$data['BatchID'] = date('Ymj').'111';
+            $d=&$data[0];
+            $d['BatchID'] = date('Ymj').'111';
 			$this->load->model('ReportCounts');
-			$existreport = $this->ReportCounts->prepare($data['JID'], $data['Year'], $data['No']);
+			$existreport = $this->ReportCounts->prepare($d['JID'], $d['Year'], $d['No']);
 			if ($existreport) {
 				//TODO 已有报数
 			} else {
 				$save = array (
-					'ReportBatchID' => $data['BatchID'],
+					'ReportBatchID' => $d['BatchID'],
 					'ReportStatus'	=> 1
 				);
 				
-				$this->db->where('Jyear', $data['Year']);
-				$this->db->where('JID', $data['JID']);
-				$this->db->where('NoStart', $data['No']);
-				$this->db->where('NoEnd', $data['No']);
+				$this->db->where('Jyear', $d['Year']);
+				$this->db->where('JID', $d['JID']);
+				$this->db->where('NoStart', $d['No']);
+				$this->db->where('NoEnd', $d['No']);
 				$this->db->update('journalorders', $save);
 			}
 		}
@@ -432,13 +475,17 @@ class Crud_before_edit extends Crud_hook {
     {
         if ($oper == 'create') {
             $d = &$data[0];
+            $d['BatchID'] = date('Ymd');
+            if(!isset($d['Note'])){
+                $d['Note'] = '';
+            }
             $sql = "select sum(jo.orderCount) as counts from qkzx_journalorders jo where jo.jid = ? and year = ? and ? between nostart and noend and ( (jo.isneedDeliver = 1 and jo.saleStyle in (1,5,6,7,8,9) ) or (jo.saleStyle = 2))";
             $result = $this->db->query($sql, array($d['JID'], $d['Year'], $d['No']));
             $counts = $result->row_array();
             if ($d['Counts'] >= $counts['counts']) {
                 $this->db->query("set @BatchID ='{$d['BatchID']}'");
                 $this->db->query("set @JID ={$d['JID']}");
-                $this->db->query("set @AID = 11");
+                $this->db->query("set @AID = {$d['AID']}");
                 $this->db->query("set @Year = '{$d['Year']}'");
                 $this->db->query("set @Volume = ''");
                 $this->db->query("set @No = {$d['No']}");
@@ -446,6 +493,7 @@ class Crud_before_edit extends Crud_hook {
                 $this->db->query("set @Note ='{$d['Note']}'");
                 $this->db->query("call AddArrivalAndDelivery(@BatchID, @JID, @AID, @Year, @Volume, @No, @Counts, @Note)");
                 //TODO: 检查返回状态
+                unset($data[0]);
             } else {
                 return $this->result(false, "到货数量小于订单数量");
             }
@@ -499,6 +547,14 @@ class Crud_before_edit extends Crud_hook {
 
     public function publishrecords_edit($oper, $model, &$data, $old)
     {
+        if($oper == "create") {
+            $d = &$data[0];
+            $exist = $this->db->get_where('publishrecords', array('JID' => $d['JID'], 'No' => $d['No']))->row_array();
+            if ($exist) {
+                return $this->result(false, "数据重复");
+            }
+
+        }
         return $this->result(true);
     }
 

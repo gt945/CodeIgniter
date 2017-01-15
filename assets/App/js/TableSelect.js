@@ -171,7 +171,7 @@ Class('App.TableSelect', 'xui.Module',{
         	var index=_.arr.subIndexOf(ns.data.headers,'id',ns.data.caption);
             var row=grid.getActiveRow();
             var extra=[];
-            if(index>=0){
+            if(index>=0&&row){
                 caption=row.cells[index].value;
             }
             _.arr.each(ns.data.map,function(map){

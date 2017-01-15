@@ -92,17 +92,17 @@ class QKZX extends MY_Controller
 				);
 				break;
             case "e":
-                $this->grid_model->table("publishrecords",array("JID","Year","EditOfficeNeedCount", "No"), true);
+                $this->grid_model->table("publishrecords",array("JID","Year", "No", "OffPrintCount", "EditOfficeNeedType", "EditOfficeNeedCount"), true);
                 break;
 		}
 
 		$this->grid_model->prepare();
 		foreach($this->grid_model->crud_field as &$f){
 			$f['prop'] &= ~(Crud_model::PROP_FIELD_MINIFY | Crud_model::PROP_FIELD_HIDE);
-			$f['width'] = 70;
-			if ($f['name'] == 'JID' || $f['name'] == 'CID') {
-				$f['width'] = 180;
-			}
+//			$f['width'] = 70;
+//			if ($f['name'] == 'JID' || $f['name'] == 'CID') {
+//				$f['width'] = 180;
+//			}
 		}
 		$grid_info = $this->grid_model->grid_info();
 		$data->headers = $grid_info->headers;
@@ -246,6 +246,7 @@ class QKZX extends MY_Controller
         } else {
             $data->total = 0;
         }
+        $data->ret = $ret;
 //		$data->rows = $this->grid_model->sheet_to_grid($ret->data);
 //		$data->count = $ret->count;
 //		$data->sql = $ret->sql;

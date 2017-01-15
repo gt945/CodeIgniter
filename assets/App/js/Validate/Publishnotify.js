@@ -9,8 +9,12 @@ Class('App.Validate.Publishnotify', 'xui.Module',{
             // ]]Code created by CrossUI RAD Studio
         },
         autoComplete:function(db){
-
-
+            data=db.getUIValue();
+            if(!data.BindupTime){
+                var dd = new Date();
+                dd.setDate(dd.getDate()+8);
+                db.getUI("BindupTime").setUIValue(dd, true);
+            }
         }
     }
 });

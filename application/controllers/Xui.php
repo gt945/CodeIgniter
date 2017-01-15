@@ -19,7 +19,7 @@ class Xui extends MY_Controller {
 		$paras_json = $this->input->post_get("paras");
 		$paras = json_decode($paras_json);
 		if (!$paras) {
-			$this->reply(400,  "格式错误");
+			$this->reply(400,  "表单参数错误");
 		}
 		$method = "request_{$paras->action}";
 		if (method_exists($this, $method)) {
@@ -139,10 +139,14 @@ class Xui extends MY_Controller {
 	
 	function request_get($paras)
 	{
-		$id = $paras->id;
+
 		$ret = (object) array(
 				"rows" => array(),
 		);
+        if (!isset($paras->id)) {
+            return "参数错误";
+        }
+        $id = $paras->id;
 		$paras->sub = true;
 		$paras->page = 1;
 		$paras->size = 1;

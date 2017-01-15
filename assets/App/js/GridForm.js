@@ -7,7 +7,7 @@ Class('App.GridForm', 'xui.Module',{
 			ns._widgets={};
 			ns._waitWidget=0;
 		},
-		iniComponents : function(){
+		iniComponents : function(com, threadid){
 			var host=this, children=[], append=function(child){children.push(child.get(0));};
 			append((new xui.DataBinder())
 			.setHost(host,"databinder")
@@ -51,7 +51,14 @@ Class('App.GridForm', 'xui.Module',{
 				host.ctl_block.append(ele);
 			});
 			var index=0;
-			var data={};
+			xui.Thread.suspend(threadid);
+			var callback=function(){
+				widgets--;
+				if(widgets<0){
+					xui.Thread.resume(threadid);
+				}
+			};
+			var widgets=0;
 			for(var f in setting){
 				var dataField=f;
 				if(setting[f].form) {
@@ -61,7 +68,7 @@ Class('App.GridForm', 'xui.Module',{
 					}else if(f==host.getProperties("gridTreeMode")){
 						ele.setProperties('initialValue',host.properties._pid);
 					}else if(setting[f].template&&recordIds.length==0){
-						ele.setProperties('initialValue',{value:setting[f].template});
+						ele.setProperties('initialValue',setting[f].template);
 					}
 					if(setting[f].mask){
 						ele.setMask(setting[f].mask);
@@ -108,6 +115,7 @@ Class('App.GridForm', 'xui.Module',{
 						);
 					}
 				} else {
+					widgets++;
 					var pane=xui.create("xui.UI.Pane");
 					host.ctl_block.append(pane
 						.setHost(host,"form_pane_"+index)
@@ -122,7 +130,7 @@ Class('App.GridForm', 'xui.Module',{
 						xui.ModuleFactory.newCom(setting[f].app,function(){
 							if(!_.isEmpty(this)){
 								host._widgets['widgets_'+this.properties.index]=this;
-								this.show(null,this.properties.pane);
+								callback();
 							}
 						},null,{
 							parentId:host.properties.gridId,
@@ -142,7 +150,7 @@ Class('App.GridForm', 'xui.Module',{
 				}
 				index++;
 			}
-			host.databinder.setData(data);
+			callback();
 
 			host.mainDlg.append((new xui.UI.Block())
 				.setHost(host,"xui_ui_block4")
@@ -151,9 +159,40 @@ Class('App.GridForm', 'xui.Module',{
 				.setBorderType("none")
 			);
 
+			if (recordIds.length==1){
+				host.xui_ui_block4.append((new xui.UI.SButton())
+					.setHost(host,"btnPrev")
+					.setLeft(10)
+					.setTop(5)
+					.setWidth(20)
+					.setCaption("<")
+					.setTabindex(++index)
+					.onClick("_ctl_btnprev_onclick")
+				);
+				host.xui_ui_block4.append((new xui.UI.SButton())
+					.setHost(host,"btnNext")
+					.setLeft(35)
+					.setTop(5)
+					.setWidth(20)
+					.setCaption(">")
+					.setTabindex(++index)
+					.onClick("_ctl_btnnext_onclick")
+				);
+				host.xui_ui_block4.append((new xui.UI.SButton())
+					.setHost(host,"btnCopy")
+					.setLeft(60)
+					.setTop(5)
+					.setWidth(20)
+					.setCaption("C")
+					.setTabindex(++index)
+					.onClick("_ctl_btncopy_onclick")
+				);
+
+			}
+
 			host.xui_ui_block4.append((new xui.UI.SButton())
 				.setHost(host,"btnSave")
-				.setLeft((host._width(host.getProperties("gridFormWidth"))+50)/ 2 - 100)
+				.setLeft((host._width(host.getProperties("gridFormWidth"))+50)/ 2 - 80)
 				.setTop(5)
 				.setWidth(70)
 				.setCaption("保存")
@@ -163,7 +202,7 @@ Class('App.GridForm', 'xui.Module',{
 
 			host.xui_ui_block4.append((new xui.UI.SButton())
 				.setHost(host,"btnClose")
-				.setLeft((host._width(host.getProperties("gridFormWidth"))+50)/ 2 + 30)
+				.setLeft((host._width(host.getProperties("gridFormWidth"))+50)/ 2 + 10)
 				.setTop(5)
 				.setWidth(70)
 				.setCaption("关闭")
@@ -212,6 +251,9 @@ Class('App.GridForm', 'xui.Module',{
 			var ns=this;
 			var recordIds=this.properties.recordIds;
 			var db=ns.databinder;
+			_.each(ns._widgets,function(w){
+				w.show(null,w.properties.pane);
+			});
 			db.updateDataToUI();
 			var prfs=this.databinder.get(0)._n;
 			_.arr.each(prfs,function(prf){
@@ -227,7 +269,12 @@ Class('App.GridForm', 'xui.Module',{
 				}
 			});
 			if(_.isSet(recordIds)&&recordIds.length>0){
-				ns.updateUIfromService(ns.properties.activeId);
+				if (ns.properties.activeId){
+					ns.updateUIfromService(ns.properties.activeId);
+				}else{
+					ns.updateUIfromService(recordIds[0]);
+				}
+
 			}else if(ns._dataFilter){
 				_.tryF(ns._dataFilter.autoComplete,[db]);
 			}
@@ -274,6 +321,12 @@ Class('App.GridForm', 'xui.Module',{
 				var recordIds=this.properties.recordIds,
 					hash=db.getDirtied(),
 					hashPair=db.getDirtied(true);
+
+				_.each(hash,function(v,k){
+					if(_.isDate(v)){
+						hash[k]=xui.Date.format(v,db.getUI(k).getDateEditorTpl());
+					}
+				});
 
 				if (recordIds.length>1) {
 					var hash2=db.getData();
@@ -393,11 +446,21 @@ Class('App.GridForm', 'xui.Module',{
 				}
 			});
 		},
+		navigateTo:function(recordId){
+			var ns=this,db=ns.databinder;
+			var data=db.getData();
+			_.each(data,function(v,k){
+				db.setData(k,"");
+			});
+			db.updateDataToUI();
+			ns.properties.recordIds[0]=recordId;
+			ns.updateUIfromService(recordId);
+		},
 		_databinder_afterupdatedatafromui:function (profile, dataFromUI){
 			// _.each(dataFromUI,function(o,i){
 			// 	if(_.isDate(o)){
-			//        dataFromUI[i]=xui.Date.format(o, "yyyy-mm-dd hh:nn:ss");
-
+			//         dataFromUI[i]=xui.Date.format(o, "yyyy-mm-dd hh:nn:ss");
+            //
 			// 	}
 			// });
 		},
@@ -550,6 +613,30 @@ Class('App.GridForm', 'xui.Module',{
 			// 	return false;
 			// }
 			return valid;
+		},
+		_ctl_btnprev_onclick:function(){
+			var ns=this;
+			ns.fireEvent("onNavigate",[-1]);
+		},
+		_ctl_btnnext_onclick:function(){
+			var ns=this;
+			ns.fireEvent("onNavigate",[1]);
+		},
+		_ctl_btncopy_onclick:function(){
+			var ns=this,db=ns.databinder;
+			var old=db.getData();
+			ns.properties.recordIds=[];
+			ns.btnCopy.setVisibility("hidden");
+			ns.btnPrev.setVisibility("hidden");
+			ns.btnNext.setVisibility("hidden");
+			_.each(old,function(v,k){
+				var ele=db.getUI(k);
+				ele.resetValue();
+				ele.setUIValue(v.value);
+				if(v.caption){
+					ele.setCaption(v.caption);
+				}
+			});
 		}
 
 	}

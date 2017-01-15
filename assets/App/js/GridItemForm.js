@@ -1,4 +1,4 @@
-Class('App.QKZX.PaperStockOut', 'xui.Module',{
+Class('App.GridItemForm', 'xui.Module',{
     autoDestroy : true,
     Instance:{
         initialize : function(){
@@ -59,11 +59,13 @@ Class('App.QKZX.PaperStockOut', 'xui.Module',{
                 if(setting[f].form) {
                     var ele=_.unserialize(setting[f].form);
                     if(setting[f].template){
-                        ele.setProperties('initialValue',{value:setting[f].template});
+                        ele.setProperties('initialValue',setting[f].template);
                     }
-                    if(f=='PaperStyleID'&&row){
-                        var cell=host.properties.editor.grid.getCellbyRowCol(row.id, 'PaperStyle');
-                        ele.setProperties('initialValue',{value:row.id,caption:cell.value});
+                    if(f==host.properties.item.field&&row){
+                        var cell=host.properties.editor.grid.getCellbyRowCol(row.id,host.properties.item.field2);
+                        if(cell){
+                            ele.setProperties('initialValue',{value:row.id,caption:cell.value});
+                        }
                     }
                     if(setting[f].mask){
                         ele.setMask(setting[f].mask);
@@ -150,7 +152,7 @@ Class('App.QKZX.PaperStockOut', 'xui.Module',{
             var callback=function(/**/){
                 xui.Thread.resume(threadid);
             };
-            AJAX.callService('QKZX/request',null, "paper_stock_out", null, function (rsp) {
+            AJAX.callService(ns.properties.item.uri,null, ns.properties.item.target, null, function (rsp) {
                 ns.setProperties(rsp.data);
             }, function(){
             }, function(){
@@ -195,7 +197,7 @@ Class('App.QKZX.PaperStockOut', 'xui.Module',{
             if(db.isDirtied() || ns.isGridDirty()){
 
                 if(!ns._checkValid()){
-                    xui.message("输入格式错误!");
+					  xui.message("输入格式错误!");
                     return;
                 }
                 var hash=db.getDirtied(),

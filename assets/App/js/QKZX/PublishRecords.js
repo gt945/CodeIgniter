@@ -20,9 +20,6 @@ Class('App.QKZX.PublishRecords', 'xui.Module',{
             return children;
             // ]]Code created by CrossUI RAD Studio
         },
-        customAppend : function(parent, subId, left, top){
-            return false;
-        },
         events:{"onRender":"_com_onrender"},
         _com_onrender:function (com, threadid){
             var ns=this;
@@ -73,25 +70,23 @@ Class('App.QKZX.PublishRecords', 'xui.Module',{
             var post={
                 relate:relate
             };
-            if (profile){
-                if (relate[profile.boxing().getDataField()]){
-                    AJAX.callService('QKZX/request',null,"publishrecords",post,function(rsp){
-                        if(rsp.data && _.isArr(rsp.data.rows)&&rsp.data.rows.length){
-                            var cells=rsp.data.rows[0].cells,
-                                settings=ns.properties.gridSetting;
-                            var i=0;
-                            _.each(settings, function(s,n){
-                                if(!s.object&&!s.virtual){
-                                    data[n]=cells[i];
-                                    i++;
-                                }
-                            });
-                        }
-                        db.setData(data).updateDataToUI();
-                    },function(){
-                    },function(){
-                    });
-                }
+            if (!profile || (profile && relate[profile.boxing().getDataField()])){
+                AJAX.callService('QKZX/request',null,"publishrecords",post,function(rsp){
+                    if(rsp.data && _.isArr(rsp.data.rows)&&rsp.data.rows.length){
+                        var cells=rsp.data.rows[0].cells,
+                            settings=ns.properties.gridSetting;
+                        var i=0;
+                        _.each(settings, function(s,n){
+                            if(!s.object&&!s.virtual){
+                                data[n]=cells[i];
+                                i++;
+                            }
+                        });
+                    }
+                    db.setData(data).updateDataToUI();
+                },function(){
+                },function(){
+                });
             }
 
         },

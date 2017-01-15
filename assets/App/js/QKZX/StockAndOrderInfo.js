@@ -38,7 +38,7 @@ Class('App.QKZX.StockAndOrderInfo', 'xui.Module',{
                         "caption" : "发货情况"
                     },{
                         "id" : "e",
-                        "caption" : "编辑部要刊数"
+                        "caption" : "编辑部报数"
                     }])
                     .setValue("a")
                     .onIniPanelView("_tabs_oninipanelview")

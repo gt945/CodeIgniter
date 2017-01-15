@@ -180,8 +180,11 @@ Class('App.QKZX.Delivery', 'xui.Module',{
 		},
 		_dialog_resize:function(profile,w,h){
 			var ns=this;
-			ns.btnSave.setLeft(w/2-100);
-			ns.btnClose.setLeft(w/2+30);
+			if(w){
+				ns.btnSave.setLeft(w/2-100);
+				ns.btnClose.setLeft(w/2+30);
+			}
+
 		}
 	}
 });

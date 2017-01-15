@@ -198,6 +198,9 @@ Class('App.GridEditor', 'xui.Module',{
 				xui.ModuleFactory.newCom(ns.properties.gridForm,function(){
 					this.show();
 				},null,prop,{
+					onNavigate:function(dir){
+						ns._navigate(this,dir);
+					},
 					afterCreated:function(data){
 						var rows=ns._buildRows(data);
 						_.arr.each(rows, function(r){
@@ -353,7 +356,7 @@ Class('App.GridEditor', 'xui.Module',{
 							if(typeof item.app == 'string'){
 								xui.ModuleFactory.newCom(item.app, function(){
 									this.show();
-								}, null, {editor: ns},{
+								}, null, {editor:ns,item:item},{
 									refreshRow:function(id){
 										ns._refresh_row(id);
 									},
@@ -453,6 +456,21 @@ Class('App.GridEditor', 'xui.Module',{
 				}
 			}else{
 				xui.message("未选择条目!");
+			}
+		},
+		_navigate:function(app,dir){
+			var ns = this;
+			switch(dir){
+				case 1:
+				case -1:
+					var rows=ns.grid.getRows();
+					var i=_.arr.subIndexOf(rows, 'id', ns.grid.getActiveRow().id);
+					if(i>=0) {
+						i+=dir;
+						ns.grid.setUIValue(rows[i].id);
+						app.navigateTo(rows[i].id);
+					}
+					break;
 			}
 		}
 	}
