@@ -156,22 +156,22 @@ class QKZX extends MY_Controller
 					"op" => "eq",
 					"field" => "NoEnd"
 				),
-				(object) array(
-					"data" => 0,
-					"op" => "eq",
-					"field" => "ReportStatus"
-				)
+//				(object) array(
+//					"data" => 0,
+//					"op" => "eq",
+//					"field" => "ReportStatus"
+//				)
 				
 			)
 		);
-		$this->grid_model->table("journalorders", array("JID", "CID", "OrderCount", "Year", "NoStart", "NoEnd" ), true);
+		$this->grid_model->table("journalorders", array("JID", "CID", "OrderCount", "Year", "NoStart", "NoEnd", "ReportStatus" ), true);
 		$this->grid_model->prepare();
 		foreach($this->grid_model->crud_field as &$f){
 			$f['prop'] &= ~(Crud_model::PROP_FIELD_MINIFY | Crud_model::PROP_FIELD_HIDE);
-			$f['width'] = 60;
-			if ($f['name'] == 'JID' || $f['name'] == 'CID') {
-				$f['width'] = 180;
-			}
+//			$f['width'] = 50;
+//			if ($f['name'] == 'JID' || $f['name'] == 'CID') {
+//				$f['width'] = 180;
+//			}
 		}
 		$grid_info = $this->grid_model->grid_info();
 		$data->headers = $grid_info->headers;

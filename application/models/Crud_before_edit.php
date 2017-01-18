@@ -188,7 +188,6 @@ class Crud_before_edit extends Crud_hook {
 									$this->JournalStockManage->stock_out($OrderCount, 10, $d['CID']);
 								}
 							} else {															    /* 收订 - 其他客户 - 非代理类期刊 - 报数表无记录*/
-
 								$this->JournalStockManage->prepare($d['JID'], $d['Jyear'], $i);
 								$stockcount = $this->JournalStockManage->stock_count();
 								if($stockcount === null) {										    /* 收订 - 其他客户 - 非代理类期刊 - 报数表无记录 - 无库存*/
@@ -304,16 +303,16 @@ class Crud_before_edit extends Crud_hook {
         return $this->result(true);
 	}
 	
-	public function report_hook ($oper, $model, &$data, $old)
+	public function reportcounts_edit ($oper, $model, &$data, $old)
 	{
 		if ($oper == 'create') {
 			//TODO 'UID'
             $d=&$data[0];
-            $d['BatchID'] = date('Ymj').'111';
+            $d['BatchID'] =  sprintf("%s%04d",date('Ymj'), $_SESSION['userinfo']['id']);
 			$this->load->model('ReportCounts');
 			$existreport = $this->ReportCounts->prepare($d['JID'], $d['Year'], $d['No']);
 			if ($existreport) {
-				//TODO 已有报数
+                return $this->result(false, "已有报数");
 			} else {
 				$save = array (
 					'ReportBatchID' => $d['BatchID'],
@@ -544,7 +543,6 @@ class Crud_before_edit extends Crud_hook {
             if ($exist) {
                 return $this->result(false, "数据重复");
             }
-
         }
         return $this->result(true);
     }

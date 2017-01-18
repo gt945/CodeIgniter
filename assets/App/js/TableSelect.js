@@ -42,6 +42,7 @@ Class('App.TableSelect', 'xui.Module',{
 	            .setHost(host,"ctl_block8")
 	            .setDock("top")
 	            .setHeight(30)
+                .setBorderType("none")
             );
 
             host.ctl_block8.append(
@@ -75,6 +76,7 @@ Class('App.TableSelect', 'xui.Module',{
 	            .setHost(host,"ctl_block9")
 	            .setDock("bottom")
 	            .setHeight(40)
+                .setBorderType("none")
             );
             
             host.ctl_block9.append(

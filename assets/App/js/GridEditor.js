@@ -196,7 +196,9 @@ Class('App.GridEditor', 'xui.Module',{
 			_.merge(prop, ns.properties);
 			if (ns.properties.gridForm) {
 				xui.ModuleFactory.newCom(ns.properties.gridForm,function(){
-					this.show();
+					if (!_.isEmpty(this)){
+						this.show();
+					}
 				},null,prop,{
 					onNavigate:function(dir){
 						ns._navigate(this,dir);
@@ -465,7 +467,7 @@ Class('App.GridEditor', 'xui.Module',{
 				case -1:
 					var rows=ns.grid.getRows();
 					var i=_.arr.subIndexOf(rows, 'id', ns.grid.getActiveRow().id);
-					if(i>=0) {
+					if(i>=0&&rows[i+dir]) {
 						i+=dir;
 						ns.grid.setUIValue(rows[i].id);
 						app.navigateTo(rows[i].id);

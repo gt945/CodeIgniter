@@ -34,6 +34,7 @@ Class('App.GridExporter', 'xui.Module',{
 				.setHost(host,"ctl_block8")
 				.setDock("top")
 				.setHeight(30)
+				.setBorderType("none")
 				);
 			host.ctl_block8.append((new xui.UI.ToolBar())
 				.setHost(host,"toolbar")
@@ -75,11 +76,12 @@ Class('App.GridExporter', 'xui.Module',{
 					"editMode" : "inline"
 				}])
 			);
-			
+
 			host.dialog.append((new xui.UI.Block())
 				.setHost(host,"ctl_block")
-				.setDock("bottom")
 				.setHeight(40)
+				.setDock("bottom")
+				.setBorderType("none")
 			);
 			
 			host.ctl_block.append((new xui.UI.SButton())

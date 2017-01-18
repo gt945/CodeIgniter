@@ -80,4 +80,25 @@ class Crud_before_del extends Crud_hook {
         return $this->result(true);
     }
 
+    public function reportcounts_del($oper, $model, &$ids, $old)
+    {
+        $this->load->model('ReportCounts');
+        foreach($old as $d) {
+            $existreport = $this->ReportCounts->prepare($d['JID'], $d['Year'], $d['No']);
+            if ($existreport) {
+                $save = array (
+                    'ReportBatchID' => "",
+                    'ReportStatus'	=> 0
+                );
+
+                $this->db->where('Jyear', $d['Year']);
+                $this->db->where('JID', $d['JID']);
+                $this->db->where('NoStart', $d['No']);
+                $this->db->where('NoEnd', $d['No']);
+                $this->db->update('journalorders', $save);
+            }
+        }
+        return $this->result(true);
+
+    }
 }

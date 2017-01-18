@@ -730,6 +730,11 @@ class Grid_model extends Crud_Model
                             "value" => $_SESSION['userinfo']['id'],
                             "caption" => $_SESSION['userinfo']['username']
                         );
+                    } else if($f['prop'] & Crud_model::PROP_FIELD_TABLE){
+                        $setting->template = array(
+                            "value" => NULL,
+                            "caption" => "<请选择>"
+                        );
                     } else {
                         foreach($f['_joined_data']->data as $k=>$v) {
                             $setting->template = array(

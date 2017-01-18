@@ -29,6 +29,7 @@ Class('App.AdvSelect', 'xui.Module',{
 	            .setHost(host,"ctl_block8")
 	            .setDock("top")
 	            .setHeight(30)
+                .setBorderType("none")
             );
             
             host.ctl_block8.append((new xui.UI.SButton())
@@ -70,6 +71,7 @@ Class('App.AdvSelect', 'xui.Module',{
 	            .setHost(host,"ctl_block10")
 	            .setDock("bottom")
 	            .setHeight(40)
+                .setBorderType("none")
             );
             host.ctl_block10.append((new xui.UI.SButton())
 	            .setHost(host)

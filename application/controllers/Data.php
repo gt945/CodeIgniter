@@ -23,7 +23,7 @@ class Data extends CI_Controller {
 		ini_set('max_execution_time', 0);
 // 		ini_set('memory_limit','512M');
 		
-		$this->load->model('crud_model');
+		$this->load->model('grid_model');
 		$table = $this->input->post_get("key");
 		$paras_json = $this->input->post_get("paras");
 		$paras = json_decode($paras_json);
@@ -34,21 +34,23 @@ class Data extends CI_Controller {
 		$fields = array();
 		$sheet = array();
 		
-		$dbContext = $this->crud_model->table($table);
-		if ($dbContext) {
-			if ($this->crud_model->prepare($dbContext)) {
+		$ret = $this->grid_model->table($table);
+		if ($ret) {
+			if ($this->grid_model->prepare()) {
 				$this->load->library('excel');
 				$this->excel->setActiveSheetIndex(0);
 				
 				$row = array();
 				if ($paras->key) {
-					$row[] = $dbContext->crud_field[$dbContext->primary]['caption'];
+					$row[] = $this->grid_model->crud_field[$this->grid_model->primary]['caption'];
 				}
+
 				foreach($setting as $s){
-					if (isset($dbContext->crud_field[$s[0]]) && $dbContext->crud_field[$s[0]]['_role_r']) {
+					if (isset($this->grid_model->crud_field[$s[0]]) && $this->grid_model->crud_field[$s[0]]['_role_r']) {
+                        
 						$fields[$s[0]] = $s[1]?1:0;
 						if ($s[1]) {
-							$row[] = $dbContext->crud_field[$s[0]]['caption'];
+							$row[] = $this->grid_model->crud_field[$s[0]]['caption'];
 						}
 					}
 				}
@@ -63,26 +65,26 @@ class Data extends CI_Controller {
 					$sheet = array();
 					
 					
-					$data = $this->crud_model->wrapper_sheet($dbContext, $paras);
-					$this->crud_model->pop_cache($dbContext);
+					$data = $this->grid_model->wrapper_sheet($paras);
+					$this->grid_model->pop_cache();
 					if (!count($data->data)) {
 						break;
 					}
 					$total = $data->count;
 					$paras->page++;
 					foreach($data->data as $d) {
-                                                unset($row);
-                                                $row = array();
+                        unset($row);
+                        $row = array();
 						if ($paras->key) {
-							$row[] = $d[$dbContext->primary];
+							$row[] = $d[$this->grid_model->primary];
 						}
 						foreach($fields as $k=>$f) {
 							if ($f) {
 								if ($paras->raw) {
 									$row[] = $d[$k];
-								} elseif (isset($dbContext->crud_field[$k]['_caption'])) {
-									$this->crud_model->wrapper_caption($dbContext->crud_field[$k], $d);
-									$row[] = $d[$dbContext->crud_field[$k]['_caption']];
+								} elseif (isset($this->grid_model->crud_field[$k]['_caption'])) {
+									$this->grid_model->wrapper_caption($this->grid_model->crud_field[$k], $d);
+									$row[] = $d[$this->grid_model->crud_field[$k]['_caption']];
 								} else {
 									$row[] = $d[$k];
 								}
@@ -90,7 +92,7 @@ class Data extends CI_Controller {
 						}
 						$sheet[] = $row;
 					}
-					
+
 					$this->excel->getActiveSheet()->fromArray($sheet, NULL, "A{$line}");
 					$count += count($data->data);
 					$line += count($data->data);
@@ -99,11 +101,11 @@ class Data extends CI_Controller {
 				
 				
 				
-				$filename='just_some_random_name是.xls'; //save our workbook as this file name
+				$filename=date('Ymd').'.xls'; //save our workbook as this file name
 				header('Content-Type: application/vnd.ms-excel'); //mime type
 				header('Content-Disposition: attachment;filename="'.$filename.'"'); //tell browser what's the file name
 				header('Cache-Control: max-age=0'); //no cache
-				
+
 				$objWriter = PHPExcel_IOFactory::createWriter($this->excel, 'Excel5');
 				$objWriter->save('php://output');
 			} else {

@@ -472,7 +472,6 @@ class Xui extends MY_Controller {
 		$db = "db_".__LINE__;
 		$this->load->model('grid_model', $db);
 		$this->$db->table($field_info['join_table'], $join_field);
-
 		if (!$this->$db->prepare(true)) {
 			return 2;
 		}
@@ -494,6 +493,25 @@ class Xui extends MY_Controller {
                         "op" => "cn",
                         "field" => $field_info['join_caption']
                     )
+                )
+            );
+        }
+        if ($field_info['join_condition'] && $field_info['join_condition_value']) {
+            $paras->search = true;
+            if ($paras->filters) {
+                $filter_like = $paras->filters;
+            } else {
+                $filter_like = array();
+            }
+            $paras->filters = (object) array(
+                "groupOp" => "AND",
+                "rules" => array(
+                    (object) array(
+                        "data" => $field_info['join_condition_value'],
+                        "op" => "eq",
+                        "field" => $field_info['join_condition']
+                    ),
+                    (object)$filter_like
                 )
             );
         }
