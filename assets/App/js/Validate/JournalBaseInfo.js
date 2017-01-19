@@ -15,6 +15,9 @@ Class('App.Validate.JournalBaseInfo', 'xui.Module',{
                 case "7":
                     NofPerYear=52;
                     break;
+                case "10":
+                    NofPerYear=36;
+                    break;
                 case "15":
                     NofPerYear=24;
                     break;
