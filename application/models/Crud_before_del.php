@@ -95,6 +95,7 @@ class Crud_before_del extends Crud_hook {
                 $this->db->where('JID', $d['JID']);
                 $this->db->where('NoStart', $d['No']);
                 $this->db->where('NoEnd', $d['No']);
+                $this->db->where('ReportBatchID', $d['BatchID']);
                 $this->db->update('journalorders', $save);
             }
         }
