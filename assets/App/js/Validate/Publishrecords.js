@@ -26,13 +26,14 @@ Class('App.Validate.Publishrecords', 'xui.Module',{
                     xui.message('开数错误')
                 }
                 db.getUI("PrintSheetCount").setUIValue((ps*2+0.4999).toFixed(0)/2, true);
-
             }else{
                 db.getUI("PrintSheetCount").setUIValue(0, true);
             }
             if(data.PicturePage.length){
                 var picp=data.PicturePage.split(',');
+                _.arr.removeDuplicate(picp);
                 _.arr.removeValue(picp,"0");
+                _.arr.removeValue(picp,"");
                 db.getUI("PicturePage").setUIValue(picp.join(','),true);
                 db.getUI("PicPageCount").setUIValue(picp.length,true);
             }else{

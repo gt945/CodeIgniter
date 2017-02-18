@@ -102,4 +102,14 @@ class Crud_before_del extends Crud_hook {
         return $this->result(true);
 
     }
+    
+    public function journalorders_del($oper, $model, &$ids, $old)
+    {
+		foreach($old as $d) {
+			if ($d['ReportStatus'] == 1) {
+				return $this->result(false, '已报数,无法删除');
+			}
+		}
+		return $this->result(true);
+    }
 }

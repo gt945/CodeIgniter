@@ -238,6 +238,9 @@ Class('App.GridFilter', 'xui.Module',{
 							group.op=ele.getUIValue();
 						}else if (c.type=="value"){
 							group.data=ele.getUIValue();
+							if(_.isDate(group.data)){
+                                group.data=xui.Date.format(group.data, "yyyy-mm-dd hh:nn:ss");
+                            }
 						}
 					});
 					filters.rules.push(group);

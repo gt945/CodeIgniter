@@ -40,6 +40,7 @@ class Crud_model extends Db_Model {
     const PROP_FIELD_VIRTUAL    = 0x0800;
     const PROP_FIELD_STRING     = 0x1000;
     const PROP_FIELD_INLINE     = 0x2000;
+    const PROP_FIELD_STATIC     = 0x4000;
 
 	const PROP_TABLE_EXPORT = 0x0001;
 	const PROP_TABLE_IMPORT = 0x0002;

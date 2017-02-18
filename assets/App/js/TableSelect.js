@@ -9,6 +9,7 @@ Class('App.TableSelect', 'xui.Module',{
             ns._search=false;
             ns._filters={};
             ns.like='';
+            ns.match=false;
             ns.initOk=false;
         },
         iniComponents : function(){
@@ -135,6 +136,7 @@ Class('App.TableSelect', 'xui.Module',{
                 page:curPage,
                 size:20,
                 like:ns.like,
+                match:ns.match,
                 filters:ns._filters,
                 search:ns._search
             },function(rsp){
@@ -239,6 +241,13 @@ Class('App.TableSelect', 'xui.Module',{
             var ns=this,ctrl=profile.boxing();
             if(newValue!=oldValue){
                 ns.like=ctrl.getUIValue();
+                ns.loadGridData(1);
+            }
+        },
+        _match_onchange:function(profile, oldValue, newValue, force, tag){
+            var ns=this;
+            if(newValue!=oldValue&&ns.like!=''){
+                ns.match=newValue;
                 ns.loadGridData(1);
             }
         }

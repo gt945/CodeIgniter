@@ -10,11 +10,11 @@ class Grid_model extends Crud_Model
         return parent::table($name, $select);
     }
 
-    public function prepare($join = true)
+    public function prepare($join = true, $join_data = true)
     {
         $result = parent::prepare($join);
 
-        if ($result && $join) {
+        if ($result && $join && $join_data) {
             foreach ($this->crud_field as &$f) {
                 switch ($f ['type']) {
 					case Crud_model::TYPE_SELECT:
@@ -368,11 +368,11 @@ class Grid_model extends Crud_Model
             return $ret;
         }
         $condition_str = $this->crud_table['condition_default'];
-        $conditions_array = explode(';', $condition_str);
+        $conditions_array = explode(',', $condition_str);
         $conditions = array();
         foreach ($conditions_array as $k=>$c) {
             $pair = explode(':', $c);
-            if (isset($this->crud_field[$pair[0]])){
+            if (isset($this->crud_field[$pair[0]]) && count($pair) == 3){
                 $conditions[$k] = $pair;
             }
         }
@@ -397,7 +397,7 @@ class Grid_model extends Crud_Model
                 $this->$db->parse($paras->filters, true, $alias);
             }
             foreach ($conditions as $c) {
-                $this->$db->parse_rules("AND", $c[0], "eq", $c[1], $alias);
+                $this->$db->parse_rules("AND", $c[0], $c[1], $c[2], $alias);
             }
         } else {
             $this->search = false;
@@ -572,6 +572,84 @@ class Grid_model extends Crud_Model
         return $rows;
     }
 
+//    function row_to_print($d, $dataonly = false, $keypair = false, $select = array())
+//    {
+//        $row = (object)array();
+//        $tmp = array();
+//
+//        if (isset ($this->primary) && $this->primary) {
+//            $primary = $d [$this->primary];
+//        } else if (isset ($d ['id'])) {
+//            $primary = $d ['id'];
+//        } else {
+//            $primary = null;
+//        }
+//        foreach ($this->crud_field as $k => $f) {
+//            $cell = (object)array();
+//            if (!$f ['_role_r'] || $f['type'] > Crud_model::TYPE_MAX) {
+//                continue;
+//            }
+//            if (($f ['prop'] & Crud_model::PROP_FIELD_PRIMARY)
+//                || ($f ['prop'] & Crud_model::PROP_FIELD_HIDE)
+//            ) {
+//                continue;
+//            }
+//
+//            if (count($select) && !in_array($f['name'], $select)) {
+//                continue;
+//            }
+//            // if (function_exists ( $f['process'] )) {
+//            // $d [$k] = $f['process'] ( $d [$k] );
+//            // }
+//            if ($f ['type'] == Crud_model::TYPE_SELECT
+//                || $f ['type'] == Crud_model::TYPE_MULTI
+//                || $f ['type'] == Crud_model::TYPE_BIT
+//            ) {
+//                $this->wrapper_caption($f, $d);
+//                $cell->value = $d [$f ['name']];
+//                if (isset($f ['_caption'])) {
+//                    $cell->caption = $d [$f ['_caption']];
+//                }
+//            } elseif ($f ['type'] == Crud_model::TYPE_PASSWORD) {
+//                $cell->value = "******";
+//            } else {
+//                $cell->value = $d [$f ['name']];
+//            }
+//// 				if (strlen($f['depend']) && !eval ("return {$f['depend']};")) {
+//// 					$cell->readonly = true;
+//// 				}
+//            if ($keypair) {
+//                $tmp[$f['name']] = $cell;
+//            } else {
+//                array_push($tmp, $cell);
+//            }
+//        }
+//        $row->id = $primary;
+//        $row->cells = $tmp;
+//        if ($this->pid && !$dataonly) {
+//            $this->pop_cache();
+//            $this->where("a.{$this->pid}", $d ['id']);
+//            $child_count = $this->count_all_results();
+//            if ($child_count > 0) {
+//                $row->sub = true;
+//            } else {
+//                $row->sub = false;
+//            }
+//        }
+//        return $row;
+//    }
+//
+//    function sheet_to_print($data, $dataonly = false, $keypair = false, $select = array())
+//    {
+//        $rows = array();
+//        foreach ($data as $d) {
+//            $rows[] = $this->row_to_grid($d, $dataonly, $keypair, $select);
+//        }
+//        return $rows;
+//    }
+
+
+
     function grid_info($mode = "dialog", $field_info = null)
     {
         $data = new stdClass();
@@ -659,6 +737,17 @@ class Grid_model extends Crud_Model
             } else {
                 $header->hidden = false;
             }
+            switch($f['align']) {
+                case Crud_model::ALIGN_LEFT:
+                    $header->cellStyle = "text-align:left";
+                    break;
+                case Crud_model::ALIGN_RIGHT:
+                    $header->cellStyle = "text-align:right";
+                    break;
+                case Crud_model::ALIGN_CENTER:
+                    $header->cellStyle = "text-align:center";
+                    break;
+            }
             $header->editable = false;
             $header_inline = clone $header;
             $header_inline->format = $f['format'];
@@ -735,7 +824,7 @@ class Grid_model extends Crud_Model
                             "value" => NULL,
                             "caption" => "<请选择>"
                         );
-                    } else {
+                    } else if (isset($f['_joined_data'])){
                         foreach($f['_joined_data']->data as $k=>$v) {
                             $setting->template = array(
                                 "value" => $v["_value"],
@@ -902,6 +991,10 @@ class Grid_model extends Crud_Model
                         } else {
                             continue;
                         }
+                    }
+                    if (isset($post [$k]) && $f['prop'] & Crud_model::PROP_FIELD_STATIC) {
+                        $ret->message = "\"{$f['caption']}\"不可更改";
+                        return $ret;
                     }
                     if (($f['prop'] & Crud_model::PROP_FIELD_PRIMARY)
                         || ($f['prop'] & Crud_model::PROP_FIELD_READONLY)) {
@@ -1159,7 +1252,11 @@ class Grid_model extends Crud_Model
         );
         $items[0]->sub[] = (object)array(
             "id" => "search",
-            "object" => "%new xui.UI.ComboInput({type:'input',width:'200'}).onChange('_search_onchange')%"
+            "object" => "%new xui.UI.ComboInput({type:'input',width:'200',labelSize:'60',labelCaption:'快速查找'}).onChange('_search_onchange')%"
+        );
+        $items[0]->sub[] = (object)array(
+            "id" => "search",
+            "object" => "%new xui.UI.CheckBox({caption:'完全匹配'}).onChange('_match_onchange')%"
         );
         $json = json_encode($items);
 

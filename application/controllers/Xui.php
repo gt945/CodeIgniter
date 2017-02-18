@@ -59,11 +59,11 @@ class Xui extends MY_Controller {
 		$ret = new stdClass ();
 		$grid_info = $this->grid_model->grid_info();
 		$ret->gridPrimary = $this->grid_model->primary;
-        if ($this->grid_model->crud_table['_role_c'] || $this->grid_model->crud_table['_role_u']) {
-            $ret->gridForm = "App.GridForm";
-        } else {
-            $ret->gridForm = null;
-        }
+		if ($this->grid_model->crud_table['_role_c'] || $this->grid_model->crud_table['_role_u']) {
+			$ret->gridForm = "App.GridForm";
+		} else {
+			$ret->gridForm = null;
+		}
 		if ($this->grid_model->filter) {
 			$ret->gridFilter = "App.GridFilter";
 		}
@@ -73,22 +73,22 @@ class Xui extends MY_Controller {
 		if ($this->grid_model->import) {
 			$ret->gridExporter = "App.GridImporter";
 		}
-        $ret->gridFormGroups=array();
-        $groups = explode(";", $this->grid_model->crud_table['groups']);
-        if(count($groups)) {
-            foreach ($groups as $g) {
-                $info = explode(":", $g);
-                if (count($info) == 5) {
-                    $ret->gridFormGroups[] = (object)array(
-                        "name" => $info[0],
-                        "x" => $info[1],
-                        "y" => $info[2],
-                        "w" => $info[3],
-                        "h" => $info[4]
-                    );
-                }
-            }
-        }
+		$ret->gridFormGroups=array();
+		$groups = explode(";", $this->grid_model->crud_table['groups']);
+		if(count($groups)) {
+			foreach ($groups as $g) {
+				$info = explode(":", $g);
+				if (count($info) == 5) {
+					$ret->gridFormGroups[] = (object)array(
+						"name" => $info[0],
+						"x" => $info[1],
+						"y" => $info[2],
+						"w" => $info[3],
+						"h" => $info[4]
+					);
+				}
+			}
+		}
 
 		$this->db->from("custom_item");
 		$mid = 0;
@@ -98,7 +98,7 @@ class Xui extends MY_Controller {
 		$this->db->where('mid', $mid);
 		$custom_items = $this->db->sheet();
 
-        $flow_items = $this->grid_model->get_flow_items();
+		$flow_items = $this->grid_model->get_flow_items();
 		$ret->gridHeaders = $grid_info->headers;
 		$ret->gridId = (int)$this->grid_model->crud_table['id'];
 		$ret->gridSetting = $grid_info->setting;
@@ -143,37 +143,37 @@ class Xui extends MY_Controller {
 		$ret = (object) array(
 				"rows" => array(),
 		);
-        if (!isset($paras->id)) {
-            return "参数错误";
-        }
-        $id = $paras->id;
+		if (!isset($paras->id)) {
+			return "参数错误";
+		}
+		$id = $paras->id;
 		$paras->sub = true;
 		$paras->page = 1;
 		$paras->size = 1;
 		$paras->search = true;
 		if (is_array($id)) {
-            $paras->filters = (object) array(
-                "groupOp" => "AND",
-                "rules" => array(
-                    (object) array(
-                        "data" => $id,
-                        "op" => "in",
-                        "field" => "id"
-                    )
-                )
-            );
-        } else {
-            $paras->filters = (object) array(
-                "groupOp" => "AND",
-                "rules" => array(
-                    (object) array(
-                        "data" => $id,
-                        "op" => "eq",
-                        "field" => "id"
-                    )
-                )
-            );
-        }
+			$paras->filters = (object) array(
+				"groupOp" => "AND",
+				"rules" => array(
+					(object) array(
+						"data" => $id,
+						"op" => "in",
+						"field" => "id"
+					)
+				)
+			);
+		} else {
+			$paras->filters = (object) array(
+				"groupOp" => "AND",
+				"rules" => array(
+					(object) array(
+						"data" => $id,
+						"op" => "eq",
+						"field" => "id"
+					)
+				)
+			);
+		}
 
 		
 // 		json_decode("{'groupOp':'AND', 'rules':[{'data':'{$id}' , 'op':'eq', 'field':'id'}]}");
@@ -216,8 +216,8 @@ class Xui extends MY_Controller {
 		} else if ($ret->data){
 			return $ret->data;
 		} else {
-		    return 1;
-        }
+			return 1;
+		}
 	}
 	
 	function request_create($paras)
@@ -232,10 +232,10 @@ class Xui extends MY_Controller {
 			$message = "无此权限";
 		}
 		if (isset($ret->data)) {
-            return $ret->data;
-        } else {
-            return $message;
-        }
+			return $ret->data;
+		} else {
+			return $message;
+		}
 //		if ($message) {
 //			return ( object ) array (
 //					"warn" => ( object ) array (
@@ -281,9 +281,9 @@ class Xui extends MY_Controller {
 	
 	function request_fields($paras)
 	{
-        $ret = new stdClass ();
-        $ret->fields = array();
-        $ret->groups = array();
+		$ret = new stdClass ();
+		$ret->fields = array();
+		$ret->groups = array();
 		foreach($this->grid_model->crud_field as $f){
 			if ( ($f['prop'] & Crud_model::PROP_FIELD_PRIMARY)
 				|| ($f['prop'] & Crud_model::PROP_FIELD_HIDE)) {
@@ -292,7 +292,7 @@ class Xui extends MY_Controller {
 			
 			$position = explode(":", $f['position']);
 			if (count($position) == 4) {
-                $ret->fields[] = (object)array(
+				$ret->fields[] = (object)array(
 					"id" => $f['id'],
 					"caption" => $f['caption'],
 					"x" => $position[0],
@@ -301,33 +301,33 @@ class Xui extends MY_Controller {
 					"h" => $position[3]
 				);
 			} else {
-                $ret->fields[] = (object)array(
-                    "id" => $f['id'],
-                    "caption" => $f['caption'],
-                    "x" => 0,
-                    "y" => 0,
-                    "w" => 0,
-                    "h" => 0
-                );
+				$ret->fields[] = (object)array(
+					"id" => $f['id'],
+					"caption" => $f['caption'],
+					"x" => 0,
+					"y" => 0,
+					"w" => 0,
+					"h" => 0
+				);
 			}
 			
 			
 		}
 		$groups = explode(";", $this->grid_model->crud_table['groups']);
-        if(count($groups)) {
-            foreach ($groups as $g) {
-                $info = explode(":", $g);
-                if (count($info) == 5) {
-                    $ret->groups[] = array(
-                        $info[0],
-                        $info[1],
-                        $info[2],
-                        $info[3],
-                        $info[4]
-                    );
-                }
-            }
-        }
+		if(count($groups)) {
+			foreach ($groups as $g) {
+				$info = explode(":", $g);
+				if (count($info) == 5) {
+					$ret->groups[] = array(
+						$info[0],
+						$info[1],
+						$info[2],
+						$info[3],
+						$info[4]
+					);
+				}
+			}
+		}
 		return $ret;
 	}
 	
@@ -346,10 +346,10 @@ class Xui extends MY_Controller {
 			$this->grid_model->where( 'id', $f->id );
 			$this->grid_model->update ( Crud_model::CRUD_FIELD );
 		}
-        foreach ($paras->groups as $k=>$g){
-            $paras->groups[$k]=implode(":",$g);
-        }
-        $this->grid_model->set("groups", implode(";",$paras->groups));
+		foreach ($paras->groups as $k=>$g){
+			$paras->groups[$k]=implode(":",$g);
+		}
+		$this->grid_model->set("groups", implode(";",$paras->groups));
 		$this->grid_model->set("w", $paras->table_w);
 		$this->grid_model->set("h", $paras->table_h);
 		$this->grid_model->where( 'id', $paras->tid );
@@ -402,7 +402,7 @@ class Xui extends MY_Controller {
 			$this->$db->table("user_group");
 			$this->$db->prepare();
 			$tree = $this->$db->get_tree_data_by_id($_SESSION['userinfo']['gid'], true);
-			$data = array($this->xui_utils->build_tree($tree, $this->grid_model->crud_field[$paras->field]['join_caption']));	
+			$data = array($this->xui_utils->build_tree($tree, $this->grid_model->crud_field[$paras->field]['join_caption']));
 			$ret->items = $data;
 		} else if(isset($this->grid_model->pid) && $paras->field == $this->grid_model->pid){
 			$tree = $this->grid_model->get_tree_data_by_pid();
@@ -479,61 +479,66 @@ class Xui extends MY_Controller {
 			return 3;
 		}
 		if (isset($paras->like) && strlen($paras->like)){
-            $paras->search = true;
-            $paras->filters = (object) array(
-                "groupOp" => "OR",
-                "rules" => array(
-                    (object) array(
-                        "data" => $paras->like,
-                        "op" => "eq",
-                        "field" => $field_info['join_value']
-                    ),
-                    (object) array(
-                        "data" => $paras->like,
-                        "op" => "cn",
-                        "field" => $field_info['join_caption']
-                    )
-                )
-            );
-        }
-        if ($field_info['join_condition'] && $field_info['join_condition_value']) {
-            $paras->search = true;
-            if ($paras->filters) {
-                $filter_like = $paras->filters;
-            } else {
-                $filter_like = array();
-            }
-            $paras->filters = (object) array(
-                "groupOp" => "AND",
-                "rules" => array(
-                    (object) array(
-                        "data" => $field_info['join_condition_value'],
-                        "op" => "eq",
-                        "field" => $field_info['join_condition']
-                    ),
-                    (object)$filter_like
-                )
-            );
-        }
+			if(isset($paras->match) && $paras->match) {
+				$op = "eq";
+			} else {
+				$op = "cn";
+			}
+			$paras->search = true;
+			$paras->filters = (object) array(
+				"groupOp" => "OR",
+				"rules" => array(
+					(object) array(
+						"data" => $paras->like,
+						"op" => "eq",
+						"field" => $field_info['join_value']
+					),
+					(object) array(
+						"data" => $paras->like,
+						"op" => $op,
+						"field" => $field_info['join_caption']
+					)
+				)
+			);
+		}
+		if ($field_info['join_condition'] && $field_info['join_condition_value']) {
+			$paras->search = true;
+			if ($paras->filters) {
+				$filter_like = $paras->filters;
+			} else {
+				$filter_like = array();
+			}
+			$paras->filters = (object) array(
+				"groupOp" => "AND",
+				"rules" => array(
+					(object) array(
+						"data" => $field_info['join_condition_value'],
+						"op" => "eq",
+						"field" => $field_info['join_condition']
+					),
+					(object)$filter_like
+				)
+			);
+		}
 		$data = $this->$db->wrapper_sheet($paras);
 
 		$grid_info = $this->$db->grid_info();
-        $ret->caption = $field_info['join_caption'];
+		$ret->caption = $field_info['join_caption'];
 		$ret->count = $data->count;
 		$ret->headers = $grid_info->headers;
 		$ret->setting = $grid_info->setting;
-        $ret->gridToolBarItems = $this->grid_model->grid_filter_items();
-        $ret->gridFilter = "App.GridFilter";
-        $ret->gridSetting = $grid_info->setting;
+		$ret->gridToolBarItems = $this->grid_model->grid_filter_items();
+		$ret->gridFilter = "App.GridFilter";
+		$ret->gridSetting = $grid_info->setting;
 		$ret->rows = $this->$db->sheet_to_grid($data->data);
 		foreach($ret->headers as &$h) {
 			if( !in_array($h->id, $extra_field )
-                && !in_array(strtolower($h->id), $extra_field )
-                && strcasecmp($h->id, $field_info['join_caption'])) {
+				&& !in_array(strtolower($h->id), $extra_field )
+				&& strcasecmp($h->id, $field_info['join_caption'])) {
 				$h->hidden = true;
 			} else{
-                $h->hidden = false;
-            }
+				$h->hidden = false;
+			}
 			if(strtolower($h->id) == $field_info['join_caption']) {
 				$ret->caption = $h->id;
 			}
@@ -568,107 +573,107 @@ class Xui extends MY_Controller {
 	}
 
 	function request_inline_grid($paras)
-    {
-        $field_info = $this->grid_model->crud_field[$paras->field];
-        $db = "db_".__LINE__;
-        $this->load->model('grid_model', $db);
-        $this->$db->table($field_info['join_table'], explode(',',$field_info['join_extra']));
-        $this->$db->prepare();
-        $ret = new stdClass ();
-        $grid_info = $this->$db->grid_info("inline", $field_info);
-        $ret->gridId = (int)$this->$db->crud_table['id'];
-        $ret->gridPrimary = $this->$db->primary;
-        $ret->gridHeaders = $grid_info->headers;
-        $ret->gridSetting = $grid_info->setting;
+	{
+		$field_info = $this->grid_model->crud_field[$paras->field];
+		$db = "db_".__LINE__;
+		$this->load->model('grid_model', $db);
+		$this->$db->table($field_info['join_table'], explode(',',$field_info['join_extra']));
+		$this->$db->prepare();
+		$ret = new stdClass ();
+		$grid_info = $this->$db->grid_info("inline", $field_info);
+		$ret->gridId = (int)$this->$db->crud_table['id'];
+		$ret->gridPrimary = $this->$db->primary;
+		$ret->gridHeaders = $grid_info->headers;
+		$ret->gridSetting = $grid_info->setting;
 
-        if (is_array($paras->ids) && count($paras->ids)) {
-            $paras->search = true;
-            $paras->filters = (object) array(
-                "groupOp" => "AND",
-                "rules" => array(
-                    (object) array(
-                        "data" => $paras->ids[0],
-                        "op" => "in",
-                        "field" => $field_info['join_value']
-                    )
-                )
-            );
+		if (is_array($paras->ids) && count($paras->ids)) {
+			$paras->search = true;
+			$paras->filters = (object) array(
+				"groupOp" => "AND",
+				"rules" => array(
+					(object) array(
+						"data" => $paras->ids[0],
+						"op" => "in",
+						"field" => $field_info['join_value']
+					)
+				)
+			);
 
-            $data = $this->$db->wrapper_sheet($paras);
-            $ret->count = $data->count;
-            $ret->sql = $data->sql;
-            $ret->rows = $this->$db->sheet_to_grid($data->data);
-        
-        }
-        
-        return $ret;
-    }
+			$data = $this->$db->wrapper_sheet($paras);
+			$ret->count = $data->count;
+			$ret->sql = $data->sql;
+			$ret->rows = $this->$db->sheet_to_grid($data->data);
+		
+		}
+		
+		return $ret;
+	}
 
 	function request_form($paras)
-    {
-        $field_info = $this->grid_model->crud_field[$paras->field];
-        $db = "db_".__LINE__;
-        $this->load->model('grid_model', $db);
-        $this->$db->table($field_info['join_table']);
-        $this->$db->prepare();
-        $ret = new stdClass ();
-        $grid_info = $this->$db->grid_info();
-        $ret->gridId = (int)$this->$db->crud_table['id'];
-        $ret->gridPrimary = $this->$db->primary;
-        $ret->gridSetting = $grid_info->setting;
-        return $ret;
-    }
+	{
+		$field_info = $this->grid_model->crud_field[$paras->field];
+		$db = "db_".__LINE__;
+		$this->load->model('grid_model', $db);
+		$this->$db->table($field_info['join_table']);
+		$this->$db->prepare();
+		$ret = new stdClass ();
+		$grid_info = $this->$db->grid_info();
+		$ret->gridId = (int)$this->$db->crud_table['id'];
+		$ret->gridPrimary = $this->$db->primary;
+		$ret->gridSetting = $grid_info->setting;
+		return $ret;
+	}
 
 	function request_inline_save($paras)
-    {
-        $ret = new stdClass();
-        $db = "db_".__LINE__;
-        $this->load->model('grid_model', $db);
-        $this->$db->table($paras->grid);
-        $field_info = $this->$db->crud_field[$paras->field];
-        foreach($paras->data as $d) {
-            $row = (object) array(
-                "rowid" => $d->rowid,
-                "error" => 1
-            );
-            if (isset($d->id) && count($d->id)) {
-                if ($this->grid_model->crud_table['_role_u']) {
-                    $data = $this->grid_model->edit("set", $d->id, (array)$d->fields);
-                    if(!$data->message) {
-                        $row->error = 0;
-                    } else {
-                        return $data->message;
-                    }
-                }
-            } else {
-                if ($this->grid_model->crud_table['_role_c']) {
-                    $set = $field_info['join_value'];
-                    $d->fields->$set=$paras->ids[0];
-                    $data = $this->grid_model->edit("create", null, (array)$d->fields);
-                    if(!$data->message){
-                        $row->error = 0;
-                        $row->id = (string)$data->id[0];
-                    } else {
-                        return $data->message;
-                    }
-                }
-            }
-            $ret->rows[] = $row;
-        }
-        return $ret;
-    }
+	{
+		$ret = new stdClass();
+		$db = "db_".__LINE__;
+		$this->load->model('grid_model', $db);
+		$this->$db->table($paras->grid);
+		$field_info = $this->$db->crud_field[$paras->field];
+		foreach($paras->data as $d) {
+			$row = (object) array(
+				"rowid" => $d->rowid,
+				"error" => 1
+			);
+			if (isset($d->id) && count($d->id)) {
+				if ($this->grid_model->crud_table['_role_u']) {
+					$data = $this->grid_model->edit("set", $d->id, (array)$d->fields);
+					if(!$data->message) {
+						$row->error = 0;
+					} else {
+						return $data->message;
+					}
+				}
+			} else {
+				if ($this->grid_model->crud_table['_role_c']) {
+					$set = $field_info['join_value'];
+					$d->fields->$set=$paras->ids[0];
+					$data = $this->grid_model->edit("create", null, (array)$d->fields);
+					if(!$data->message){
+						$row->error = 0;
+						$row->id = (string)$data->id[0];
+					} else {
+						return $data->message;
+					}
+				}
+			}
+			$ret->rows[] = $row;
+		}
+		return $ret;
+	}
 
-    function request_flow_action($paras)
-    {
-        $flow_items = $this->grid_model->get_flow_items($paras->actionId);
-        if (count($flow_items)) {
-            $item = $flow_items[0];
-            $this->db->where_in($this->grid_model->primary, $paras->ids);
-            $this->db->where($item['field'], $item['stage']);
-            $this->db->set($item['field'], $item['actionStage']);
-            $this->db->update($this->grid_model->name);
-        }
+	function request_flow_action($paras)
+	{
+		$flow_items = $this->grid_model->get_flow_items($paras->actionId);
+		if (count($flow_items)) {
+			$item = $flow_items[0];
+			$this->db->where_in($this->grid_model->primary, $paras->ids);
+			$this->db->where($item['field'], $item['stage']);
+			$this->db->set($item['field'], $item['actionStage']);
+			$this->db->update($this->grid_model->name);
+		}
 
-        return 1;
-    }
+		return 1;
+	}
 }

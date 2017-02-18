@@ -202,4 +202,5 @@ class User extends CI_Controller {
 		$response = $this->auth_model->updateinfo ($password, $newpassword, $name, $contact);
 		echo json_encode ( $response );
 	}
+
 }

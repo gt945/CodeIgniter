@@ -276,4 +276,125 @@ EOD;
     {
         $this->load->view('test');
     }
+
+    public function fixrole()
+    {
+        $this->db->from('user_role');
+        $roles = $this->db->col('id');
+        $data = $this->db->get('crud_table')->result_array();
+        foreach($data as $d) {
+            $save = array();
+            $this->autorole($d);
+            foreach(array('role_c', 'role_r', 'role_u', 'role_d') as $f) {
+                $role = explode(',', $d[$f]);
+                foreach($role as $k=>$r) {
+                    if (!in_array($r, $roles)) {
+                        unset($role[$k]);
+                    }
+                }
+                $save[$f] = implode(',', $role);
+            }
+
+            $this->db->where('id', $d['id']);
+            $this->db->update('crud_table', $save);
+        }
+        $data = $this->db->get('crud_field')->result_array();
+        foreach($data as $d) {
+            $save = array();
+            $this->autorole($d);
+            foreach(array( 'role_r', 'role_u') as $f) {
+                $role = explode(',', $d[$f]);
+                foreach($role as $k=>$r) {
+                    if (!in_array($r, $roles)) {
+                        unset($role[$k]);
+                    }
+                }
+                $save[$f] = implode(',', $role);
+            }
+
+            $this->db->where('id', $d['id']);
+            $this->db->update('crud_field', $save);
+        }
+        $data = $this->db->get('menu')->result_array();
+        foreach($data as $d) {
+            $save = array();
+            $this->autorole($d);
+            foreach(array( 'role_r') as $f) {
+                $role = explode(',', $d[$f]);
+                foreach($role as $k=>$r) {
+                    if (!in_array($r, $roles)) {
+                        unset($role[$k]);
+                    }
+                }
+                $save[$f] = implode(',', $role);
+            }
+
+            $this->db->where('id', $d['id']);
+            $this->db->update('menu', $save);
+        }
+    }
+    function autorole(&$d){
+        if (isset($d['role_d'])){
+            $role_d = explode(",", $d['role_d']);
+        }
+        if (isset($d['role_c'])){
+            $role_c = explode(",", $d['role_c']);
+        }
+        if (isset($d['role_u'])){
+            $role_u = explode(",", $d['role_u']);
+        }
+        if (isset($d['role_r'])){
+            $role_r = explode(",", $d['role_r']);
+        }
+        if (isset($role_d)){
+            $tmp = $role_d;
+            if ( ($i = array_search(-1, $tmp)) !== false ){
+                unset($tmp[$i]);
+            }
+            if (isset($role_c)){
+                $role_c = array_unique(array_merge($tmp , $role_c));
+            }
+            if (isset($role_u)){
+                $role_u = array_unique(array_merge($tmp , $role_u));
+            }
+            if (isset($role_r)){
+                $role_r = array_unique(array_merge($tmp , $role_r));
+            }
+        }
+        if (isset($role_c)){
+            $tmp = $role_c;
+            if ( ($i = array_search(-1, $tmp)) !== false ){
+                unset($tmp[$i]);
+            }
+            if (isset($role_u)){
+                $role_u = array_unique(array_merge($tmp , $role_u));
+            }
+            if (isset($role_r)){
+                $role_r = array_unique(array_merge($tmp , $role_r));
+            }
+        }
+        if (isset($role_u)){
+            $tmp = $role_u;
+            if ( ($i = array_search(-1, $tmp)) !== false ){
+                unset($tmp[$i]);
+            }
+            if (isset($role_r)){
+                $role_r = array_unique(array_merge($tmp , $role_r));
+            }
+        }
+
+        if (isset($d['role_d'])){
+            $d['role_d'] = implode(',', $role_d);
+        }
+        if (isset($d['role_c'])){
+            $d['role_c'] = implode(',', $role_c);
+        }
+        if (isset($d['role_u'])){
+            $d['role_u'] = implode(',', $role_u);
+        }
+        if (isset($d['role_r'])){
+            $d['role_r'] = implode(',', $role_r);
+        }
+    }
+
 }

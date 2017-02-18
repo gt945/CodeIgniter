@@ -28,11 +28,18 @@ class Db_Model extends CI_Model
     {
 
     }
-
-    public function save($data)
+    public function save($datas)
     {
         $ret = array();
-        foreach ($data as $d) {
+        foreach ($datas as $d) {
+            if (!is_array($d)) {
+                $datas = array(
+                    $datas
+                );
+            }
+            break;
+        }
+        foreach ($datas as $d) {
             if (isset($d[$this->primary])) {
                 $ret[] = $d[$this->primary];
                 $this->db->where($this->primary, $d[$this->primary]);

@@ -3,9 +3,9 @@ defined('BASEPATH') OR exit('No direct script access allowed');
 
 class Xui_utils {
 	function menu_sort($a, $b)
-    {
-        return ((int)$a['seq'] > (int)$b['seq']) ? +1 : -1;
-    }
+	{
+		return ((int)$a['seq'] > (int)$b['seq']) ? +1 : -1;
+	}
 	public function filter($json)
 	{
 		$search = array(
@@ -32,7 +32,7 @@ class Xui_utils {
 				),
 				"children" => array()
 		);
-        usort($menus, array($this, "menu_sort"));
+		usort($menus, array($this, "menu_sort"));
 		foreach ($menus as $m) {
 			$item_m = (object) array(
 					"id" => "m{$m['id']}",
@@ -60,7 +60,7 @@ class Xui_utils {
 							"onItemSelected" => "_menus_selected"
 					),
 			);
-            usort($m['children'], array($this, "menu_sort"));
+			usort($m['children'], array($this, "menu_sort"));
 			foreach($m['children'] as $c) {
 				if (strpos(",{$c['role_r']}," , ",{$role}," ) === false) {
 					continue;
@@ -170,20 +170,20 @@ class Xui_utils {
 			);
 		}
 
-        if (count($flow_items) > 0) {
-            $items[1] = (object)array(
-                "id" => "grp2",
-                "sub" => array(),
-                "caption" => "grp2"
-            );
-            foreach($flow_items as $k=>$item){
-                $items[1]->sub[] = (object) array(
-                    "id" => "flow{$k}",
-                    "image" => "@xui_ini.appPath@image/{$item['icon']}",
-                    "caption" => "{$item['name']}"
-                );
-            }
-        }
+		if (count($flow_items) > 0) {
+			$items[1] = (object)array(
+				"id" => "grp2",
+				"sub" => array(),
+				"caption" => "grp2"
+			);
+			foreach($flow_items as $k=>$item){
+				$items[1]->sub[] = (object) array(
+					"id" => "flow{$k}",
+					"image" => "@xui_ini.appPath@image/{$item['icon']}",
+					"caption" => "{$item['name']}"
+				);
+			}
+		}
 
 		if (count($custom_items) > 0) {
 			$items[1] = (object)array(
@@ -209,7 +209,7 @@ class Xui_utils {
 	{
 		$ret = (object) array(
 			"id" => $data['id'],
-			"caption" => $data[$caption],	
+			"caption" => $data[$caption],
 		);
 		if (isset($data['children']) && count($data['children'])) {
 			$ret->sub = array();

@@ -128,7 +128,7 @@ class Data extends CI_Controller {
 	public function pdf()
 	{
 		$this->load->library('Pdf');
-		$pdf = new Pdf('P', 'mm', 'A4', true, 'UTF-8', false);
+		$pdf = new Pdf('P', 'pt', 'A4', true, 'UTF-8', false);
 		// set document information
 		$pdf->SetCreator(PDF_CREATOR);
 		$pdf->SetAuthor('Nicola Asuni');
@@ -158,12 +158,7 @@ class Data extends CI_Controller {
 		// set image scale factor
 		$pdf->setImageScale(PDF_IMAGE_SCALE_RATIO);
 		
-		// set some language-dependent strings (optional)
-		if (@file_exists(dirname(__FILE__).'/lang/eng.php')) {
-			require_once(dirname(__FILE__).'/lang/eng.php');
-			$pdf->setLanguageArray($l);
-		}
-		
+
 		// ---------------------------------------------------------
 		
 		// set default font subsetting mode
@@ -173,31 +168,186 @@ class Data extends CI_Controller {
 		// dejavusans is a UTF-8 Unicode font, if you only need to
 		// print standard ASCII chars, you can use core fonts like
 		// helvetica or times to reduce file size.
-		$pdf->SetFont('dejavusans', '', 14, '', true);
-		
+		$pdf->SetFont('droidsansfallback', '', 14, '', true);
 		// Add a page
 		// This method has several options, check the source code documentation for more information.
 		$pdf->AddPage();
 		
 		// set text shadow effect
-		$pdf->setTextShadow(array('enabled'=>true, 'depth_w'=>0.2, 'depth_h'=>0.2, 'color'=>array(196,196,196), 'opacity'=>1, 'blend_mode'=>'Normal'));
+//		$pdf->setTextShadow(array('enabled'=>true, 'depth_w'=>0.2, 'depth_h'=>0.2, 'color'=>array(196,196,196), 'opacity'=>1, 'blend_mode'=>'Normal'));
 		
 		// Set some content to print
 		$html = <<<EOD
-<h1>Welcome to <a href="http://www.tcpdf.org" style="text-decoration:none;background-color:#CC0000;color:black;">&nbsp;<span style="color:black;">TC</span><span style="color:white;">PDF</span>&nbsp;</a>!</h1>
-<i>This is the first example of TCPDF library.</i>
-<p>This text is printed using the <i>writeHTMLCell()</i> method but you can also use: <i>Multicell(), writeHTML(), Write(), Cell() and Text()</i>.</p>
-<p>Please check the source code documentation and other examples for further information.</p>
-<p style="color:#CC0000;">TO IMPROVE AND EXPAND TCPDF I NEED YOUR SUPPORT, PLEASE <a href="http://sourceforge.net/donate/index.php?group_id=128076">MAKE A DONATION!</a></p>
-EOD;
 
-		// Print text using writeHTMLCell()
-		$pdf->writeHTMLCell(0, 0, '', '', $html, 0, 1, 0, true, '', true);
-		
+EOD;
+        // Print text using writeHTMLCell()
+        $pdf->writeHTMLCell(0, 0, '', '', $html, 0, 1, 0, true, '', true);
+        $pdf->setCellPaddings(10,10,10,10);
+        header('Content-Type: application/pdf'); //mime type
+        header('Content-Disposition: attachment;filename="1.pdf"'); //tell browser what's the file name
+        header('Cache-Control: max-age=0'); //no cache
 		// ---------------------------------------------------------
 		
 		// Close and output PDF document
 		// This method has several options, check the source code documentation for more information.
-		$pdf->Output('example_001.pdf', 'I');
+
+		$pdf->Output('php://output', 'I');
+
 	}
+
+	public function publish_notify($PNID)
+    {
+        ini_set('max_execution_time', 0);
+        $this->load->library('excel');
+        $this->load->model('grid_model', 'publishnotify');
+
+        $this->publishnotify->table('publishnotify');
+        $this->publishnotify->prepare(true, false);
+
+        $paras = new stdClass();
+        $paras->page = 1;
+        $paras->size = 1;
+        $paras->search = true;
+        $paras->filters = (object) array(
+            "groupOp" => "AND",
+            "rules" => array(
+                (object) array(
+                    "data" => $PNID,
+                    "op" => "eq",
+                    "field" => "id"
+                )
+            )
+        );
+
+
+        $ret = $this->publishnotify->wrapper_sheet($paras);
+
+        $ret = $this->publishnotify->sheet_to_grid($ret->data, false, true);
+        if (!isset($ret[0])) {
+            die();
+        }
+        $data = $ret[0]->cells;
+//        print_r($data);
+        $JID = $data['JID']->value;
+        $Year = $data['Year']->value;
+        $No = $data['No']->value;
+        $total = 0;
+        if ($JID && $Year && $No) {
+            $sql = <<<EOF
+select '编辑部' as orderUnit, orderCount from (select ifnull(sum(orderCount),0) as orderCount from `qkzx_journalorders` where JID = {$JID} and saleStyle = 5 and jyear = {$Year} and nostart <= {$No} and noend >= {$No}) a
+union
+select '邮局外埠' as orderUnit, orderCount from (select IfNULL(sum(orderCount),0) as orderCount from `qkzx_journalorders` where JID = {$JID} and saleStyle = 4 and jyear ={$Year}  and nostart <= {$No} and noend >={$No}) b
+union
+select '邮局本市' as orderUnit, orderCount from (select IfNULL(sum(orderCount),0) as orderCount  from `qkzx_journalorders`  where JID = {$JID} and saleStyle = 3 and jyear ={$Year} and nostart <= {$No} and noend >= {$No}) c
+union
+SELECT '邮局本市东' AS orderUnit, orderCount FROM (SELECT IfNULL(SUM(orderCount),0) AS orderCount FROM `qkzx_journalorders` WHERE JID = {$JID} AND saleStyle =20 AND Jyear ={$Year}  AND nostart = {$No}) e
+union
+SELECT '邮局本市西' AS orderUnit, orderCount FROM(SELECT IfNULL(SUM(orderCount),0) AS orderCount FROM `qkzx_journalorders` WHERE JID = {$JID} AND saleStyle = 21 AND Jyear ={$Year} AND nostart ={$No} ) f
+union
+select '本社' as orderUnit, orderCount from (select IfNULL(sum(orderCount),0) as orderCount from `qkzx_journalorders` where JID = {$JID} and saleStyle in(1,2,6,8) and jyear = {$Year} and nostart <= {$No} and noend >= {$No}) d
+
+EOF;
+//        $sql = "select '编辑部' as orderUnit, orderCount from (select ifnull(sum(orderCount),0) as orderCount from `qkzx_journalorders` where JID = ? and saleStyle = 5 and jyear =? and nostart <= ? and noend >=?) a";
+            $counts = $this->db->query($sql)->result();
+            foreach($counts as $c) {
+                $total += $c->orderCount;
+            }
+
+        } else {
+            $counts = null;
+        }
+
+//        print_r($counts);
+
+        $this->load->model('grid_model', 'publishnotifydetails');
+
+        $this->publishnotifydetails->table('publishnotifydetails');
+        $this->publishnotifydetails->prepare(true, false);
+
+        $paras->page = 1;
+        $paras->size = 10;
+        $paras->search = true;
+        $paras->filters = (object) array(
+            "groupOp" => "AND",
+            "rules" => array(
+                (object) array(
+                    "data" => $PNID,
+                    "op" => "eq",
+                    "field" => "PNID"
+                )
+            )
+        );
+
+
+
+        $ret = $this->publishnotifydetails->wrapper_sheet($paras);
+        $details = $this->publishnotifydetails->sheet_to_grid($ret->data, false, true);
+
+        PHPExcel_Settings::setPdfRenderer(
+            "mPDF",
+            APPPATH.'third_party/mpdf'
+        );
+
+        $objPHPExcel = PHPExcel_IOFactory::load(BASEPATH.'../assets/reports/publishnotify.xls');
+        $sheet = $objPHPExcel->getActiveSheet();
+
+        $sheet->setCellValue("B2", $data['PID']->caption);    //承印厂
+        $sheet->setCellValue("K2", date('Y-m-d'));    //打印日期
+        $sheet->setCellValue("B3", "{$data['JID']->caption}\n\t({$data['Year']->value}年第{$data['No']->value}期)");  //刊名
+        $sheet->setCellValue("I3", "{$total} 册");  //印数
+        $sheet->setCellValue("I4", "{$data['Price']->value} 元");   //定价
+        $sheet->setCellValue("A6", $data['KaiId']->caption);  //开本
+        $sheet->setCellValue("B6", $data['SizeId']->caption);    //开本尺寸
+        $sheet->setCellValue("C6", $data['DingKou']->value);    //订口
+        $sheet->setCellValue("D6", $data['QieKou']->value);    //切口
+        $sheet->setCellValue("E6", $data['TianTou']->value);    //天头
+        $sheet->setCellValue("F6", $data['DiJiao']->value);   //地脚
+        $sheet->setCellValue("G6", $data['FanShen']->value);    //翻身
+        $sheet->setCellValue("I5", $data['BindingMethod']->value);   //装订方法
+
+        $i = 9;
+        foreach($details as $detail) {
+            $d = $detail->cells;
+            $sheet->setCellValue("A{$i}", $d['PublishContent']->caption);   //印刷内容
+            $sheet->setCellValue("B{$i}", $d['Pages']->value);    //页码
+            $sheet->setCellValue("C{$i}", "");        //页数
+            $sheet->setCellValue("D{$i}", $d['PublishCount']->value);       //印数
+            $sheet->setCellValue("E{$i}", $d['paperDeduceID']->caption);   //纸名
+            $sheet->setCellValue("G{$i}", $d['SizeId']->value); //规格
+            $sheet->setCellValue("H{$i}", $d['KaiShu']->value);        //开数
+            $sheet->setCellValue("I{$i}", $d['PaperCount']->value);        //应用纸数
+            $sheet->setCellValue("J{$i}", $d['ZoomPercent']->value);        //加放率
+            $sheet->setCellValue("K{$i}", $d['ZoomPaperCount']->value);        //加放纸数
+            $sheet->setCellValue("L{$i}", $d['TotalPaper']->value);        //共计用纸数
+            $i++;
+        }
+
+        $sheet->setCellValue("B15", $data['coverInk']->value);       //封面墨色
+        $sheet->setCellValue("I15", $data['textInk']->value);       //正文墨色
+//        $sheet->setCellValue("B16", $data['BindingOrder']->value);       //装订顺序
+//        $sheet->setCellValue("A17", $data['Note']->value);       //备注
+        $sheet->setCellValue("B16", wordwrap($data['BindingOrder']->value, 125));       //装订顺序
+        $sheet->setCellValue("A17", wordwrap($data['Note']->value, 125));       //备注
+        if (is_array($counts) && count($counts) == 6) {
+            $sheet->setCellValue("K17", $counts[5]->orderCount);      //本社
+            $sheet->setCellValue("K18", $counts[0]->orderCount);      //编辑部
+            $sheet->setCellValue("K19", $counts[2]->orderCount);      //邮局本市
+            $sheet->setCellValue("K20", $counts[3]->orderCount);      //邮局本市东
+            $sheet->setCellValue("K21", $counts[4]->orderCount);      //邮局本市西
+            $sheet->setCellValue("K22", $counts[1]->orderCount);      //邮局外埠
+        }
+        $sheet->setCellValue("K23", $total);      //合计
+        $sheet->setCellValue("K24", $data['AID']->caption);      //开单
+
+
+        $objWriter = PHPExcel_IOFactory::createWriter($objPHPExcel, 'PDF');
+        header('Content-Type: application/pdf'); //mime type
+//        header('Content-Disposition: attachment;filename="1.pdf"'); //tell browser what's the file name
+//        header('Cache-Control: max-age=0'); //no cache
+////        $objWriter->SetFont('droidsansfallback');
+////        $objWriter->setCellPaddings(10,10,10,10);
+        $objWriter->save('php://output');
+
+
+    }
 }

@@ -51,7 +51,7 @@ class Crud_before_edit extends Crud_hook {
 	}
 	
 	
-	function order_hook($oper, $model, &$data, $old)
+	function journalorders_edit($oper, $model, &$data, $old)
 	{
 
 		if ($oper == 'create') {
@@ -278,10 +278,15 @@ class Crud_before_edit extends Crud_hook {
 
 		} else {
             $field = array(
-                'JID', 'NoStart', 'NoEnd', 'OrderCount', 'CostDiscount', 'SaleDiscount', 'TotalPrice', 'SalesTotal', 'CostTotal'
+                'JID', 'NoStart', 'NoEnd', 'OrderCount', 'CostDiscount', 'SaleDiscount', 'TotalPrice', 'SalesTotal', 'CostTotal', 'ReportStatus'
             );
 
             $this->array_merge_by_primary($model->primary, $data, $old, $field);
+            foreach($data as &$d) {
+                if ($d['ReportStatus'] == 1) {
+                    return $this->result(false, "已报数，不可修改");
+                }
+            }
         }
 
 		foreach($data as &$d) {
@@ -306,7 +311,6 @@ class Crud_before_edit extends Crud_hook {
 	public function reportcounts_edit ($oper, $model, &$data, $old)
 	{
 		if ($oper == 'create') {
-			//TODO 'UID'
             $d=&$data[0];
             $d['BatchID'] =  sprintf("%s%04d",date('Ymj'), $_SESSION['userinfo']['id']);
 			$this->load->model('ReportCounts');
@@ -325,21 +329,37 @@ class Crud_before_edit extends Crud_hook {
 				$this->db->where('NoEnd', $d['No']);
 				$this->db->update('journalorders', $save);
 			}
-		}
+		} else {
+            $field = array(
+                'JID', 'No'
+            );
+            $this->array_merge_by_primary($model->primary, $data, $old, $field);
+            foreach($data as &$d) {
+                $publishnotify = $this->db->get_where('publishnotify', array('JID' => $d['JID'], 'No' => $d['No']))->row_array();
+                if ($publishnotify) {
+                    return $this->result(false, "已开印，不可修改");
+                }
+            }
+        }
         return $this->result();
 	
 	}
 	public function publishnotify_before_edit($oper, $model, &$data, $old)
     {
-        foreach ($old as $o) {
-            if ($o['Status'] > 1) {
-                foreach ($data as $k=>$d) {
-                    if ((int)$d['id'] == (int)$o['id']) {
-                        return $this->result(false, "已进行审核,无法修改");
+        if ($oper == "create") {
+
+        } else {
+            foreach ($old as $o) {
+                if ($o['Status'] > 1) {
+                    foreach ($data as $k=>$d) {
+                        if ((int)$d['id'] == (int)$o['id']) {
+                            return $this->result(false, "已进行审核,无法修改");
+                        }
                     }
                 }
             }
         }
+
         return $this->result();
     }
 
@@ -541,7 +561,7 @@ class Crud_before_edit extends Crud_hook {
             $d = &$data[0];
             $exist = $this->db->get_where('publishrecords', array('JID' => $d['JID'], 'No' => $d['No']))->row_array();
             if ($exist) {
-                return $this->result(false, "数据重复");
+                return $this->result(false, "已存在该期次的印制责任卡");
             }
         }
         return $this->result(true);

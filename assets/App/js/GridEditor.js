@@ -216,7 +216,7 @@ Class('App.GridEditor', 'xui.Module',{
 									}
 								}
 							}
-							ns.grid.insertRows(r,r.pid,null,false);
+							ns.grid.insertRows(r,r.pid,null,true);
 						});
 
 					},

@@ -27,8 +27,8 @@ class QKZX extends MY_Controller
 			$this->reply(404, "Not Found");
 		}
 	}
-	
-	public function request_generate_new_plan()
+
+    private function request_generate_new_plan()
 	{
 //		$this->load->model('crud_model');
 //		$dbContext = $this->crud_model->table('journalbaseinfo');
@@ -44,8 +44,8 @@ class QKZX extends MY_Controller
 //		}
 		$this->reply(200, "Success");
 	}
-	
-	public function request_get_stock_and_order_info()
+
+    private function request_get_stock_and_order_info()
 	{
 		$data = new stdClass();
 		$this->load->model('grid_model');
@@ -112,8 +112,8 @@ class QKZX extends MY_Controller
 		$data->sql = $ret->sql;
 		return $data;
 	}
-	
-	public function  request_get_orders_counts ()
+
+    private function  request_get_orders_counts ()
 	{
 		$data = new stdClass();
 		$this->load->model('grid_model');
@@ -189,7 +189,7 @@ class QKZX extends MY_Controller
 		return $data;
 	}
 
-	public function  request_get_report_counts ()
+    private function  request_get_report_counts ()
 	{
 		$data = new stdClass();
 		$this->load->model('grid_model');
@@ -288,7 +288,7 @@ EOF;
 		$data->rows = $ret->result();
         return $data;
 	}
-	public function  request_get_arrive_counts ()
+    private function  request_get_arrive_counts ()
 	{
 		$data = new stdClass();
 		$this->load->model('grid_model');
@@ -341,7 +341,7 @@ EOF;
         return $data;
 	}
 
-    function request_publishnotifydetails_grid($paras = null)
+    private function request_publishnotifydetails_grid()
     {
         $this->load->model('grid_model');
         $this->grid_model->table("publishnotifydetails", array(
@@ -371,7 +371,7 @@ EOF;
         return $ret;
     }
 
-    function request_publishrecords($paras = null)
+    private function request_publishrecords()
     {
         $data = new stdClass();
         $this->load->model('grid_model');
@@ -419,7 +419,7 @@ EOF;
         return $data;
     }
 
-    public function request_publishnotify_check()
+    private function request_publishnotify_check()
     {
         if (isset($this->paras->ids)) {
             $this->db->where_in('id', $this->paras->ids);
@@ -429,7 +429,7 @@ EOF;
         return 1;
     }
 
-    public function request_publishnotify_check2()
+    private function request_publishnotify_check2()
     {
         if (isset($this->paras->ids)) {
             $this->db->where_in('id', $this->paras->ids);
@@ -439,7 +439,7 @@ EOF;
         return 1;
     }
 
-    public function request_publishnotify_submit()
+    private function request_publishnotify_submit()
     {
         $change =array();
         if (isset($this->paras->ids)) {
@@ -461,7 +461,7 @@ EOF;
         return 1;
     }
 
-    public function request_paper_stock_in()
+    private function request_paper_stock_in()
     {
         $ret = new stdClass ();
 
@@ -509,7 +509,7 @@ EOF;
         $ret->dataFilter = $this->grid_model->crud_table['filter'];
         return $ret;
     }
-    public function request_paper_stock_out()
+    private function request_paper_stock_out()
     {
         $ret = new stdClass ();
 
@@ -558,7 +558,7 @@ EOF;
         return $ret;
     }
 
-    public function request_delivery_by_cid()
+    private function request_delivery_by_cid()
     {
         $CID = $this->paras->CID->value;
         $AID = 0;
@@ -572,7 +572,7 @@ EOF;
         return 1;
     }
 
-    public function request_delivery_by_jid()
+    private function request_delivery_by_jid()
     {
         $JID = $this->paras->JID->value;
         $Year = $this->paras->Year->value;
@@ -589,7 +589,7 @@ EOF;
         //FIXME: 检查返回值
         return 1;
     }
-    public function request_delivery()
+    private function request_delivery()
     {
         $BatchID = date('ymd');
         foreach($this->paras->data as $d){
@@ -612,7 +612,7 @@ EOF;
         return 1;
     }
 
-    public function request_delivery_retail()
+    private function request_delivery_retail()
     {
         $BatchID = date('ymd');
         foreach($this->paras->data as $d){
@@ -653,7 +653,7 @@ EOF;
         return 1;
     }
 
-    public function request_delivery_stock()
+    private function request_delivery_stock()
     {
         $this->load->model('JournalStockManage');
         foreach($this->paras->data as $d){
@@ -663,7 +663,7 @@ EOF;
         return 1;
     }
 
-    public function request_delivery_append()
+    private function request_delivery_append()
     {
         $this->load->model('JournalStockManage');
         $BatchID = date('ymd');
@@ -689,7 +689,7 @@ EOF;
         return 1;
     }
 
-    public function request_delivery_special()
+    private function request_delivery_special()
     {
         $this->load->model('JournalStockManage');
         foreach($this->paras->data as $d){
@@ -698,6 +698,38 @@ EOF;
             }
         }
         return 1;
+    }
+
+    private function request_message_show()
+    {
+        $data = new stdClass();
+        $this->load->model('grid_model');
+        $this->grid_model->table('messages');
+        $this->grid_model->prepare();
+        $paras = new stdClass();
+        $paras->search = true;
+        $paras->filters = (object) array(
+            "groupOp" => "AND",
+            "rules" => array(
+                (object) array(
+                    "data" => 11 /*$_SESSION['userinfo']['id']*/,
+                    "op" => "eq",
+                    "field" => "ReceiverID"
+                )
+            )
+        );
+        $grid_info = $this->grid_model->grid_info();
+        $data->headers = $grid_info->headers;
+        $ret = $this->grid_model->wrapper_sheet($paras);
+        $data->rows = $this->grid_model->sheet_to_grid($ret->data);
+        $data->count = $ret->count;
+        $data->sql = $ret->sql;
+        $this->reply(200, "Success", $data);
+    }
+
+    private function request_message_send()
+    {
+
     }
 
 }

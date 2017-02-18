@@ -232,7 +232,7 @@ Class('App.GridForm', 'xui.Module',{
 		},
 		_width:function(v){
 			v=parseInt(v,10);
-			return (v+1)*150 + v*30;
+			return (v+1)*150+v*15;
 		},
 		_height:function(v){
 			v=parseInt(v,10);
@@ -240,7 +240,7 @@ Class('App.GridForm', 'xui.Module',{
 		},
 		_left:function(v){
 			v=parseInt(v,10);
-			return 15+v*180;
+			return 15+v*165;
 		},
 		_top:function(v){
 			v=parseInt(v,10);
