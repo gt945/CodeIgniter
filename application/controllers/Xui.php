@@ -59,6 +59,12 @@ class Xui extends MY_Controller {
 		$ret = new stdClass ();
 		$grid_info = $this->grid_model->grid_info();
 		$ret->gridPrimary = $this->grid_model->primary;
+		$ret->gridRole = array(
+		      "c" => $this->grid_model->crud_table['_role_c'],
+		      "r" => $this->grid_model->crud_table['_role_r'],
+		      "u" => $this->grid_model->crud_table['_role_u'],
+		      "d" => $this->grid_model->crud_table['_role_d']
+		);
 		if ($this->grid_model->crud_table['_role_c'] || $this->grid_model->crud_table['_role_u']) {
 			$ret->gridForm = "App.GridForm";
 		} else {

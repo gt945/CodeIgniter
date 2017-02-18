@@ -113,48 +113,49 @@ Class('App.SendMessage', 'xui.Module',{
 		events:{"onRender":"_com_onrender"},
 		_com_onrender:function (com, threadid){
 			var ns=this;
-
 		},
 		_cmdbox_beforecombopop:function(profile,pos,e,src){
 			var ns=this,ctrl=profile.boxing();
 			xui.ModuleFactory.newCom("App.UserGroupSelect", function(){
-				this.setProperties({
-					field:"gid",
-					pos:ctrl.getRoot(),
-					value:ctrl.getUIValue()
-				});
-				this.setEvents({
-					onCancel:function(){
-						if(!ctrl.isDestroyed()){
-							ctrl.activate();
-						}
-					},
-					onSelect:function(val,extra){
-						if(!ctrl.isDestroyed()){
-							ctrl.setUIValue(val.value);
-							if(typeof(val.caption)==="string"){
-								ctrl.setCaption(val.caption);
+				if (!_.isEmpty(this)){
+					this.setProperties({
+						field:"gid",
+						pos:ctrl.getRoot(),
+						value:ctrl.getUIValue()
+					});
+					this.setEvents({
+						onCancel:function(){
+							if(!ctrl.isDestroyed()){
+								ctrl.activate();
 							}
-							ctrl.activate();
-							if(extra && _.isArr(extra)){
-								_.arr.each(extra,function(exval){
-									var setting=ns.properties.gridSetting;
-									var ele=db.getUI(exval.id);
-									if(ele){
-										ele.setUIValue(exval.cell.value);
-										if(typeof(exval.cell.caption)==="string"){
-											ele.setCaption(exval.cell.caption);
+						},
+						onSelect:function(val,extra){
+							if(!ctrl.isDestroyed()){
+								ctrl.setUIValue(val.value);
+								if(typeof(val.caption)==="string"){
+									ctrl.setCaption(val.caption);
+								}
+								ctrl.activate();
+								if(extra && _.isArr(extra)){
+									_.arr.each(extra,function(exval){
+										var setting=ns.properties.gridSetting;
+										var ele=db.getUI(exval.id);
+										if(ele){
+											ele.setUIValue(exval.cell.value);
+											if(typeof(exval.cell.caption)==="string"){
+												ele.setCaption(exval.cell.caption);
+											}
+										}else{
+											LOG.error(exval.id,1,2);
 										}
-									}else{
-										LOG.error(exval.id,1,2);
-									}
-
-								});
+									});
+								}
 							}
 						}
-					}
-				});
-				this.show();
+					});
+					this.show();
+				}
+
 			});
 		},
 		_ctl_sbutton486_onclick:function(){

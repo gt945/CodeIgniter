@@ -1,4 +1,4 @@
-Class('App.GridEditor', 'xui.Module',{
+Class('App.Messages', 'xui.Module',{
 	Instance:{ 
 		properties : {
 			pageSize:20,
@@ -33,7 +33,11 @@ Class('App.GridEditor', 'xui.Module',{
 			
 			append((new xui.UI.ToolBar())
 				.setHost(host,"toolbar")
-				.setItems([{"id":"grp1", "sub":[{"id":"null","caption":""}], "caption":"grp1"}])
+				.setItems([{"id":"grp1", "sub":[
+				    {"id":"delete","image":"@xui_ini.appPath@image/delete.png","caption":"删除","disabled":true},
+				    {"id":"filter","image":"@xui_ini.appPath@image/filter.png","caption":"搜索"},
+				    {"id":"send","image":"@xui_ini.appPath@image/message.png","caption":"发送消息"}
+				], "caption":"grp1"}])
 				.onClick("_toolbar_onclick")
 			);
 			
@@ -55,13 +59,13 @@ Class('App.GridEditor', 'xui.Module',{
 				.onClick("_pagebar_onclick")
 			);
 			
-			// append((new xui.UI.Block())
+            // append((new xui.UI.Block())
 			// 	.setHost(host,"block")
 			// 	.setHeight(200)
 			// 	.setDock("bottom")
 			// 	.setBorderType("none")
 			// );
-
+            
 			return children;
 		},
 		events:{"onRender":"_com_onrender"},
@@ -70,7 +74,6 @@ Class('App.GridEditor', 'xui.Module',{
 				grid=ns.grid;
 			AJAX.callService('xui/request',ns.properties.target,"grid",{mid:ns.properties.id},function(rsp){
 				ns.setProperties(rsp.data);
-				ns.toolbar.setItems(_.unserialize(ns.properties.gridToolBarItems));
 				if(ns.properties.gridTreeMode){
 						grid.setTreeMode(true)
 						.setRowHandlerWidth(100)
@@ -151,7 +154,7 @@ Class('App.GridEditor', 'xui.Module',{
 			var ns=this;
 			_.arr.each(rows,function(row){
 				_.arr.each(ns.properties.gridHeaders,function(h,i){
-					if(ns.properties.gridSetting[h.id].type=="checkbox"){
+                    if(ns.properties.gridSetting[h.id].type=="checkbox"){
 						row.cells[i].value=!!parseInt(row.cells[i].value,10);
 					}
 				});
@@ -186,9 +189,7 @@ Class('App.GridEditor', 'xui.Module',{
 			var ns = this,grid=ns.grid;
 			var row=grid.getActiveRow();
 			var prop={
-				recordIds:recordIds,
-				_gid:ns._ogid,
-				_pid:ns._opid
+				recordIds:recordIds
 			};
 			if (row){
 				prop['activeId']=row.id;
@@ -202,37 +203,6 @@ Class('App.GridEditor', 'xui.Module',{
 				},null,prop,{
 					onNavigate:function(dir){
 						ns._navigate(this,dir);
-					},
-					afterCreated:function(data){
-						var rows=ns._buildRows(data);
-						_.arr.each(rows, function(r){
-							if(ns.properties.gridTreeMode){
-								var row=ns.grid.getRowbyRowId(r.pid);
-								if(row){
-									if(row.sub){
-										ns.grid.toggleRow(r.pid,true);
-									}else{
-										ns.grid.updateRow(r.pid,{sub:[]});
-									}
-								}
-							}
-							ns.grid.insertRows(r,r.pid,null,true);
-						});
-
-					},
-					afterUpdated:function(rowIds, hash, rows){
-						_.each(rowIds,function(rowId){
-							_.each(hash,function(v, k){
-								ns.grid.updateCellByRowCol(rowId, k, (_.isHash(v)?v:{value:v}), false, false);
-							});
-						});
-						if (_.isArr(rows)) {
-							_.each(rows,function(row){
-								_.each(row.cells,function(v,k){
-									ns.grid.updateCellByRowCol(row.id, k, (_.isHash(v)?v:{value:v}), false, false);
-								});
-							});
-						}
 					}
 				});
 			}
@@ -243,10 +213,8 @@ Class('App.GridEditor', 'xui.Module',{
 					ns.properties.filterForm.mainDlg.show(null,true);
 				}else{
 					xui.ModuleFactory.newCom(ns.properties.gridFilter,function(){
-						if (!_.isEmpty(this)){
-							ns.properties.filterForm=this;
-							this.show();
-						}
+						ns.properties.filterForm=this;
+						this.show();
 					},null,ns.properties,{
 						onSelect:function(filters){
 							ns._filters=filters;
@@ -257,17 +225,6 @@ Class('App.GridEditor', 'xui.Module',{
 						}
 					});
 				}
-				
-		},
-		_openExporter:function(){
-			var ns = this;
-			var prop={_filter:ns._filters,_search:ns._search,_sidx:ns.properties.sidx,_sord:ns.properties.sord};
-			_.merge(prop,ns.properties);
-			ns.properties.filterForm=xui.ModuleFactory.newCom(ns.properties.gridExporter,function(){
-				if(!_.isEmpty(this)){
-					this.show();
-				}
-			},null,prop);
 				
 		},
 		_delRecords:function(ids){
@@ -294,16 +251,6 @@ Class('App.GridEditor', 'xui.Module',{
 			case "filter":
 				ns._openFilter();
 				break;
-			case "new":
-				ns._openForm([]);
-				break;
-			case "edit":
-				var rows=ns.grid.getUIValue();
-				var ids=rows.split(';');
-				if(ids.length>0){
-					ns._openForm(ids);
-				}
-				break;
 			case "delete":
 				var ids=ns.grid.getUIValue(true);
 				if(_.isStr(ids)){
@@ -317,65 +264,10 @@ Class('App.GridEditor', 'xui.Module',{
 					xui.message("请选择您要删除的数据!");
 				}
 				break;
-			case "group":
-				var setting=ns.properties.gridSetting;
-				xui.ModuleFactory.newCom('App.AdvSelect', function(){
-					if (!_.isEmpty(this)){
-						this.setProperties({
-							key:ns.properties.gridId,
-							field:ns.properties.gridGroup,
-							pos:src,
-							value:ns._gid,
-							setting:setting['gid']
-						});
-						this.setEvents({
-							onSelect:function(val){
-								ns.toolbar.updateItem("group",{caption:val.caption});
-								if (ns._gid!=val.value){
-									ns._ogid={value:val.value,caption:val.caption};
-									ns._gid=val.value;
-									ns.loadGridData(1);
-								}
-							}
-						});
-						this.show();
-					}
-
+			case "send":
+				xui.ModuleFactory.newCom("App.SendMessage", function(){
+					this.show();
 				});
-				break;
-			case "sub":
-				if (item.value){
-					ns._sub=1;
-				}else{
-					ns._sub=0;
-				}
-				ns.loadGridData(1);
-				break;
-			case "export":
-				ns._openExporter();
-				break;
-			default:
-				switch(group.id){
-				case "flow":
-					ns._flow_action(item.actionId);
-					break;
-				case "custom":
-					if(typeof item.app == 'string'){
-						xui.ModuleFactory.newCom(item.app, function(){
-							if (!_.isEmpty(this)){
-								this.show();
-							}
-						}, null, {editor:ns,item:item},{
-							refreshRow:function(id){
-								ns._refresh_row(id);
-							},
-							refreshGrid:function(){
-								ns.loadGridData(ns._curPage);
-							}
-						});
-					}
-					break;
-				}
 				break;
 			}
 		},
@@ -388,7 +280,7 @@ Class('App.GridEditor', 'xui.Module',{
 				if(ns.properties.gridTreeMode&&row){
 					var setting=ns.properties.gridSetting;
 					var name=setting[ns.properties.gridTreeMode].tree_field;
-					var cell=ctrl.getCellbyRowCol(row.id, name);
+                    var cell=ctrl.getCellbyRowCol(row.id, name);
 					ns._opid={
 						value:row.id,
 						caption:cell.value
@@ -424,48 +316,6 @@ Class('App.GridEditor', 'xui.Module',{
 		_grid_resize:function(profile,w,h){
 			var ns=this;
 			ns.properties.pageSize=parseInt((h-27)/21,10);
-		},
-		_refresh_row:function(id){
-			var ns=this;
-			AJAX.callService('xui/request',ns.properties.gridId,"get",{id:id},function(rsp){
-				var row=rsp.data.rows[0],
-					settings=ns.properties.gridSetting,
-					data={};
-				if(row){
-				var i=0;
-				_.each(settings, function(s,n){
-					if(!s.object&&!s.virtual){
-						data[n]=row.cells[i];
-						i++;
-					}
-				});
-					ns.grid.updateRow(row.id,row);
-				}
-			},function(){
-			},function(){
-			});
-		},
-		_flow_action:function(id){
-			var ns=this,grid=ns.grid;
-			var rows_id=grid.getUIValue();
-			if (rows_id) {
-				var values=rows_id.split(";");
-				if (values.length>0){
-					var post={
-						actionId:id,
-						ids:values
-					}
-					AJAX.callService('xui/request',ns.properties.gridId,"flow_action",post,function(rsp){
-					},function(){
-						xui.Dom.busy("正在处理 ...");
-					},function(){
-						xui.Dom.free();
-					});
-
-				}
-			}else{
-				xui.message("未选择条目!");
-			}
 		},
 		_navigate:function(app,dir){
 			var ns = this;

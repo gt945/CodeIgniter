@@ -178,16 +178,17 @@ Class('App.GridForm', 'xui.Module',{
 					.setTabindex(++index)
 					.onClick("_ctl_btnnext_onclick")
 				);
-				host.xui_ui_block4.append((new xui.UI.SButton())
-					.setHost(host,"btnCopy")
-					.setLeft(60)
-					.setTop(10)
-					.setWidth(20)
-					.setCaption("C")
-					.setTabindex(++index)
-					.onClick("_ctl_btncopy_onclick")
-				);
-
+				if (host.properties.gridRole.c) {
+					host.xui_ui_block4.append((new xui.UI.SButton())
+						.setHost(host,"btnCopy")
+						.setLeft(60)
+						.setTop(10)
+						.setWidth(20)
+						.setCaption("C")
+						.setTabindex(++index)
+						.onClick("_ctl_btncopy_onclick")
+					);
+				}
 			}
 
 			host.xui_ui_block4.append((new xui.UI.SButton())
@@ -459,8 +460,8 @@ Class('App.GridForm', 'xui.Module',{
 		_databinder_afterupdatedatafromui:function (profile, dataFromUI){
 			// _.each(dataFromUI,function(o,i){
 			// 	if(_.isDate(o)){
-			//         dataFromUI[i]=xui.Date.format(o, "yyyy-mm-dd hh:nn:ss");
-            //
+			//		 dataFromUI[i]=xui.Date.format(o, "yyyy-mm-dd hh:nn:ss");
+			//
 			// 	}
 			// });
 		},
@@ -539,47 +540,49 @@ Class('App.GridForm', 'xui.Module',{
 			var setting=ns.properties.gridSetting;
 			var db=ns.databinder;
 			xui.ModuleFactory.newCom(ctrl.getProperties("app"), function(){
-				this.setProperties({
-					key:ns.properties.gridId,
-					field:ctrl.getDataField(),
-					pos:ctrl.getRoot(),
-					cmd:ctrl.getProperties("cmd"),
-					value:ctrl.getUIValue(),
-					setting:setting[ctrl.getDataField()],
-					relate:ns._get_relate(profile.properties.setting.relate)
-				});
-				this.setEvents({
-					onCancel:function(){
-						if(!ctrl.isDestroyed()){
-							ctrl.activate();
-						}
-					},
-					onSelect:function(val,extra){
-						if(!ctrl.isDestroyed()){
-							ctrl.setUIValue(val.value);
-							if(typeof(val.caption)==="string"){
-								ctrl.setCaption(val.caption);
+				if (!_.isEmpty(this)){
+					this.setProperties({
+						key:ns.properties.gridId,
+						field:ctrl.getDataField(),
+						pos:ctrl.getRoot(),
+						cmd:ctrl.getProperties("cmd"),
+						value:ctrl.getUIValue(),
+						setting:setting[ctrl.getDataField()],
+						relate:ns._get_relate(profile.properties.setting.relate)
+					});
+					this.setEvents({
+						onCancel:function(){
+							if(!ctrl.isDestroyed()){
+								ctrl.activate();
 							}
-							ctrl.activate();
-							if(extra && _.isArr(extra)){
-								_.arr.each(extra,function(exval){
-									var setting=ns.properties.gridSetting;
-									var ele=db.getUI(exval.id);
-									if(ele){
-										ele.setUIValue(exval.cell.value);
-										if(typeof(exval.cell.caption)==="string"){
-											ele.setCaption(exval.cell.caption);
+						},
+						onSelect:function(val,extra){
+							if(!ctrl.isDestroyed()){
+								ctrl.setUIValue(val.value);
+								if(typeof(val.caption)==="string"){
+									ctrl.setCaption(val.caption);
+								}
+								ctrl.activate();
+								if(extra && _.isArr(extra)){
+									_.arr.each(extra,function(exval){
+										var setting=ns.properties.gridSetting;
+										var ele=db.getUI(exval.id);
+										if(ele){
+											ele.setUIValue(exval.cell.value);
+											if(typeof(exval.cell.caption)==="string"){
+												ele.setCaption(exval.cell.caption);
+											}
+										}else{
+											LOG.error(exval.id,1,2);
 										}
-									}else{
-										LOG.error(exval.id,1,2);
-									}
-
-								});
+	
+									});
+								}
 							}
 						}
-					}
-				});
-				this.show();
+					});
+					this.show();
+				}
 			});
 			return false;
 		},
