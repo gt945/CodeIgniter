@@ -27,28 +27,28 @@ class PaperUseDetail extends CI_Model {
 	}
 	
 	public function create($d, $j, $n)
-    {
-        $save = array(
-            "PaperStyleID" => $d['paperDeduceID'],
-            "Counts" => $d['TotalPaper'],
-            "KeepCounts" => $d['TotalPaper'],
-            "Price" => $d['Price'],
-            "Note" => "印制单用纸",
-            "Year" => date('Y'),
-            "JID" => $j['id'],
-            "Month" => date('m'),
-            "Volume" => "",
-            "No" => $n['No'],
-            "Type" => 0,
-        );
-        $this->db->insert($this->name, $save);
-        return $this->db->insert_id ();
-    }
+	{
+		$save = array(
+			"PaperStyleID" => $d['paperDeduceID'],
+			"Counts" => $d['TotalPaper'],
+			"KeepCounts" => $d['TotalPaper'],
+			"Price" => $d['Price'],
+			"Note" => "印制单用纸",
+			"Year" => date('Y'),
+			"JID" => $j['id'],
+			"Month" => date('m'),
+			"Volume" => "",
+			"No" => $n['No'],
+			"Type" => 0,
+		);
+		$this->db->insert($this->name, $save);
+		return $this->db->insert_id ();
+	}
 	
 	public function delete(){
-        if ($this->data) {
-            $this->db->delete($this->name, array('id' => $this->id));
-        }
-    }
+		if ($this->data) {
+			$this->db->delete($this->name, array('id' => $this->id));
+		}
+	}
 	
 }

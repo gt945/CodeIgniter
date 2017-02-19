@@ -7,7 +7,7 @@ class JournalBaseInfo extends CI_Model {
 	{
 		parent::__construct ();
 		$this->id = -1;
-        $this->name = 'journalbaseinfo';
+		$this->name = 'journalbaseinfo';
 	}
 	
 	public function prepare($id)

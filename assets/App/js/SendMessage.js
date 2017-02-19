@@ -5,7 +5,7 @@ Class('App.SendMessage', 'xui.Module',{
 		initialize : function(){
 		},
 		iniComponents : function(){
-			// [[Code created by CrossUI RAD Studio
+			//[[Code created by CrossUI RAD Studio
 			var host=this, children=[], append=function(child){children.push(child.get(0));};
 			append((new xui.DataBinder())
 				.setHost(host,"databinder")
@@ -51,22 +51,22 @@ Class('App.SendMessage', 'xui.Module',{
 				})
 				);
 			
-			// host.xui_ui_block4.append(
-			// 	xui.create("xui.UI.ComboInput")
-			// 	.setHost(host,"xui_ui_comboinput76")
-			// 	.setDock("width")
-			// 	.setLeft(16)
-			// 	.setTop(45)
-			// 	.setWidth(220)
-			// 	.setLabelSize(70)
-			// 	.setLabelCaption("标　题:")
-			// 	.setType("none")
-			// 	.setCustomStyle({
-			// 		"LABEL" : {
-			// 			"text-align" : "center"
-			// 		}
-			// 	})
-			// 	);
+			//host.xui_ui_block4.append(
+			//	xui.create("xui.UI.ComboInput")
+			//	.setHost(host,"xui_ui_comboinput76")
+			//	.setDock("width")
+			//	.setLeft(16)
+			//	.setTop(45)
+			//	.setWidth(220)
+			//	.setLabelSize(70)
+			//	.setLabelCaption("标　题:")
+			//	.setType("none")
+			//	.setCustomStyle({
+			//		"LABEL" : {
+			//			"text-align" : "center"
+			//		}
+			//	})
+			//	);
 			
 			host.mainDlg.append(
 				xui.create("xui.UI.RichEditor")
@@ -105,7 +105,7 @@ Class('App.SendMessage', 'xui.Module',{
 				);
 			
 			return children;
-			// ]]Code created by CrossUI RAD Studio
+			//]]Code created by CrossUI RAD Studio
 		},
 		customAppend : function(parent, subId, left, top){
 			return false;
@@ -161,6 +161,9 @@ Class('App.SendMessage', 'xui.Module',{
 		_ctl_sbutton486_onclick:function(){
 			var ns=this;
 			ns.mainDlg.close(false);
+		},
+		_ctl_sbutton14_onclick:function(){
+			var ns=this;
 		}
 	}
 });

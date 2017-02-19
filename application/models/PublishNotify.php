@@ -7,7 +7,7 @@ class PublishNotify extends CI_Model {
 	{
 		parent::__construct ();
 		$this->id = -1;
-        $this->name = 'publishnotify';
+		$this->name = 'publishnotify';
 	}
 	
 	public function prepare($id)

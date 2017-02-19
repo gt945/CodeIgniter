@@ -68,21 +68,32 @@ Class('App.QKZX.OrderCounts', 'xui.Module',{
 					.onClick("_ctl_sbutton3_onclick")
 			);
 			host.ctl_block10.append(
-                (new xui.UI.ComboInput())
-                .setHost(host,"totalcount")
-                .setLeft(10)
-                .setTop(10)
-                .setLabelSize(50)
-                .setLabelCaption("合计:")
-                .setType("none")
-                .setReadonly(true)
+				(new xui.UI.ComboInput())
+				.setHost(host,"totalcount")
+				.setLeft(10)
+				.setTop(10)
+				.setLabelSize(50)
+				.setLabelCaption("合计:")
+				.setType("none")
+				.setReadonly(true)
 				.setShowDirtyMark(false)
-                .setCustomStyle({
-                    "LABEL" : {
-                        "color" : "#000000"
-                    }
-                })
+				.setCustomStyle({
+					"LABEL" : {
+						"color" : "#000000"
+					}
+				})
 			);
+			
+			host.ctl_block10.append(
+				(new xui.UI.SButton())
+					.setHost(host)
+					.setTop(10)
+					.setWidth(80)
+					.setLeft(150)
+					.setCaption("填入")
+					.onClick("_ctl_sbutton4_onclick")
+			);
+			
 			return children;
 		},
 		_fillGrid:function(headers,rows){
@@ -130,6 +141,12 @@ Class('App.QKZX.OrderCounts', 'xui.Module',{
 		},
 		_ctl_sbutton3_onclick:function(){
 			var ns=this;
+			ns.destroy();
+		},
+		_ctl_sbutton4_onclick:function(){
+			var ns=this;
+			var count=ns.totalcount.getUIValue();
+			ns.fireEvent("onSelect",[{value:count}]);
 			ns.destroy();
 		},
 		_pagebar_onclick:function (profile, page){

@@ -437,7 +437,7 @@ Class('App.GridForm', 'xui.Module',{
 				if(ns._dataFilter){
 					_.tryF(ns._dataFilter.autoComplete,[db]);
 				}
-
+				ns.fireEvent("onUpdateUI",[recordId]);
 			},function(){
 				ns.mainDlg.busy("正在处理 ...");
 			},function(result){

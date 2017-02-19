@@ -63,8 +63,8 @@ Class('App.QKZX.ReportCounts', 'xui.Module',{
 					.setHost(host,"total")
 					.setLeft(10)
 					.setTop(10)
-					.setLabelSize(50)
-					.setLabelCaption("合计:")
+					.setLabelSize(70)
+					.setLabelCaption("合计报数:")
 					.setType("none")
 					.setReadonly(true)
 					.setShowDirtyMark(false)
@@ -74,6 +74,17 @@ Class('App.QKZX.ReportCounts', 'xui.Module',{
 						}
 					})
 			);
+			
+			host.ctl_block10.append(
+				(new xui.UI.SButton())
+					.setHost(host)
+					.setTop(10)
+					.setWidth(80)
+					.setLeft(150)
+					.setCaption("填入")
+					.onClick("_ctl_sbutton4_onclick")
+			);
+
 			host.ctl_block10.append(
 				(new xui.UI.SButton())
 					.setHost(host)
@@ -130,6 +141,12 @@ Class('App.QKZX.ReportCounts', 'xui.Module',{
 		},
 		_ctl_sbutton3_onclick:function(){
 			var ns=this;
+			ns.destroy();
+		},
+		_ctl_sbutton4_onclick:function(){
+			var ns=this;
+			var count=ns.total.getUIValue();
+			ns.fireEvent("onSelect",[{value:count}]);
 			ns.destroy();
 		},
 		_pagebar_onclick:function (profile, page){

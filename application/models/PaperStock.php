@@ -7,7 +7,7 @@ class PaperStock extends CI_Model {
 	{
 		parent::__construct ();
 		$this->id = -1;
-        $this->name = 'paperstock';
+		$this->name = 'paperstock';
 	}
 	
 	public function prepare($id)
@@ -37,14 +37,14 @@ class PaperStock extends CI_Model {
 	
 	public function stock_out($count)
 	{
-        //TODO lock stock
-        if ($this->stock) {
-            $save = array(
-                'Counts'	=>	(double)$this->stock['Counts'] - (double)$count
-            );
-            $this->db->where('id', $this->id);
-            $this->db->update($this->name, $save);
-        }
+		//TODO lock stock
+		if ($this->stock) {
+			$save = array(
+				'Counts'	=>	(double)$this->stock['Counts'] - (double)$count
+			);
+			$this->db->where('id', $this->id);
+			$this->db->update($this->name, $save);
+		}
 	}
 	
 	public function stock_in($count)
@@ -53,7 +53,7 @@ class PaperStock extends CI_Model {
 		if ($this->stock) {
 			$save = array(
 				'Counts'	=>	(double)$this->stock['Counts'] + (double)$count,
-                'CreateTime'    => date('Y-m-j H:i:s')
+				'CreateTime'	=> date('Y-m-j H:i:s')
 			);
 			$this->db->where('id', $this->id);
 			$this->db->update($this->name, $save);

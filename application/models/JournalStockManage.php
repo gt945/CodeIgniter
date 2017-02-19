@@ -9,15 +9,15 @@ class JournalStockManage extends CI_Model {
 		$this->jid = -1;
 		$this->year = -1;
 		$this->no = -1;
-        $this->name = 'journalstockmanage';
+		$this->name = 'journalstockmanage';
 		
 	}
 	
 	public function prepare($jid, $year, $no)
 	{
-        $this->jid = $jid;
-        $this->year = $year;
-        $this->no = $no;
+		$this->jid = $jid;
+		$this->year = $year;
+		$this->no = $no;
 		$this->stock = null;
 		$this->db->from($this->name);
 		$this->db->where('JID', $jid);
@@ -52,7 +52,7 @@ class JournalStockManage extends CI_Model {
 				'No'	=>	$this->no,
 				'Counts'	=>	$count,
 				'StockTag'	=>	$tag,
-                'Note'  => $note
+				'Note'  => $note
 			);
 			$this->db->insert('stockmanagedetails', $save);
 			$this->stock['Counts'] -= $count;
@@ -75,7 +75,7 @@ class JournalStockManage extends CI_Model {
 				'No'	=>	$this->no,
 				'Counts'	=>	$count,
 				'StockTag'	=>	$tag,
-                'Note'  => $note
+				'Note'  => $note
 			);
 			$this->db->insert('stockmanagedetails', $save);
 			$this->stock['Counts'] += $count;
@@ -85,24 +85,24 @@ class JournalStockManage extends CI_Model {
 			$this->db->where('id', $this->stock['id']);
 			$this->db->update($this->name, $save);
 		} else if ($this->jid != -1) {
-            $save = array(
-                'JID'	=>	$this->jid,
-                'Year'	=>	$this->year,
-                'No'	=>	$this->no,
-                'Counts'	=>	$count,
-                'StockTag'	=>	$tag,
-                'Note'  => $note
-            );
-            $this->db->insert('stockmanagedetails', $save);
-            $save = array(
-                'JID'	=>	$this->jid,
-                'Year'	=>	$this->year,
-                'No'	=>	$this->no,
-                'Counts'	=>	$count,
-                'Note'  => $note
-            );
-            $this->db->insert($this->name, $save);
-        }
+			$save = array(
+				'JID'	=>	$this->jid,
+				'Year'	=>	$this->year,
+				'No'	=>	$this->no,
+				'Counts'	=>	$count,
+				'StockTag'	=>	$tag,
+				'Note'  => $note
+			);
+			$this->db->insert('stockmanagedetails', $save);
+			$save = array(
+				'JID'	=>	$this->jid,
+				'Year'	=>	$this->year,
+				'No'	=>	$this->no,
+				'Counts'	=>	$count,
+				'Note'  => $note
+			);
+			$this->db->insert($this->name, $save);
+		}
 		
 	}
 	

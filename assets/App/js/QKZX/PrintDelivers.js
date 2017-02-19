@@ -1,4 +1,4 @@
-Class('App.QKZX.PrintPublishNotify', 'xui.Module',{
+Class('App.QKZX.PrintDelivers', 'xui.Module',{
 	autoDestroy : true,
 	Instance:{
 		iniComponents : function(){
@@ -6,7 +6,7 @@ Class('App.QKZX.PrintPublishNotify', 'xui.Module',{
 			var grid=host.properties.editor.grid;
 			var row=grid.getActiveRow();
 			if(row){
-				xui.Dom.submit(SITEURL+'data/publish_notify/'+row.id,null);
+				xui.Dom.submit(SITEURL+'data/delivers/'+row.id,null);
 			}
 			return children;
 		}

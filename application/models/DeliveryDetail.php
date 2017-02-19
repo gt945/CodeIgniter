@@ -7,7 +7,7 @@ class DeliveryDetail extends CI_Model {
 	{
 		parent::__construct ();
 		$this->id = -1;
-        $this->name = 'DeliveryDetail';
+		$this->name = 'DeliveryDetail';
 
 	}
 	
@@ -27,22 +27,22 @@ class DeliveryDetail extends CI_Model {
 	}
 
 	public function create($d, $aid, $BatchID)
-    {
-        $save = array(
-            "batchID" => $BatchID,
-            "JID" => $d->JID,
-            "CID" => $d->CID,
-            "Year" => $d->Year,
-            "No" => $d->No,
-            "Counts" => $d->RealCounts,
-            "DeliveStatus" => 1,
-            "DeliveryTime" => date('Y-m-d h:i:s'),
-            "Volume" => "",
-            "Note" => "已发",
-            "YingFa" => $d->NeedCounts,
-            'DaiFa' => $d->NeedCounts - $d->RealCounts
-        );
-        $this->db->insert($this->name, $save);
-        return $this->db->insert_id ();
-    }
+	{
+		$save = array(
+			"batchID" => $BatchID,
+			"JID" => $d->JID,
+			"CID" => $d->CID,
+			"Year" => $d->Year,
+			"No" => $d->No,
+			"Counts" => $d->RealCounts,
+			"DeliveStatus" => 1,
+			"DeliveryTime" => date('Y-m-d h:i:s'),
+			"Volume" => "",
+			"Note" => "已发",
+			"YingFa" => $d->NeedCounts,
+			'DaiFa' => $d->NeedCounts - $d->RealCounts
+		);
+		$this->db->insert($this->name, $save);
+		return $this->db->insert_id ();
+	}
 }

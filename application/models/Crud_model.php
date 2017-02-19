@@ -3,70 +3,70 @@ defined ( 'BASEPATH' ) or exit ( 'No direct script access allowed' );
 include_once(APPPATH.'models/Db_model.php');
 
 class Crud_model extends Db_Model {
-	const TYPE_LABEL        = 0;
-	const TYPE_NUMBER       = 1;
-	const TYPE_DATE         = 2;
-	const TYPE_TIME         = 3;
-	const TYPE_DATETIME     = 4;
-	const TYPE_SELECT       = 5;
-	const TYPE_MULTI        = 6;
-	const TYPE_BOOL         = 7;
-	const TYPE_TEXTAREA     = 8;
-	const TYPE_PASSWORD     = 9;
-	const TYPE_BIT          = 10;
-	const TYPE_AUTOCOMPLETE = 11;
-	const TYPE_HELPER       = 12;
+	const TYPE_LABEL			= 0;
+	const TYPE_NUMBER			= 1;
+	const TYPE_DATE				= 2;
+	const TYPE_TIME				= 3;
+	const TYPE_DATETIME			= 4;
+	const TYPE_SELECT			= 5;
+	const TYPE_MULTI			= 6;
+	const TYPE_BOOL				= 7;
+	const TYPE_TEXTAREA			= 8;
+	const TYPE_PASSWORD			= 9;
+	const TYPE_BIT				= 10;
+	const TYPE_AUTOCOMPLETE		= 11;
+	const TYPE_HELPER			= 12;
 
 
-	const TYPE_MAX       	= 99;
-	const TYPE_BUTTON       = 100;
-	const TYPE_WIDGET       = 101;
+	const TYPE_MAX				= 99;
+	const TYPE_BUTTON			= 100;
+	const TYPE_WIDGET			= 101;
 
-	const ALIGN_LEFT        = 0;
-	const ALIGN_CENTER      = 1;
-	const ALIGN_RIGHT       = 2;
+	const ALIGN_LEFT			= 0;
+	const ALIGN_CENTER			= 1;
+	const ALIGN_RIGHT			= 2;
 	
-	const PROP_FIELD_PRIMARY    = 0x0001;
-	const PROP_FIELD_FILTER     = 0x0002;
-	const PROP_FIELD_HIDE       = 0x0004;
-	const PROP_FIELD_UNIQUE     = 0x0008;
-	const PROP_FIELD_READONLY   = 0x0010;
-	const PROP_FIELD_SORT       = 0x0020;
-	const PROP_FIELD_MINIFY     = 0x0040;
-	const PROP_FIELD_ADVANCE    = 0x0080;
-	const PROP_FIELD_TABLE      = 0x0100;
-	const PROP_FIELD_CURRENCY   = 0x0200;
-	const PROP_FIELD_REQUIRED   = 0x0400;
-    const PROP_FIELD_VIRTUAL    = 0x0800;
-    const PROP_FIELD_STRING     = 0x1000;
-    const PROP_FIELD_INLINE     = 0x2000;
-    const PROP_FIELD_STATIC     = 0x4000;
+	const PROP_FIELD_PRIMARY	= 0x0001;
+	const PROP_FIELD_FILTER		= 0x0002;
+	const PROP_FIELD_HIDE		= 0x0004;
+	const PROP_FIELD_UNIQUE		= 0x0008;
+	const PROP_FIELD_READONLY	= 0x0010;
+	const PROP_FIELD_SORT		= 0x0020;
+	const PROP_FIELD_MINIFY		= 0x0040;
+	const PROP_FIELD_ADVANCE	= 0x0080;
+	const PROP_FIELD_TABLE		= 0x0100;
+	const PROP_FIELD_CURRENCY	= 0x0200;
+	const PROP_FIELD_REQUIRED	= 0x0400;
+	const PROP_FIELD_VIRTUAL	= 0x0800;
+	const PROP_FIELD_STRING		= 0x1000;
+	const PROP_FIELD_INLINE		= 0x2000;
+	const PROP_FIELD_STATIC		= 0x4000;
 
-	const PROP_TABLE_EXPORT = 0x0001;
-	const PROP_TABLE_IMPORT = 0x0002;
-    const PROP_TABLE_VIEW   = 0x0004;
-    const PROP_TABLE_YEAR   = 0x0008;
+	const PROP_TABLE_EXPORT		= 0x0001;
+	const PROP_TABLE_IMPORT		= 0x0002;
+	const PROP_TABLE_VIEW		= 0x0004;
+	const PROP_TABLE_YEAR		= 0x0008;
 
-	const SEARCH_OPTION_EQ = 0x0001;
-	const SEARCH_OPTION_NE = 0x0002;
-	const SEARCH_OPTION_LT = 0x0004;
-	const SEARCH_OPTION_LE = 0x0008;
-	const SEARCH_OPTION_GT = 0x0010;
-	const SEARCH_OPTION_GE = 0x0020;
-	const SEARCH_OPTION_CN = 0x0040;
-	const SEARCH_OPTION_NC = 0x0080;
-	const SEARCH_OPTION_BW = 0x0100;
-	const SEARCH_OPTION_BN = 0x0200;
-	const SEARCH_OPTION_EW = 0x0400;
-	const SEARCH_OPTION_EN = 0x0800;
-	const SEARCH_OPTION_IN = 0x1000;
-	const SEARCH_OPTION_NI = 0x2000;
-	const SEARCH_OPTION_NU = 0x4000;
-	const SEARCH_OPTION_NN = 0x8000;
+	const SEARCH_OPTION_EQ		= 0x0001;
+	const SEARCH_OPTION_NE		= 0x0002;
+	const SEARCH_OPTION_LT		= 0x0004;
+	const SEARCH_OPTION_LE		= 0x0008;
+	const SEARCH_OPTION_GT		= 0x0010;
+	const SEARCH_OPTION_GE		= 0x0020;
+	const SEARCH_OPTION_CN		= 0x0040;
+	const SEARCH_OPTION_NC		= 0x0080;
+	const SEARCH_OPTION_BW		= 0x0100;
+	const SEARCH_OPTION_BN		= 0x0200;
+	const SEARCH_OPTION_EW		= 0x0400;
+	const SEARCH_OPTION_EN		= 0x0800;
+	const SEARCH_OPTION_IN		= 0x1000;
+	const SEARCH_OPTION_NI		= 0x2000;
+	const SEARCH_OPTION_NU		= 0x4000;
+	const SEARCH_OPTION_NN		= 0x8000;
 	
-	const CRUD_TABLE = 'crud_table';
-	const CRUD_FIELD = 'crud_field';
-	const CRUD_FLOW = 'crud_flow';
+	const CRUD_TABLE			= 'crud_table';
+	const CRUD_FIELD			= 'crud_field';
+	const CRUD_FLOW				= 'crud_flow';
 
 
 	public function __construct()
@@ -88,21 +88,21 @@ class Crud_model extends Db_Model {
 		$this->db->from ( Crud_model::CRUD_TABLE );
 		$crud_table = $this->db->row();
 		if ($crud_table) {
-            parent::table($crud_table['name'], $select);
+			parent::table($crud_table['name'], $select);
 
-            if ($crud_table['prop'] & Crud_model::PROP_TABLE_VIEW) {
-                $this->primary = null;
-                $crud_table['_role_c'] = false;
-                $crud_table['_role_r'] = true;
-                $crud_table['_role_u'] = false;
-                $crud_table['_role_d'] = false;
+			if ($crud_table['prop'] & Crud_model::PROP_TABLE_VIEW) {
+				$this->primary = null;
+				$crud_table['_role_c'] = false;
+				$crud_table['_role_r'] = true;
+				$crud_table['_role_u'] = false;
+				$crud_table['_role_d'] = false;
 
-            } else {
-                $crud_table['_role_c'] = $this->auth_model->check_role($crud_table['role_c'] );
-                $crud_table['_role_r'] = $this->auth_model->check_role($crud_table['role_r'] );
-                $crud_table['_role_u'] = $this->auth_model->check_role($crud_table['role_u'] );
-                $crud_table['_role_d'] = $this->auth_model->check_role($crud_table['role_d'] );
-            }
+			} else {
+				$crud_table['_role_c'] = $this->auth_model->check_role($crud_table['role_c'] );
+				$crud_table['_role_r'] = $this->auth_model->check_role($crud_table['role_r'] );
+				$crud_table['_role_u'] = $this->auth_model->check_role($crud_table['role_u'] );
+				$crud_table['_role_d'] = $this->auth_model->check_role($crud_table['role_d'] );
+			}
 			$this->db->where ( 'tid', $crud_table ['id'] );
 			$this->db->order_by ( 'seq', 'asc' );
 			$this->db->from (Crud_model::CRUD_FIELD);
@@ -121,16 +121,16 @@ class Crud_model extends Db_Model {
 				}
 				$crud_field [$f ['name']] = $f;
 			}
-            if ($crud_table['order'] ) {
-                $def_order = explode(":", $crud_table['order']);
-                if (isset($crud_field[$def_order[0]])) {
-                    $this->order = (object)array (
-                        "field" => $def_order[0],
-                        "order" => strtolower($def_order[1])
-                    );
+			if ($crud_table['order'] ) {
+				$def_order = explode(":", $crud_table['order']);
+				if (isset($crud_field[$def_order[0]])) {
+					$this->order = (object)array (
+						"field" => $def_order[0],
+						"order" => strtolower($def_order[1])
+					);
 
-                }
-            }
+				}
+			}
 		}
 		if (is_array($crud_table) && is_array($crud_field)) {
 			$this->tree_code = $_SESSION['groupinfo']['tree_code'];
@@ -145,7 +145,7 @@ class Crud_model extends Db_Model {
 			}
 			if (isset($crud_field['gid']) && $crud_table['name'] !== 'user_group') {	//user group
 					$this->group = $this->get_group_ids($_SESSION['userinfo']['gid'], true);
-//                  $dbContextGroup = $this->table("user_group");
+//				  $dbContextGroup = $this->table("user_group");
 // 					$this->groupTree = $this->get_tree_data_by_id($dbContextGroup, $_SESSION['userinfo']['gid'], true);
 // 					$this->groupTreeOption = $this->get_tree_option($this->groupTree, 'id', 'groupname');
 			} else {
@@ -178,7 +178,7 @@ class Crud_model extends Db_Model {
 		$table = $this->name;
 
 		$this->start_cache();
-        $this->cached = true;
+		$this->cached = true;
 		$this->from("{$table} a");
 // 		if ($this->group) {
 // 			$this->where_in("a.gid", $this->group);
@@ -227,8 +227,8 @@ class Crud_model extends Db_Model {
 			return 0;
 		}
 		if (!$this->table_exists($table)) {
-            return 0;
-        }
+			return 0;
+		}
 		$fields = $this->field_data ( $table );						//get all fields in table
 
 		if (count ( $fields ) > 0) {
@@ -341,9 +341,9 @@ class Crud_model extends Db_Model {
 				}
 				foreach ( $exist_fields as $k => $ef ) {				//delete not exist field
 					if ($ef['type'] > Crud_model::TYPE_MAX || ($ef['prop'] & Crud_model::PROP_FIELD_VIRTUAL)) {
-                        continue;
-                    }
-                    $this->where ( 'id', $ef ['id'] );
+						continue;
+					}
+					$this->where ( 'id', $ef ['id'] );
 					$this->delete ( Crud_model::CRUD_FIELD );
 				}
 				$this->trans_complete ();
@@ -502,21 +502,21 @@ class Crud_model extends Db_Model {
 	}
 
 	public function get_flow_items($id = null)
-    {
-        $flow_items = array();
-        $this->db->from(Crud_model::CRUD_FLOW);
-        $this->db->where('tid', $this->crud_table['id']);
-        if ($id) {
-            $this->db->where('id', $id);
-        }
-        $data = $this->db->sheet();
-        foreach($data as $d) {
-            $d['name'] = $d['actionName'];
-            $d['icon'] = $d['actionIcon'];
-            $flow_items[] = $d;
+	{
+		$flow_items = array();
+		$this->db->from(Crud_model::CRUD_FLOW);
+		$this->db->where('tid', $this->crud_table['id']);
+		if ($id) {
+			$this->db->where('id', $id);
+		}
+		$data = $this->db->sheet();
+		foreach($data as $d) {
+			$d['name'] = $d['actionName'];
+			$d['icon'] = $d['actionIcon'];
+			$flow_items[] = $d;
 
-        }
-        return $flow_items;
-    }
+		}
+		return $flow_items;
+	}
 
 }

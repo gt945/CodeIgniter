@@ -34,9 +34,9 @@ Class('App.Messages', 'xui.Module',{
 			append((new xui.UI.ToolBar())
 				.setHost(host,"toolbar")
 				.setItems([{"id":"grp1", "sub":[
-				    {"id":"delete","image":"@xui_ini.appPath@image/delete.png","caption":"删除","disabled":true},
-				    {"id":"filter","image":"@xui_ini.appPath@image/filter.png","caption":"搜索"},
-				    {"id":"send","image":"@xui_ini.appPath@image/message.png","caption":"发送消息"}
+					 {"id":"delete","image":"@xui_ini.appPath@image/delete.png","caption":"删除","disabled":true},
+					 {"id":"filter","image":"@xui_ini.appPath@image/filter.png","caption":"搜索"},
+					 {"id":"send","image":"@xui_ini.appPath@image/message.png","caption":"发送消息"}
 				], "caption":"grp1"}])
 				.onClick("_toolbar_onclick")
 			);
@@ -59,13 +59,13 @@ Class('App.Messages', 'xui.Module',{
 				.onClick("_pagebar_onclick")
 			);
 			
-            // append((new xui.UI.Block())
+				// append((new xui.UI.Block())
 			// 	.setHost(host,"block")
 			// 	.setHeight(200)
 			// 	.setDock("bottom")
 			// 	.setBorderType("none")
 			// );
-            
+				
 			return children;
 		},
 		events:{"onRender":"_com_onrender"},
@@ -154,7 +154,7 @@ Class('App.Messages', 'xui.Module',{
 			var ns=this;
 			_.arr.each(rows,function(row){
 				_.arr.each(ns.properties.gridHeaders,function(h,i){
-                    if(ns.properties.gridSetting[h.id].type=="checkbox"){
+						  if(ns.properties.gridSetting[h.id].type=="checkbox"){
 						row.cells[i].value=!!parseInt(row.cells[i].value,10);
 					}
 				});
@@ -203,6 +203,11 @@ Class('App.Messages', 'xui.Module',{
 				},null,prop,{
 					onNavigate:function(dir){
 						ns._navigate(this,dir);
+					},
+					onUpdateUI:function(id){
+						AJAX.callService('QKZX/request',null,"message_show",{id:id},function(rsp){
+							ns.grid.updateCellByRowCol(id, 'IsRead', {value:'Y',caption:'已读'}, false, false);
+						});
 					}
 				});
 			}
@@ -280,7 +285,7 @@ Class('App.Messages', 'xui.Module',{
 				if(ns.properties.gridTreeMode&&row){
 					var setting=ns.properties.gridSetting;
 					var name=setting[ns.properties.gridTreeMode].tree_field;
-                    var cell=ctrl.getCellbyRowCol(row.id, name);
+						  var cell=ctrl.getCellbyRowCol(row.id, name);
 					ns._opid={
 						value:row.id,
 						caption:cell.value

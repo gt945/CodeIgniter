@@ -8,7 +8,7 @@ class ReportCounts extends CI_Model {
 		$this->jid = -1;
 		$this->year = -1;
 		$this->no = -1;
-        $this->name = 'reportcounts';
+		$this->name = 'reportcounts';
 	}
 	
 	public function prepare($jid, $year, $no)
@@ -39,19 +39,19 @@ class ReportCounts extends CI_Model {
 		}
 	}
 	
-// 	public function report_out($count)
-// 	{
-// 		//TODO lock report
-// 		if ($this->report) {
-// 			$this->report['Count'] -= $count;
-// 			$save = array(
-// 				'Count' => $this->report['Count'];
-// 			);
-// 			$this->db->where('id', $this->report['id']);
-// 			$this->db->update('reportcounts', $save);
-// 		}
-// 			
-// 	}
+//	public function report_out($count)
+//	{
+//		//TODO lock report
+//		if ($this->report) {
+//			$this->report['Count'] -= $count;
+//			$save = array(
+//				'Count' => $this->report['Count'];
+//			);
+//			$this->db->where('id', $this->report['id']);
+//			$this->db->update('reportcounts', $save);
+//		}
+//			
+//	}
 	
 	public function report_in($count)
 	{
