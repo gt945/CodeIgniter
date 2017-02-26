@@ -303,36 +303,36 @@ EOF;
 		$i = 9;
 		foreach($details as $detail) {
 			$d = $detail->cells;
-			$sheet->setCellValue("A{$i}", $d['PublishContent']->caption);   //印刷内容
-			$sheet->setCellValue("B{$i}", $d['Pages']->value);	//页码
-			$sheet->setCellValue("C{$i}", "");		//页数
-			$sheet->setCellValue("D{$i}", $d['PublishCount']->value);	   //印数
-			$sheet->setCellValue("E{$i}", $d['paperDeduceID']->caption);   //纸名
-			$sheet->setCellValue("G{$i}", $d['SizeId']->value); //规格
-			$sheet->setCellValue("H{$i}", $d['KaiShu']->value);		//开数
-			$sheet->setCellValue("I{$i}", $d['PaperCount']->value);		//应用纸数
-			$sheet->setCellValue("J{$i}", $d['ZoomPercent']->value);		//加放率
-			$sheet->setCellValue("K{$i}", $d['ZoomPaperCount']->value);		//加放纸数
-			$sheet->setCellValue("L{$i}", $d['TotalPaper']->value);		//共计用纸数
+			$sheet->setCellValue("A{$i}", $d['PublishContent']->caption);		//印刷内容
+			$sheet->setCellValue("B{$i}", $d['Pages']->value);					//页码
+//			$sheet->setCellValue("C{$i}", "");									//页数
+			$sheet->setCellValue("C{$i}", $d['paperDeduceID']->caption); 		//纸名
+			$sheet->setCellValue("F{$i}", $d['SizeId']->value);					//规格
+			$sheet->setCellValue("G{$i}", $d['KaiShu']->value);					//开数
+			$sheet->setCellValue("H{$i}", $d['PublishCount']->value);			//印数
+			$sheet->setCellValue("I{$i}", ' '.number_format($d['PaperCount']->value, 4));				//应用纸数
+//			$sheet->setCellValue("J{$i}", $d['ZoomPercent']->value);			//加放率
+			$sheet->setCellValue("J{$i}", ' '.number_format($d['ZoomPaperCount']->value, 4));			//加放纸数
+			$sheet->setCellValue("K{$i}", ' '.number_format($d['TotalPaper']->value, 4));				//共计用纸数
 			$i++;
 		}
 
-		$sheet->setCellValue("B15", $data['coverInk']->value);	   //封面墨色
-		$sheet->setCellValue("I15", $data['textInk']->value);	   //正文墨色
+		$sheet->setCellValue("B15", $data['CoverInk']->value);	   //封面墨色
+		$sheet->setCellValue("H15", $data['TextInk']->value);	   //正文墨色
 //		$sheet->setCellValue("B16", $data['BindingOrder']->value);	   //装订顺序
 //		$sheet->setCellValue("A17", $data['Note']->value);	   //备注
 		$sheet->setCellValue("B16", wordwrap($data['BindingOrder']->value, 125));	   //装订顺序
 		$sheet->setCellValue("A17", wordwrap($data['Note']->value, 125));	   //备注
 		if (is_array($counts) && count($counts) == 6) {
-			$sheet->setCellValue("K17", $counts[5]->orderCount);	  //本社
-			$sheet->setCellValue("K18", $counts[0]->orderCount);	  //编辑部
-			$sheet->setCellValue("K19", $counts[2]->orderCount);	  //邮局本市
-			$sheet->setCellValue("K20", $counts[3]->orderCount);	  //邮局本市东
-			$sheet->setCellValue("K21", $counts[4]->orderCount);	  //邮局本市西
-			$sheet->setCellValue("K22", $counts[1]->orderCount);	  //邮局外埠
+			$sheet->setCellValue("J17", $counts[5]->orderCount);	  //本社
+			$sheet->setCellValue("J18", $counts[0]->orderCount);	  //编辑部
+			$sheet->setCellValue("J19", $counts[2]->orderCount);	  //邮局本市
+			$sheet->setCellValue("J20", $counts[3]->orderCount);	  //邮局本市东
+			$sheet->setCellValue("J21", $counts[4]->orderCount);	  //邮局本市西
+			$sheet->setCellValue("J22", $counts[1]->orderCount);	  //邮局外埠
 		}
-		$sheet->setCellValue("K23", $total);	  //合计
-		$sheet->setCellValue("K24", $data['AID']->caption);	  //开单
+		$sheet->setCellValue("J23", $total);	  //合计
+		$sheet->setCellValue("J24", $data['AID']->caption);	  //开单
 
 
 		$objWriter = PHPExcel_IOFactory::createWriter($objPHPExcel, 'PDF');

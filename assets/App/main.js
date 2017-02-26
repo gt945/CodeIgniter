@@ -41,6 +41,10 @@ Class('App.main', 'xui.Module',{
 				.setItems([{
 					"id" : "grp1",
 					"sub" : [{
+						"id" : "setting",
+						"image" : "@xui_ini.appPath@image/setting.png",
+						"caption" : "设置"
+					},{
 						"id" : "userinfo",
 						"image" : "@xui_ini.appPath@image/user.png",
 						"caption" : USERNAME
@@ -150,6 +154,14 @@ Class('App.main', 'xui.Module',{
 					}
 				},null);
 				break;
+			case "setting":
+				xui.ModuleFactory.newCom("App.Setting",function(){
+					if (!_.isEmpty(this)){
+						this.show();
+					}
+				},null);
+				break;
+				
 			}
 		},
 		_xui_ui_main_tabs_beforepageclose:function (profile,item,src){

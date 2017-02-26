@@ -163,7 +163,30 @@ Class('App.SendMessage', 'xui.Module',{
 			ns.mainDlg.close(false);
 		},
 		_ctl_sbutton14_onclick:function(){
-			var ns=this;
+			var ns=this,db=ns.databinder;
+			var data=db.getDirtied(true);
+			if(!_.isSet(data.message)||!_.isSet(data.receiver)){
+				xui.alert('数据不全');
+			}else{
+				var prop={
+					receiver:data.receiver.value,
+					message:data.message
+				};
+				AJAX.callService('message/request',null,"message_send",prop,function(rsp){
+					
+				},function(){
+					ns.mainDlg.busy('发送中...');
+				},function(result){
+					if(ns.mainDlg){
+						ns.mainDlg.free();
+					}
+					if(result!='fail'){
+						xui.alert('发送成功');
+						ns.destroy();
+					}
+				});
+			}
+			
 		}
 	}
 });

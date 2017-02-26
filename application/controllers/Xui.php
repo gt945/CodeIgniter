@@ -258,7 +258,7 @@ class Xui extends MY_Controller {
 	function request_delete($paras)
 	{
 		$message = null;
-		if ($this->grid_model->crud_table['_role_c']) {
+		if ($this->grid_model->crud_table['_role_d']) {
 			$ret = $this->grid_model->edit($paras->action, $paras->ids, null);
 			if ($ret->message) {
 				$message = $ret->message;

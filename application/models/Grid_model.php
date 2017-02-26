@@ -1130,6 +1130,7 @@ class Grid_model extends Crud_Model
 						return $ret;
 					}
 				}
+				$this->trans_start();
 
 				if ($oper == 'create') {
 					$ids = $this->save($save);
@@ -1160,11 +1161,12 @@ class Grid_model extends Crud_Model
 					$method = $this->crud_table['after_edit'];
 					$hook = $this->crud_after_edit->$method($oper, $this, $save, $ids);
 					if (!$hook->result) {
+						$this->trans_rollback();
 						$ret->message = $hook->message;
 						return $ret;
 					}
 				}
-
+				$this->trans_complete();
 				if ($this->crud_table['fields_return'] || $oper == "create") {
 					if (count($ids)) {
 						$this->pop_cache();

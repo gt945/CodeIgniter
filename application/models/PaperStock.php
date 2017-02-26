@@ -47,7 +47,7 @@ class PaperStock extends CI_Model {
 		}
 	}
 	
-	public function stock_in($count)
+	public function stock_in($count, $price=0)
 	{
 		//TODO lock stock
 		if ($this->stock) {

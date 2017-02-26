@@ -458,7 +458,7 @@ class Crud_model extends Db_Model {
 	public function build_all_tree_code($table, $id = 1, $pid_field = 'pid')
 	{
 		
-		$this->db->trans_start ();
+//		$this->db->trans_start ();
 		$this->db->select("id,{$pid_field},tree_code");
 		$this->db->from($table);
 		$this->db->where('id' , $id);
@@ -480,7 +480,7 @@ class Crud_model extends Db_Model {
 			}
 			$this->build_children_tree_code($table, $id, $new_tree_code, $pid_field);
 		}
-		$this->db->trans_complete ();
+//		$this->db->trans_complete ();
 	}
 
 	public function build_children_tree_code($table, $pid, $tree_code, $pid_field = 'pid')

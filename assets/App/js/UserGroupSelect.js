@@ -191,10 +191,42 @@ Class('App.UserGroupSelect', 'xui.Module',{
 				ns.destroy();
 			}
 		},
-		_grid_onitemselected:function (profile,item,e,src,type){
+		_grid_onitemselected:function(profile,item,e,src,type){
 			var ns = this, uictrl = profile.boxing();
-			var items=uictrl.getSubIdByItemId(item.id);
-			debugger;
+			var str=uictrl.getUIValue();
+			if(str==""){
+				var value=[];
+			}else{
+				var value=str.split(";");
+			}
+//			var items=uictrl.getSubIdByItemId(item.id);
+//			if(item.sub){
+//				_.arr.each(item.sub,function(s){
+//					uictrl.fireItemClickEvent(s.id);
+//				});
+//			}
+			var sub=ns._get_sub_id(item);
+			_.arr.each(sub,function(s){
+				var i=_.arr.indexOf(value,s);
+				if(i>=0&&type<0){
+					value.splice(i,1);
+				}else if(i<0&&type>0){
+					value.push(s);
+				}
+			});
+			str=value.join(";");
+			uictrl.setUIValue(str);
+		},
+		_get_sub_id:function(item){
+			var ns=this;
+			var value=[];
+			if(item.sub){
+				_.arr.each(item.sub,function(s){
+					value.push(s.id);
+					value=value.concat(ns._get_sub_id(s));
+				});
+			}
+			return value;
 		}
 	}
 });

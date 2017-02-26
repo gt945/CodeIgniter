@@ -23,7 +23,7 @@ Class('App.Validate.Publishrecords', 'xui.Module',{
 					ps=tp/kai;
 				}else{
 					ps=0;
-					xui.message('开数错误')
+					xui.message('开数错误');
 				}
 				db.getUI("PrintSheetCount").setUIValue((ps*2+0.4999).toFixed(0)/2, true);
 			}else{

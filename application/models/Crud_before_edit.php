@@ -254,7 +254,7 @@ class Crud_before_edit extends Crud_hook {
 								$this->db->where('CID', $d['CID']);
 								$deliverydetails = $this->db->row();
 								//FIXME
-								if ($deliverydetails) {							PaperUseDetail					/* 退订 - 退订数量小于等于订单总数 - 非代理类期刊 - 有印制单 - 已发货*/
+								if ($deliverydetails) {												/* 退订 - 退订数量小于等于订单总数 - 非代理类期刊 - 有印制单 - 已发货*/
 									$this->JournalStockManage->prepare($d['JID'], $d['Jyear'], $i);
 									$this->JournalStockManage->stock_in($OrderCount, 1);
 								} else {															/* 退订 - 退订数量小于等于订单总数 - 非代理类期刊 - 有印制单 - 未发货*/
@@ -348,7 +348,19 @@ class Crud_before_edit extends Crud_hook {
 	public function publishnotify_before_edit($oper, $model, &$data, $old)
 	{
 		if ($oper == "create") {
-
+			$d=&$data[0];
+			$journal = $this->db->get_where('journalbaseinfo', array('id' => $d['JID']))->row_array();
+			if (!$journal) {
+				return $this->result(false, "期刊错误");
+			} 
+			$publishrecords = $this->db->get_where('publishrecords', array('JID' => $d['JID'], 'No' => $d['No']))->row_array();
+			if (!$publishrecords) {
+				return $this->result(false, "无印制责任卡");
+			}
+			$publishrecords = $this->db->get_where('publishnotify', array('JID' => $d['JID'], 'No' => $d['No']))->row_array();
+			if ($publishrecords) {
+				return $this->result(false, "已有重复印制单");
+			}
 		} else {
 			foreach ($old as $o) {
 				if ($o['Status'] > 1) {
@@ -463,14 +475,13 @@ class Crud_before_edit extends Crud_hook {
 			$d = &$data[0];
 			$d['Type'] = 1;
 			$this->PaperStock->prepare($d['PaperStyleID']);
-			$this->PaperStock->stock_in($d['Counts']);
+			$this->PaperStock->stock_in($d['Counts'], $d['Price']);
 
 		}
 		return $this->result(true);
 	}
 	public function paperusedetail_stock_out($oper, $model, &$data, $old)
 	{
-
 		$this->load->model('PaperStock');
 		if ($oper == 'create') {
 			$d = &$data[0];
@@ -490,6 +501,10 @@ class Crud_before_edit extends Crud_hook {
 			if(!isset($d['Note'])){
 				$d['Note'] = '';
 			}
+			$publish_notify = $this->db->get_where('publishnotify', array('JID' => $d['JID'], 'Year' => $d['Year'], 'No' => $d['No']))->result_array();
+			if (!count($publish_notify)) {
+				return $this->result(false, "未印制,无法到货");
+			}
 			$sql = "select sum(jo.orderCount) as counts from qkzx_journalorders jo where jo.jid = ? and year = ? and ? between nostart and noend and ( (jo.isneedDeliver = 1 and jo.saleStyle in (1,5,6,7,8,9) ) or (jo.saleStyle = 2))";
 			$result = $this->db->query($sql, array($d['JID'], $d['Year'], $d['No']));
 			$counts = $result->row_array();
@@ -508,7 +523,6 @@ class Crud_before_edit extends Crud_hook {
 			} else {
 				return $this->result(false, "到货数量小于订单数量");
 			}
-
 		}
 		return $this->result(true);
 	}

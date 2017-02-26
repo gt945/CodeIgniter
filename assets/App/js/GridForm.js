@@ -306,7 +306,7 @@ Class('App.GridForm', 'xui.Module',{
 			}, null);
 		},
 		saveUI:function(callback){
-			var ns=this, db=ns.databinder;
+			var ns=this,db=ns.databinder;
 			ns._waitWidget=0;
 			var saveDone=function(error){
 				if(!error){

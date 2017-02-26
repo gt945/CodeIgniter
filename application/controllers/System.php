@@ -190,11 +190,6 @@ class System extends MY_Controller {
 		return 1;
 	}
 
-	private function request_workyear()
-	{
-		$_SESSION['userinfo']['workyear'] = (int)$this->paras->value;
-	}
-	
 	private function request_user_group()
 	{
 		$ret = new stdClass ();
@@ -236,4 +231,22 @@ class System extends MY_Controller {
 		
 		return $ret;
 	}
+	
+	private function request_setting_get()
+	{
+		$ret = new stdClass();
+		if (!isset($_SESSION['userinfo']['workyear'])) {
+			$_SESSION['userinfo']['workyear'] = 0;
+		}
+		$ret->workyear = $_SESSION['userinfo']['workyear'];
+		return $ret;
+	}
+	private function request_setting_set()
+	{
+		if (isset($this->paras->workyear)) {
+			$_SESSION['userinfo']['workyear'] = (int)$this->paras->workyear;
+		}
+		return 1;
+	}
+	
 }

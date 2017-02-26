@@ -205,7 +205,7 @@ Class('App.Messages', 'xui.Module',{
 						ns._navigate(this,dir);
 					},
 					onUpdateUI:function(id){
-						AJAX.callService('QKZX/request',null,"message_show",{id:id},function(rsp){
+						AJAX.callService('message/request',null,"message_show",{id:id},function(rsp){
 							ns.grid.updateCellByRowCol(id, 'IsRead', {value:'Y',caption:'已读'}, false, false);
 						});
 					}

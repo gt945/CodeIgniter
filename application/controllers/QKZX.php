@@ -701,24 +701,4 @@ EOF;
 		return 1;
 	}
 
-	private function request_message_show()
-	{
-		$id = (int) $this->paras->id;
-		$this->load->model('db_model');
-		$msg = $this->db->get_where('messages', array('id' => $id, 'ReceiverID' => $_SESSION['userinfo']['id']));
-		
-		if ($msg) {
-			$this->db->where('id', $id);
-			$this->db->update('messages', array('IsRead' => 'Y'));
-			$this->reply(200, "Success");
-		} else {
-			$this->reply(404, "Not Found");
-		}
-	}
-
-	private function request_message_send()
-	{
-
-	}
-
 }
