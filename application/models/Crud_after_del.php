@@ -9,4 +9,9 @@ class Crud_after_del extends Crud_hook {
 	{
 		parent::__construct ();
 	}
+	
+	public function publishnotify_del($oper, $model, $ids)
+	{
+		
+	}
 }

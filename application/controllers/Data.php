@@ -285,11 +285,12 @@ EOF;
 
 		$objPHPExcel = PHPExcel_IOFactory::load(BASEPATH.'../assets/reports/publishnotify.xls');
 		$sheet = $objPHPExcel->getActiveSheet();
-
+		
 		$sheet->setCellValue("B2", $data['PID']->caption);	//承印厂
-		$sheet->setCellValue("K2", date('Y-m-d'));	//打印日期
+		$sheet->setCellValue("J2", date('Y-m-d'));	//打印日期
 		$sheet->setCellValue("B3", "{$data['JID']->caption}\n\t({$data['Year']->value}年第{$data['No']->value}期)");  //刊名
-		$sheet->setCellValue("I3", "{$total} 册");  //印数
+		$sheet->setCellValue("I3", "{$data['PublishCounts']->value} 册");  //印数
+//		$sheet->setCellValue("I3", "{$total} 册");  //印数
 		$sheet->setCellValue("I4", "{$data['Price']->value} 元");   //定价
 		$sheet->setCellValue("A6", $data['KaiId']->caption);  //开本
 		$sheet->setCellValue("B6", $data['SizeId']->caption);	//开本尺寸
@@ -307,13 +308,14 @@ EOF;
 			$sheet->setCellValue("B{$i}", $d['Pages']->value);					//页码
 //			$sheet->setCellValue("C{$i}", "");									//页数
 			$sheet->setCellValue("C{$i}", $d['paperDeduceID']->caption); 		//纸名
-			$sheet->setCellValue("F{$i}", $d['SizeId']->value);					//规格
-			$sheet->setCellValue("G{$i}", $d['KaiShu']->value);					//开数
+//			$sheet->setCellValue("F{$i}", $d['SizeId']->value);					//规格
+			$sheet->setCellValue("F{$i}", $d['Size']->value);					//规格
+			$sheet->setCellValue("G{$i}", $d['KaiShu']->caption);					//开数
 			$sheet->setCellValue("H{$i}", $d['PublishCount']->value);			//印数
-			$sheet->setCellValue("I{$i}", ' '.number_format($d['PaperCount']->value, 4));				//应用纸数
+			$sheet->setCellValue("I{$i}", ' '.number_format($d['PaperCount']->value, 3));				//应用纸数
 //			$sheet->setCellValue("J{$i}", $d['ZoomPercent']->value);			//加放率
-			$sheet->setCellValue("J{$i}", ' '.number_format($d['ZoomPaperCount']->value, 4));			//加放纸数
-			$sheet->setCellValue("K{$i}", ' '.number_format($d['TotalPaper']->value, 4));				//共计用纸数
+			$sheet->setCellValue("J{$i}", ' '.number_format($d['ZoomPaperCount']->value, 3));			//加放纸数
+			$sheet->setCellValue("K{$i}", ' '.number_format($d['TotalPaper']->value, 3));				//共计用纸数
 			$i++;
 		}
 

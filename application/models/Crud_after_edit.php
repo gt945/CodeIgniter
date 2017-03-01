@@ -52,7 +52,7 @@ EOF;
 				array(
 					"id"	=> 'ContentPaper',
 					"name"	=> '正文',
-					"count"	=> $publishrecords['PrintSheetCount'],
+					"count"	=> $publishrecords['TotalPageCount'],
 					"pages"	=> "1-{$publishrecords['TotalPageCount']}"
 				),
 				array(
@@ -70,13 +70,17 @@ EOF;
 					$save['PNID'] = $ids[0];
 					$save['PublishContent'] = $map['name'];
 					$save['Pages'] = $map['pages'];
-					$save['PublishCount'] = $total;
+					$save['PublishCount'] = $d['PublishCounts'];
 					$save['paperDeduceID'] = $paper['id'];
-					$save['SizeId'] = $paper['size'];
-					$save['KaiShu'] = $journal['KaiSizeId'];
+//					$save['SizeId'] = $paper['size'];
+					$save['Size'] = $paper['size'];
+					$save['KaiShu'] = $journal['FormatId'];
 					$save['colourCount'] = 2;
-					$save['PaperCount'] = $total * $map['count'] / 1000;
-					$save['ZoomPaperCount'] = $save['colourCount'] * 60 / 1000;
+					$paperCount = $d['PublishCounts'] * $map['count'] / $save['KaiShu'];
+					$paperCount = round($paperCount * 2 + 0.4999, 0) / 2 / 1000;
+					$save['PaperCount'] = $paperCount;
+					$save['ZoomPercent'] = 60;
+					$save['ZoomPaperCount'] = $save['colourCount'] * $save['ZoomPercent'] / 1000;
 					$save['TotalPaper'] = $save['PaperCount'] + $save['ZoomPaperCount'];
 					$save['CreateTime'] = date('Y-m-d h:i:s');
 					$ret = $this->db->insert('publishnotifydetails', $save);
