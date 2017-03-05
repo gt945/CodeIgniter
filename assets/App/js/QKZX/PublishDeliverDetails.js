@@ -1,4 +1,4 @@
-Class('App.QKZX.PaperUseDetail', 'xui.Module',{
+Class('App.QKZX.PublishDeliverDetails', 'xui.Module',{
 	Instance:{
 		autoDestroy : true,
 		properties : {},
@@ -91,43 +91,14 @@ Class('App.QKZX.PaperUseDetail', 'xui.Module',{
 						return false;
 					}
 				}
-				grid.updateCellByRowCol(row.id,"Pages",{value:"1-1"});
-				grid.updateCellByRowCol(row.id,"colourCount",{value:1});
-				grid.updateCellByRowCol(row.id,"ZoomPercent",{value:60});
-				grid.updateCellByRowCol(row.id,"PublishCount",ns.properties.db.getData("PublishCounts"));
-				grid.updateCellByRowCol(row.id,"KaiShu",ns.properties.db.getData("KaiId"));
 				row.cells[0].disabled=true;
 				return true;
 			}
 			return false;
 		},
 		_grid_aftercellupdated:function (profile,cell,options,isHotRow){
-			var ns=this,grid=profile.boxing();
 			if(isHotRow) {
 				return;
-			}
-			var row=grid.getRowbyCell(cell);
-			var pages=grid.getCellbyRowCol(row.id,'Pages').value.split("-");
-			if(pages.length==2){
-				var page=parseInt(pages[1],10);
-				if(page>0){
-					var kai=parseInt(grid.getCellbyRowCol(row.id,'KaiShu').value,10);
-					var count=parseInt(grid.getCellbyRowCol(row.id,'PublishCount').value,10);
-					var color=parseInt(grid.getCellbyRowCol(row.id,'colourCount').value,10);
-					var zoom=parseInt(grid.getCellbyRowCol(row.id,'ZoomPercent').value,10);
-					if(kai>0){
-						var paper= Math.round(page*count/kai+0.4999);
-						var zoompaper=color*zoom;
-						var totalpaper=paper+zoompaper;
-						totalpaper=(totalpaper/1000).toFixed(4);
-						paper=(paper/1000).toFixed(4);
-						zoompaper=(zoompaper/1000).toFixed(4);
-						grid.updateCellByRowCol(row.id,"PaperCount",{value:paper});
-						grid.updateCellByRowCol(row.id,"ZoomPaperCount",{value:zoompaper});
-						grid.updateCellByRowCol(row.id,"TotalPaper",{value:totalpaper});
-					}
-					
-				}
 			}
 		},
 		_grid_afterhotrowadded:function (profile, row){
