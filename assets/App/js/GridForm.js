@@ -140,7 +140,8 @@ Class('App.GridForm', 'xui.Module',{
 							dialog:host.mainDlg,
 							recordIds:recordIds,
 							index:index,
-							setting:setting[f]
+							setting:setting[f],
+							db:host.databinder
 						},{
 							onWidgetReady:function(ele){
 								_.tryF(ele._load,null,ele);

@@ -31,9 +31,6 @@ class Message extends MY_Controller {
 	{
 		$id = (int) $this->paras->id;
 		$ret = $this->message_model->show($id);
-		if ($ret) {
-			$this->reply(404, "Not Found");
-		}
 		return $ret;
 		
 	}

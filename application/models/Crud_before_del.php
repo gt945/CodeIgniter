@@ -18,17 +18,6 @@ class Crud_before_del extends Crud_hook {
 			if ($notify && $notify['Status'] > 1) {
 				return $this->result(false, "已进行审核,无法删除");
 			}
-			if((int)$d['paperDeduceID'] && (int)$d['paperUseDetailID']) {
-				$this->load->model("PaperUseDetail");
-				$detail = $this->PaperUseDetail->prepare((int)$d['paperUseDetailID']);
-				if ($detail) {
-					$this->load->model("PaperStock");
-					$this->PaperStock->prepare($detail['PaperStyleID']);
-					$this->PaperStock->stock_in($detail['Counts']);
-
-					$this->PaperUseDetail->delete();
-				}
-			}
 		}
 		return $this->result(true);
 	}
@@ -40,14 +29,11 @@ class Crud_before_del extends Crud_hook {
 				if(($k = array_search($d['id'], $ids)) !== false) {
 					return $this->result(false, "已进行审核,无法删除");
 				}
-
 			}
 		}
 		if (count($ids)) {
 			$this->db->where_in('PNID', $ids);
-			$details = $this->db->get('publishnotifydetails')->result_array ();
-			$tmp = array();
-			$this->publishnotifydetails_del(null, null, $tmp, $details);
+			$this->db->delete('publishnotifydetails');
 			$this->db->where_in('PNID', $ids);
 			$this->db->delete('publishnotifydeliver');
 			$this->db->where_in('PNID', $ids);
@@ -56,6 +42,7 @@ class Crud_before_del extends Crud_hook {
 
 		return $this->result(true);
 	}
+	
 	public function publishnotifydeliver_del($oper, $model, &$ids, $old)
 	{
 		$this->load->model('PublishNotify');
@@ -67,6 +54,7 @@ class Crud_before_del extends Crud_hook {
 		}
 		return $this->result(true);
 	}
+	
 	public function publishnotifyprice_del($oper, $model, &$ids, $old)
 	{
 		$this->load->model('PublishNotify');

@@ -20,13 +20,17 @@ class MY_Controller extends CI_Controller {
 
 	public function reply($code = 200, $msg = "Success", $data=null)
 	{
-		$response = new stdClass();
-		$response->code = $code;
-		$response->msg = $msg;
-		if ($data) {
-			$response->data = $data;
+		if ($this->input->is_ajax_request()) {
+			$response = new stdClass();
+			$response->code = $code;
+			$response->msg = $msg;
+			if ($data) {
+				$response->data = $data;
+			}
+			echo json_encode($response);
+		} else {
+			echo $msg;
 		}
-		echo json_encode($response);
 		die();
 	}
 }

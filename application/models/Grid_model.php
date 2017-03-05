@@ -342,11 +342,11 @@ class Grid_model extends Crud_Model
 	}
 
 
-	public function wrapper_sheet($paras)
+	public function wrapper_sheet($paras, $sub = false)
 	{
 		$table = $this->name;
 
-		if ($this->crud_table['prop'] & Crud_model::PROP_TABLE_VIEW) {
+		if ($this->crud_table['prop'] & Crud_model::PROP_TABLE_VIEW || $sub) {
 			$db = "grid_model";
 			$alias = "a";
 		} else {
@@ -894,6 +894,7 @@ class Grid_model extends Crud_Model
 				foreach ($xui_prop as $key => $value) {
 					$form_obj->properties->$key = $value;
 					$header_inline->$key = $value;
+					$header->$key = $value;
 				}
 			}
 			$form_obj->properties->tips = $f['tip'];

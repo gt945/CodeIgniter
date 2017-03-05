@@ -1,13 +1,11 @@
 <?php
 defined('BASEPATH') OR exit('No direct script access allowed');
 
-class Data extends CI_Controller {
+class Data extends MY_Controller {
 	
 	function __construct()
 	{
 		parent::__construct();
-		$this->load->model ( 'auth_model' );
-		
 	}
 	
 	
@@ -224,7 +222,7 @@ EOD;
 
 		$ret = $this->publishnotify->sheet_to_grid($ret->data, false, true);
 		if (!isset($ret[0])) {
-			die();
+			die("无此记录");
 		}
 		$data = $ret[0]->cells;
 //		print_r($data);
@@ -232,32 +230,16 @@ EOD;
 		$Year = $data['Year']->value;
 		$No = $data['No']->value;
 		$total = 0;
+		$deliver = null;
 		if ($JID && $Year && $No) {
-			$sql = <<<EOF
-select '编辑部' as orderUnit, orderCount from (select ifnull(sum(orderCount),0) as orderCount from `qkzx_journalorders` where JID = {$JID} and saleStyle = 5 and jyear = {$Year} and nostart <= {$No} and noend >= {$No}) a
-union
-select '邮局外埠' as orderUnit, orderCount from (select IfNULL(sum(orderCount),0) as orderCount from `qkzx_journalorders` where JID = {$JID} and saleStyle = 4 and jyear ={$Year}  and nostart <= {$No} and noend >={$No}) b
-union
-select '邮局本市' as orderUnit, orderCount from (select IfNULL(sum(orderCount),0) as orderCount  from `qkzx_journalorders`  where JID = {$JID} and saleStyle = 3 and jyear ={$Year} and nostart <= {$No} and noend >= {$No}) c
-union
-SELECT '邮局本市东' AS orderUnit, orderCount FROM (SELECT IfNULL(SUM(orderCount),0) AS orderCount FROM `qkzx_journalorders` WHERE JID = {$JID} AND saleStyle =20 AND Jyear ={$Year}  AND nostart = {$No}) e
-union
-SELECT '邮局本市西' AS orderUnit, orderCount FROM(SELECT IfNULL(SUM(orderCount),0) AS orderCount FROM `qkzx_journalorders` WHERE JID = {$JID} AND saleStyle = 21 AND Jyear ={$Year} AND nostart ={$No} ) f
-union
-select '本社' as orderUnit, orderCount from (select IfNULL(sum(orderCount),0) as orderCount from `qkzx_journalorders` where JID = {$JID} and saleStyle in(1,2,6,8) and jyear = {$Year} and nostart <= {$No} and noend >= {$No}) d
-
-EOF;
-//		$sql = "select '编辑部' as orderUnit, orderCount from (select ifnull(sum(orderCount),0) as orderCount from `qkzx_journalorders` where JID = ? and saleStyle = 5 and jyear =? and nostart <= ? and noend >=?) a";
-			$counts = $this->db->query($sql)->result();
-			foreach($counts as $c) {
-				$total += $c->orderCount;
+			$delivers = $this->db->get_where('publishnotifydeliver', array('PNID' => $PNID))->result_array();
+			$deliver = array_column($delivers, 'DeliverCount',  'DeliverTarget');
+			
+			foreach($deliver as $c) {
+				$total += $c;
 			}
 
-		} else {
-			$counts = null;
 		}
-
-//		print_r($counts);
 
 		$this->load->model('grid_model', 'publishnotifydetails');
 
@@ -325,21 +307,38 @@ EOF;
 //		$sheet->setCellValue("A17", $data['Note']->value);	   //备注
 		$sheet->setCellValue("B16", wordwrap($data['BindingOrder']->value, 125));	   //装订顺序
 		$sheet->setCellValue("A17", wordwrap($data['Note']->value, 125));	   //备注
-		if (is_array($counts) && count($counts) == 6) {
-			$sheet->setCellValue("J17", $counts[5]->orderCount);	  //本社
-			$sheet->setCellValue("J18", $counts[0]->orderCount);	  //编辑部
-			$sheet->setCellValue("J19", $counts[2]->orderCount);	  //邮局本市
-			$sheet->setCellValue("J20", $counts[3]->orderCount);	  //邮局本市东
-			$sheet->setCellValue("J21", $counts[4]->orderCount);	  //邮局本市西
-			$sheet->setCellValue("J22", $counts[1]->orderCount);	  //邮局外埠
+		if (is_array($deliver)) {
+			if (!isset($deliver['本社'])) {
+				$deliver['本社'] = '';
+			}
+			if (!isset($deliver['编辑部'])) {
+				$deliver['编辑部'] = '';
+			}
+			if (!isset($deliver['邮局本市'])) {
+				$deliver['邮局本市'] = '';
+			}
+			if (!isset($deliver['邮局本市东'])) {
+				$deliver['邮局本市东'] = '';
+			}
+			if (!isset($deliver['邮局本市西'])) {
+				$deliver['邮局本市西'] = '';
+			}
+			if (!isset($deliver['邮局外埠'])) {
+				$deliver['邮局外埠'] = '';
+			}
+			$sheet->setCellValue("J17", $deliver['本社']);
+			$sheet->setCellValue("J18", $deliver['编辑部']);
+			$sheet->setCellValue("J19", $deliver['邮局本市']);
+			$sheet->setCellValue("J20", $deliver['邮局本市东']);
+			$sheet->setCellValue("J21", $deliver['邮局本市西']);
+			$sheet->setCellValue("J22", $deliver['邮局外埠']);
 		}
 		$sheet->setCellValue("J23", $total);	  //合计
 		$sheet->setCellValue("J24", $data['AID']->caption);	  //开单
 
-
 		$objWriter = PHPExcel_IOFactory::createWriter($objPHPExcel, 'PDF');
 		header('Content-Type: application/pdf'); //mime type
-//		header('Content-Disposition: attachment;filename="1.pdf"'); //tell browser what's the file name
+		header('Content-Disposition: attachment;filename="YZD'.$PNID.'.pdf"');
 //		header('Cache-Control: max-age=0'); //no cache
 ////		$objWriter->SetFont('droidsansfallback');
 ////		$objWriter->setCellPaddings(10,10,10,10);
@@ -423,8 +422,161 @@ EOF;
 		$sheet->getStyle("A4:I{$i}")->getBorders()->getAllBorders()->setBorderStyle(PHPExcel_Style_Border::BORDER_THIN);
 		$objWriter = PHPExcel_IOFactory::createWriter($objPHPExcel, 'PDF');
 		header('Content-Type: application/pdf');
+		header('Content-Disposition: attachment;filename="FH'.$ID.'.pdf"');
 		$objWriter->save('php://output');
 		
 	}
+	function a()
+	{
+		ini_set('max_execution_time', 0);
+		$this->load->library('excel');
+		$this->load->model('grid_model');
+		
+		$this->grid_model->table('publishnotify', array(
+		"JID", "No", "Price", "PublishCounts"
+		));
+		$this->grid_model->prepare(true, false);
+		
+		$sql = <<<EOF
+	select
+		a.*,
+		c.Name as JName2,
+		GROUP_CONCAT(b.DeliverTarget) as DeliverTarget, 
+		GROUP_CONCAT(b.DeliverCount) as DeliverCount
+	from
+		`qkzx_publishnotifydeliver` b, 
+		`qkzx_publishnotify` a left join `qkzx_journalbaseinfo` c on a.JID = c.id
+		
+	where
+		a.id=b.PNID
+	group by
+		a.id;
+EOF;
+//		$this->db->reset();
+		$this->db->select("aa.JID");
+		$this->db->select("aa.NoStart");
+		$this->db->select("SUM(aa.OrderCount) as Counts");
+		$this->db->from("journalorders aa");
+		$this->db->where("aa.SaleStyle", 8);
+		$this->db->group_by("aa.JID");
+		$this->db->group_by("aa.NoStart");
+		
+		$this->grid_model->from("publishnotifydeliver b");
+		$this->grid_model->select("a2.NofPerYear as NofPerYear");
+		$this->grid_model->select("GROUP_CONCAT(b.DeliverTarget) as DeliverTarget");
+		$this->grid_model->select("GROUP_CONCAT(b.DeliverCount) as DeliverCount");
+		$this->grid_model->select("c.Counts AS StockCounts");
+		$this->grid_model->select("d.Counts AS GiftCounts");
+		$this->grid_model->join("journalstockmanage c", "a.JID=c.JID and a.No=c.No", 'LEFT');
+		$this->grid_model->join("(" . $this->db->get_compiled_select() . ") d", "a.JID=d.JID and a.No=d.NoStart", 'LEFT');
+		$this->grid_model->where("a.id=b.PNID");
+		$this->grid_model->group_by("a.id");
+		$this->grid_model->order_by("a.JID,a.No", "ASC");
+//		$paras = new stdClass();
+//		$paras->page = -1;
+//		$paras->size = -1;
+//		$paras->search = false;
+//		$ret = $this->grid_model->wrapper_sheet($paras, true);
+//		$publishnotifys = $ret->data;
+		$publishnotifys = $this->grid_model->sheet();
+//		print_r($this->grid_model->db3->queries);
+//		die();
+//		$publishnotifys = $this->publishnotify->sheet_to_grid($ret->data, false, true);
+		
+		
+		
+//		$this->db->from("publishnotifydeliver a");
+//		$this->db->from("publishnotify b");
+//		$this->db->from("journalbaseinfo c");
+//		$this->db->select("b.*");
+//		$this->db->select("GROUP_CONCAT(a.DeliverTarget) as DeliverTarget");
+//		$this->db->select("GROUP_CONCAT(a.DeliverCount) as DeliverCount");
+//		$this->db->select("c.Name as JName2");
+//		
+//		$this->db->where("b.id=a.PNID");
+//		$this->db->where("b.JID=c.id");
+//		$this->db->group_by("b.id");
+//		$this->db->order_by("b.JID,b.No", 'ASC');
+//		$data = $this->db->sheet();
+	
+//		print_r($publishnotifys);
+		$objPHPExcel = PHPExcel_IOFactory::load(BASEPATH.'../assets/reports/report1.xls');
+		$sheet = $objPHPExcel->getActiveSheet();
+		$i = 3;
+		//序号	刊名	刊期	期数	单价/元	总印数	造货码洋	编辑部	编辑部码洋	邮局本市	邮局外埠	邮局小计	送社	自办销售	赠阅	库存	损耗	发货数量	发货码洋	销售数量	销售码洋	销售实洋
+		//A		B		C		D		E		F		G			H		I			J			K			L			M		N			O		P		Q		R			S			T			U			V
+		foreach($publishnotifys as $k=>$d) {
+//			$sheet->setCellValue("A{$i}", "");
+			$sheet->setCellValue("B{$i}", $d['r2']);
+			$sheet->setCellValue("C{$i}", $d['NofPerYear']);
+			$sheet->setCellValue("D{$i}", $d['No']);
+			$sheet->setCellValue("E{$i}", $d['Price']);
+			$sheet->setCellValue("F{$i}", $d['PublishCounts']);
+			$sheet->setCellValue("G{$i}", "=E{$i}*F{$i}");
 
+			$DeliverTarget = explode(',', $d['DeliverTarget']);
+			$DeliverCount = explode(',', $d['DeliverCount']);
+			$deliver = array();
+			foreach($DeliverTarget as $m=>$n) {
+				$deliver[$n] = $DeliverCount[$m];
+			}
+////			print_r($deliver);
+			if (!isset($deliver['本社'])) {
+				$deliver['本社'] = 0;
+			}
+			if (!isset($deliver['编辑部'])) {
+				$deliver['编辑部'] = 0;
+			}
+			if (!isset($deliver['邮局本市'])) {
+				$deliver['邮局本市'] = 0;
+			}
+			if (!isset($deliver['邮局本市东'])) {
+				$deliver['邮局本市东'] = 0;
+			}
+			if (!isset($deliver['邮局本市西'])) {
+				$deliver['邮局本市西'] = 0;
+			}
+			if (!isset($deliver['邮局外埠'])) {
+				$deliver['邮局外埠'] = 0;
+			}
+			if (!$d['GiftCounts']){
+				$d['GiftCounts'] = 0;
+			}
+			if (!$d['StockCounts']) {
+				$d['StockCounts'] = 0;
+			}
+			$sheet->setCellValue("H{$i}", $deliver['编辑部']);
+			$sheet->setCellValue("I{$i}", "=E{$i}*H{$i}");
+			$sheet->setCellValue("J{$i}", $deliver['邮局本市'] + $deliver['邮局本市东'] + $deliver['邮局本市西']);
+			$sheet->setCellValue("K{$i}", $deliver['邮局外埠']);
+			$sheet->setCellValue("L{$i}", $deliver['邮局本市'] + $deliver['邮局本市东'] + $deliver['邮局本市西'] + $deliver['邮局外埠']);
+			$sheet->setCellValue("M{$i}", "=F{$i}-H{$i}-L{$i}");
+			$sheet->setCellValue("N{$i}", 0);
+			$sheet->setCellValue("O{$i}", $d['GiftCounts']);
+			$sheet->setCellValue("P{$i}", $d['StockCounts']);
+			$sheet->setCellValue("Q{$i}", 0);
+			$sheet->setCellValue("R{$i}", "=H{$i}+L{$i}+N{$i}+O{$i}+Q{$i}");
+			$sheet->setCellValue("S{$i}", "=R{$i}*E{$i}");
+			$sheet->setCellValue("T{$i}", "=L{$i}+N{$i}+O{$i}+Q{$i}");
+			$sheet->setCellValue("U{$i}", "=T{$i}*E{$i}");
+			$sheet->setCellValue("V{$i}", "=(L{$i}-10)*0.62*E{$i}+N{$i}*0.71*E{$i}");
+			$i++;
+		}
+		$tail = $i - 1;
+		$sheet->setCellValue("B{$i}", "合计");
+		$sheet->setCellValue("G{$i}", "=SUM(G3:G{$tail})");
+		$sheet->setCellValue("R{$i}", "=SUM(R3:R{$tail})");
+		$sheet->setCellValue("S{$i}", "=SUM(S3:S{$tail})");
+		$sheet->setCellValue("T{$i}", "=SUM(T3:T{$tail})");
+		$sheet->setCellValue("U{$i}", "=SUM(U3:U{$tail})");
+		$sheet->setCellValue("V{$i}", "=SUM(V3:V{$tail})");
+		$sheet->getStyle("A3:V{$i}")->getBorders()->getAllBorders()->setBorderStyle(PHPExcel_Style_Border::BORDER_THIN);
+		
+		$filename = "年过程类期刊统计表.xls";
+		header('Content-Type: application/vnd.ms-excel'); //mime type
+		header('Content-Disposition: attachment;filename="'.$filename.'"'); //tell browser what's the file name
+		header('Cache-Control: max-age=0'); //no cache
+		$objWriter = PHPExcel_IOFactory::createWriter($objPHPExcel, 'Excel5');
+		$objWriter->save('php://output');
+	}
 }

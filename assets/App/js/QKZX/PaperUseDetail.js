@@ -66,6 +66,9 @@ Class('App.QKZX.PaperUseDetail', 'xui.Module',{
 					}
 					grid.setActiveRow(null);
 					grid.setUIValue(null,true);
+					_.arr.each(rsp.data.rows,function(row){
+						row.cells[0].disabled=true;
+					});
 					grid.setRows(rsp.data.rows);
 				}
 
@@ -79,7 +82,24 @@ Class('App.QKZX.PaperUseDetail', 'xui.Module',{
 			//return {caption:"*", cells:[{caption:"<span style='color:#888'>(点击新增)</span>"}]};
 		},
 		_grid_beforehotrowadded:function (profile,row,leaveGrid){
-			return row.cells[0].value!==""&&row.cells[0].value!==null;
+			var ns=this,grid=profile.boxing();
+			if (row.cells[0].value!==""&&row.cells[0].value!==null) {
+				var rows=grid.getRows();
+				for(var r in rows){
+					if(rows[r].id!==row.id&&rows[r].cells[0].value===row.cells[0].value){
+						grid.updateCellByRowCol(row.id,0,{value:""});
+						return false;
+					}
+				}
+				grid.updateCellByRowCol(row.id,"Pages",{value:"1-1"});
+				grid.updateCellByRowCol(row.id,"colourCount",{value:1});
+				grid.updateCellByRowCol(row.id,"ZoomPercent",{value:60});
+				grid.updateCellByRowCol(row.id,"PublishCount",ns.properties.db.getData("PublishCounts"));
+				grid.updateCellByRowCol(row.id,"KaiShu",ns.properties.db.getData("KaiId"));
+				row.cells[0].disabled=true;
+				return true;
+			}
+			return false;
 		},
 		_grid_aftercellupdated:function (profile,cell,options,isHotRow){
 			var ns=this,grid=profile.boxing();
@@ -109,17 +129,12 @@ Class('App.QKZX.PaperUseDetail', 'xui.Module',{
 					
 				}
 			}
-			
-			
-			
-			
-			
 		},
 		_grid_afterhotrowadded:function (profile, row){
 
 		},
 		_grid_beforecombopop:function(profile,cell,proEditor,pos,e,src){
-			var ns = this,grid=profile.boxing(),elem = proEditor.boxing(),gprofile=profile;
+			var ns=this,grid=profile.boxing(),elem=proEditor.boxing(),gprofile=profile;
 			var col=grid.getColByCell(cell);
 			if(col.type=="listbox"){
 				var para = {field:grid.getColByCell(cell).id};
@@ -165,11 +180,13 @@ Class('App.QKZX.PaperUseDetail', 'xui.Module',{
 									if(extra && _.isArr(extra)){
 										_.arr.each(extra,function(exval){
 											var setting=ns.properties.gridSetting;
-											var ele=db.getUI(exval.id);
-											ele.setUIValue(exval.cell.value);
-											if(typeof(exval.cell.caption)==="string"){
-												ele.setCaption(exval.cell.caption);
-											}
+											var row=grid.getRowbyCell(cell);
+											grid.updateCellByRowCol(row.id,exval.id,{value:exval.cell.value,caption:exval.cell.caption});
+//											var ele=db.getUI(exval.id);
+//											ele.setUIValue(exval.cell.value);
+//											if(typeof(exval.cell.caption)==="string"){
+//												ele.setCaption(exval.cell.caption);
+//											}
 										});
 									}
 									grid.updateCell(cell.id, {

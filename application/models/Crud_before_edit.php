@@ -363,7 +363,7 @@ class Crud_before_edit extends Crud_hook {
 			}
 		} else {
 			foreach ($old as $o) {
-				if ($o['Status'] > 1) {
+				if ($o['Status'] >= 1) {
 					foreach ($data as $k=>$d) {
 						if ((int)$d['id'] == (int)$o['id']) {
 							return $this->result(false, "已进行审核,无法修改");
@@ -384,31 +384,40 @@ class Crud_before_edit extends Crud_hook {
 			if(isset($d['colourCount'])){
 				$d['colourCount'] = (int)$d['colourCount'];
 			}
+			//TODO
 			$notify = $this->PublishNotify->prepare($d['PNID']);
 			if ($notify) {
 				if ($notify['Status'] > 1) {
 					return $this->result(false, "已进行审核,无法修改");
 				}
-				$this->load->model('JournalBaseInfo');
-				$journal = $this->JournalBaseInfo->prepare($notify['JID']);
-				if($journal && $journal['providePaper'] == 0) {
-					$this->load->model('PaperStock');
-					$this->PaperStock->prepare($d['paperDeduceID']);
-					$this->PaperStock->stock_out($d['TotalPaper']);
-					$this->load->model('PaperUseDetail');
-					$d['paperUseDetailID'] = $this->PaperUseDetail->create($d, $journal, $notify);
-				}
 			}
-
 		} else {
 			$field = array(
-				'PNID'
+				'PNID', 'KaiShu', 'PublishCount', 'colourCount', 'ZoomPercent', 'Pages'
 			);
 			$this->array_merge_by_primary($model->primary, $data, $old, $field);
-			foreach($data as $d) {
+			foreach($data as &$d) {
 				$notify = $this->PublishNotify->prepare($d['PNID']);
 				if ($notify && $notify['Status'] > 1) {
 					return $this->result(false, "已进行审核,无法修改");
+				}
+				$pages = explode('-', $d['Pages']);
+				if (count($pages) == 2) {
+					$page = (int)$pages[1];
+					if ($page > 0) {
+						$kai = (int)$d['KaiShu'];
+						$count = (int)$d['PublishCount'];
+						$color = (int)$d['colourCount'];
+						$zoom = (int)$d['ZoomPercent'];
+						if ($kai > 0) {
+							$paper = round($page * $count / $kai + 0.4999);
+							$zoompaper = $color * $zoom;
+							$totalpaper = $paper + $zoompaper;
+							$d['TotalPaper'] = number_format($totalpaper / 1000, 4);
+							$d['PaperCount'] = number_format($paper / 1000, 4);
+							$d['ZoomPaperCount'] = number_format($zoompaper / 1000, 4);
+						}
+					}
 				}
 			}
 		}
@@ -474,20 +483,40 @@ class Crud_before_edit extends Crud_hook {
 		if ($oper == 'create') {
 			$d = &$data[0];
 			$d['Type'] = 1;
+			if (!isset($d['Note'])) {
+				$d['Note'] = "手动入库";
+			}
+			$d['Price'] = number_format($d['Price'], 2);
+			if ($d['Price'] < 0.01) {
+				return $this->result(false, "价格错误");
+			}
 			$this->PaperStock->prepare($d['PaperStyleID']);
-			$this->PaperStock->stock_in($d['Counts'], $d['Price']);
+			$this->PaperStock->stock_in($d['Counts'], $d['Price'], $d['Note']);
 
 		}
 		return $this->result(true);
 	}
+	
 	public function paperusedetail_stock_out($oper, $model, &$data, $old)
 	{
 		$this->load->model('PaperStock');
 		if ($oper == 'create') {
 			$d = &$data[0];
 			$d['Type'] = 0;
+			if (!isset($d['JID'])) {
+				$d['JID'] = null;
+			}
+			if (!isset($d['Year'])) {
+				$d['Year'] = null;
+			}
+			if (!isset($d['No'])) {
+				$d['No'] = null;
+			}
+			if (!isset($d['Note'])) {
+				$d['Note'] = "手动出库";
+			}
 			$this->PaperStock->prepare($d['PaperStyleID']);
-			$this->PaperStock->stock_out($d['Counts']);
+			$this->PaperStock->stock_out($d['Counts'], null, $d['Note'], $d['JID'], $d['Year'], $d['No']);
 
 		}
 		return $this->result(true);
