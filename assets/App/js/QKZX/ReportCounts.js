@@ -128,6 +128,9 @@ Class('App.QKZX.ReportCounts', 'xui.Module',{
 					ns.pagebar.setValue("1:"+curPage+":"+( Math.ceil(parseInt(rsp.data.count,10)/20) ),true);
 					ns._fillGrid(rsp.data.headers,rsp.data.rows);
 					ns.total.setUIValue(rsp.data.total);
+					if(parseInt(rsp.data.report,10)>0){
+						xui.alert("有"+rsp.data.report+"条订单未报数");
+					}
 				}
 			}, function(){
 				ns.mainPanel.busy();

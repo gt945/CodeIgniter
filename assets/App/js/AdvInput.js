@@ -147,7 +147,7 @@ Class('App.AdvInput', 'xui.Module',{
 					if(!ns.isDestroyed())
 						ns.destroy(); 
 				}
-			});   
+			});
 		},
 		_ctl_sbutton1_onclick:function (profile, e, src, value){
 			this.loadGridData();

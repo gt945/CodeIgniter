@@ -47,6 +47,7 @@ class JournalStockManage extends CI_Model {
 		if ($this->stock) {
 			$save = array(
 				'JID'	=>	$this->jid,
+				"AID"	=>	$_SESSION['userinfo']['id'],
 				'CID'	=>	$cid,
 				'Year'	=>	$this->year,
 				'No'	=>	$this->no,
@@ -71,6 +72,7 @@ class JournalStockManage extends CI_Model {
 		if ($this->stock) {
 			$save = array(
 				'JID'	=>	$this->jid,
+				"AID"	=>	$_SESSION['userinfo']['id'],
 				'Year'	=>	$this->year,
 				'No'	=>	$this->no,
 				'Counts'	=>	$count,
@@ -87,6 +89,7 @@ class JournalStockManage extends CI_Model {
 		} else if ($this->jid != -1) {
 			$save = array(
 				'JID'	=>	$this->jid,
+				"AID"	=>	$_SESSION['userinfo']['id'],
 				'Year'	=>	$this->year,
 				'No'	=>	$this->no,
 				'Counts'	=>	$count,

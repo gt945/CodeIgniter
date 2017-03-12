@@ -9,7 +9,7 @@ Class('App.Validate.CashDailyBook', 'xui.Module',{
 			// ]]Code created by CrossUI RAD Studio
 		},
 		autoComplete:function(db){
-			data=db.getUIValue();
+			var data=db.getUIValue();
 			var flag=data.RIDFlag;
 
 			db.getUI("JID").setDisabled(true);

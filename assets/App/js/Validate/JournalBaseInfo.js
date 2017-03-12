@@ -9,7 +9,7 @@ Class('App.Validate.JournalBaseInfo', 'xui.Module',{
 			// ]]Code created by CrossUI RAD Studio
 		},
 		autoComplete:function(db){
-			data=db.getUIValue();
+			var data=db.getUIValue();
 			var NofPerYear=1;
 			switch(data.PublishStyle) {
 				case "7":

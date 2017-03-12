@@ -167,6 +167,7 @@ Class('App.GridForm', 'xui.Module',{
 					.setTop(10)
 					.setWidth(20)
 					.setCaption("<")
+					.setTips("上一条记录")
 					.setTabindex(++index)
 					.onClick("_ctl_btnprev_onclick")
 				);
@@ -176,6 +177,7 @@ Class('App.GridForm', 'xui.Module',{
 					.setTop(10)
 					.setWidth(20)
 					.setCaption(">")
+					.setTips("下一条记录")
 					.setTabindex(++index)
 					.onClick("_ctl_btnnext_onclick")
 				);
@@ -186,6 +188,7 @@ Class('App.GridForm', 'xui.Module',{
 						.setTop(10)
 						.setWidth(20)
 						.setCaption("C")
+						.setTips("复制本条记录")
 						.setTabindex(++index)
 						.onClick("_ctl_btncopy_onclick")
 					);
@@ -278,7 +281,7 @@ Class('App.GridForm', 'xui.Module',{
 				}
 
 			}else if(ns._dataFilter){
-				_.tryF(ns._dataFilter.autoComplete,[db]);
+				_.tryF(ns._dataFilter.autoComplete,[db],ns._dataFilter);
 			}
 			this.setDirty(false);
 		},
@@ -436,7 +439,7 @@ Class('App.GridForm', 'xui.Module',{
 					ns.btnClose.activate();
 				});
 				if(ns._dataFilter){
-					_.tryF(ns._dataFilter.autoComplete,[db]);
+					_.tryF(ns._dataFilter.autoComplete,[db],ns._dataFilter);
 				}
 				ns.fireEvent("onUpdateUI",[recordId]);
 			},function(){
@@ -469,7 +472,7 @@ Class('App.GridForm', 'xui.Module',{
 		_form_onchange:function(profile, oldValue, newValue, force, tag){
 			var ns=this,db=ns.databinder;
 			if(ns._dataFilter&&!force){
-				_.tryF(ns._dataFilter.autoComplete,[db]);
+				_.tryF(ns._dataFilter.autoComplete,[db],ns._dataFilter);
 			}
 			_.each(ns._widgets,function(ele){
 				var relate=ns._get_relate(ele.properties.setting.relate);

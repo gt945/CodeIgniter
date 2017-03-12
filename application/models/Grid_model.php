@@ -28,107 +28,106 @@ class Grid_model extends Crud_Model
 			}
 		}
 		return $result;
-
 	}
 
 
-		public function get_left_join($field, $paras = null, $ui = false)
-		{
-			$ret = new stdClass();
-			$field_info = $this->crud_field[$field];
-			$db = "db_".__LINE__;
-			$this->load->model('Crud_model', $db);
-			if (!$this->$db->table($field_info['join_table'])){
-				return false;
-			};
-			$this->$db->prepare(false);
+	public function get_left_join($field, $paras = null, $ui = false)
+	{
+		$ret = new stdClass();
+		$field_info = $this->crud_field[$field];
+		$db = "db_".__LINE__;
+		$this->load->model('Crud_model', $db);
+		if (!$this->$db->table($field_info['join_table'])){
+			return false;
+		};
+		$this->$db->prepare(false);
 
-			if (isset($paras->relate)){
-				$relates = explode(',', $field_info['relate']);
-				$dep = array();
-				foreach($relates as $k=>&$d) {
-					$tmp = explode(':', $d);
-					$dep[$tmp[0]] = $tmp;
-				}
-				foreach($paras->relate as $key=>$value){
-					if(isset($this->$db->crud_field[$key])) {
-						array_unshift($dep[$key], $value);
-						call_user_func_array(array(&$this->$db, 'parse_relate'), $dep[$key]);
-					}
-				}
+		if (isset($paras->relate)){
+			$relates = explode(',', $field_info['relate']);
+			$dep = array();
+			foreach($relates as $k=>&$d) {
+				$tmp = explode(':', $d);
+				$dep[$tmp[0]] = $tmp;
 			}
-
-			if ($this->$db->pid && $ui) {
-				$pid = $this->$db->crud_field[$this->$db->pid];
-				if ($pid['join_value'] = $field_info['join_value'] && $pid['join_caption'] = $field_info['join_caption']) {
-					$this->load->library( 'xui_utils' );
-					$tree = $this->$db->get_tree_data_by_pid();
-					$data = array($this->xui_utils->build_tree($tree[0], $field_info['join_caption']));
-					return $data;
+			foreach($paras->relate as $key=>$value){
+				if(isset($this->$db->crud_field[$key])) {
+					array_unshift($dep[$key], $value);
+					call_user_func_array(array(&$this->$db, 'parse_relate'), $dep[$key]);
 				}
 			}
-
-			if (isset($this->$db->fields['AID']) && (!isset($this->$db->crud_field['AID']) || !$this->$db->crud_field['AID']['_role_r'])) {
-				$this->$db->where('a.AID', $_SESSION['userinfo']['id']);
-			}
-
-			switch ($field_info['type']) {
-				case Crud_model::TYPE_SELECT :
-				case Crud_model::TYPE_MULTI :
-				case Crud_model::TYPE_BIT :
-					if ($field_info['prop'] & Crud_model::PROP_FIELD_STRING) {
-						$ret->type = "string";
-					} else {
-						$ret->type = "number";
-					}
-					$this->$db->select ( "a.{$field_info['join_value']} _value");
-					$this->$db->select ( "a.{$field_info['join_caption']} _caption" );
-	// 				if($this->$db->pid) {
-	// 					$this->$db->select ( "{$$this->$db->pid} _pid" );
-	// 				}
-					if ($field_info['join_condition'] != '' && $field_info['join_condition_value'] != '') {
-						$this->$db->where ( $field_info['join_condition'], $field_info['join_condition_value'] );
-					}
-					if (isset($paras->like)) {
-						$this->$db->group_start();
-						$this->$db->like($field_info['join_caption'], $paras->like, 'both');
-						$this->$db->or_like($field_info['join_value'], $paras->like, 'both');
-						$this->$db->group_end();
-					}
-					if ($field_info['type'] == Crud_model::TYPE_SELECT ) {
-						 $ret->count = $this->$db->count_all_results();
-					}
-					if (isset($paras->page) && isset($paras->size)) {
-						$start = ($paras->page - 1) * $paras->size;
-						$this->$db->limit($paras->size, $start);
-					}
-					$this->$db->order_by("_value", "asc");
-					$ret->data = $this->$db->sheet();
-					break;
-				case Crud_model::TYPE_AUTOCOMPLETE :
-					$this->$db->select ( "a.{$field_info['join_value']} _value");
-					$this->$db->select ( "a.{$field_info['join_caption']} _caption");
-					if (isset($paras->like)) {
-						$this->$db->group_start();
-						$this->$db->like($field_info['join_value'], $paras->like, 'both');
-						$this->$db->or_like($field_info['join_caption'], $paras->like, 'both');
-						$this->$db->group_end();
-					}
-					$ret->count = $this->$db->count_all_results();
-					if (isset($paras->page) && isset($paras->size)) {
-						$start = ($paras->page - 1) * $paras->size;
-						$this->$db->limit($paras->size, $start);
-					}
-					$this->$db->order_by("_caption", "asc");
-					$ret->data = $this->$db->sheet();
-					break;
-				default :
-					return false;
-					break;
-			}
-			$this->$db->flush_cache();
-			return $ret;
 		}
+
+		if ($this->$db->pid && $ui) {
+			$pid = $this->$db->crud_field[$this->$db->pid];
+			if ($pid['join_value'] = $field_info['join_value'] && $pid['join_caption'] = $field_info['join_caption']) {
+				$this->load->library( 'xui_utils' );
+				$tree = $this->$db->get_tree_data_by_pid();
+				$data = array($this->xui_utils->build_tree($tree[0], $field_info['join_caption']));
+				return $data;
+			}
+		}
+
+		if (isset($this->$db->fields['AID']) && (!isset($this->$db->crud_field['AID']) || !$this->$db->crud_field['AID']['_role_r'])) {
+			$this->$db->where('a.AID', $_SESSION['userinfo']['id']);
+		}
+
+		switch ($field_info['type']) {
+			case Crud_model::TYPE_SELECT :
+			case Crud_model::TYPE_MULTI :
+			case Crud_model::TYPE_BIT :
+				if ($field_info['prop'] & Crud_model::PROP_FIELD_STRING) {
+					$ret->type = "string";
+				} else {
+					$ret->type = "number";
+				}
+				$this->$db->select ( "a.{$field_info['join_value']} _value");
+				$this->$db->select ( "a.{$field_info['join_caption']} _caption" );
+// 				if($this->$db->pid) {
+// 					$this->$db->select ( "{$$this->$db->pid} _pid" );
+// 				}
+				if ($field_info['join_condition'] != '' && $field_info['join_condition_value'] != '') {
+					$this->$db->where ( $field_info['join_condition'], $field_info['join_condition_value'] );
+				}
+				if (isset($paras->like)) {
+					$this->$db->group_start();
+					$this->$db->like($field_info['join_caption'], $paras->like, 'both');
+					$this->$db->or_like($field_info['join_value'], $paras->like, 'both');
+					$this->$db->group_end();
+				}
+				if ($field_info['type'] == Crud_model::TYPE_SELECT ) {
+					 $ret->count = $this->$db->count_all_results();
+				}
+				if (isset($paras->page) && isset($paras->size)) {
+					$start = ($paras->page - 1) * $paras->size;
+					$this->$db->limit($paras->size, $start);
+				}
+				$this->$db->order_by("_value", "asc");
+				$ret->data = $this->$db->sheet();
+				break;
+			case Crud_model::TYPE_AUTOCOMPLETE :
+				$this->$db->select ( "a.{$field_info['join_value']} _value");
+				$this->$db->select ( "a.{$field_info['join_caption']} _caption");
+				if (isset($paras->like)) {
+					$this->$db->group_start();
+					$this->$db->like($field_info['join_value'], $paras->like, 'both');
+					$this->$db->or_like($field_info['join_caption'], $paras->like, 'both');
+					$this->$db->group_end();
+				}
+				$ret->count = $this->$db->count_all_results();
+				if (isset($paras->page) && isset($paras->size)) {
+					$start = ($paras->page - 1) * $paras->size;
+					$this->$db->limit($paras->size, $start);
+				}
+				$this->$db->order_by("_caption", "asc");
+				$ret->data = $this->$db->sheet();
+				break;
+			default :
+				return false;
+				break;
+		}
+		$this->$db->flush_cache();
+		return $ret;
+	}
 
 /*
 	public function get_left_join($field, $paras = null, $ui = false)
@@ -993,7 +992,7 @@ class Grid_model extends Crud_Model
 							continue;
 						}
 					}
-					if (isset($post [$k]) && $f['prop'] & Crud_model::PROP_FIELD_STATIC) {
+					if (isset($post [$k]) && ($f['prop'] & Crud_model::PROP_FIELD_STATIC) && $oper == 'set') {
 						$ret->message = "\"{$f['caption']}\"不可更改";
 						return $ret;
 					}

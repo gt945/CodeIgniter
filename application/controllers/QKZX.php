@@ -246,7 +246,7 @@ class QKZX extends MY_Controller
 		} else {
 			$data->total = 0;
 		}
-		$data->ret = $ret;
+//		$data->ret = $ret;
 //		$data->rows = $this->grid_model->sheet_to_grid($ret->data);
 //		$data->count = $ret->count;
 //		$data->sql = $ret->sql;
@@ -281,12 +281,17 @@ union
 SELECT '邮局本市西' AS orderUnit, orderCount FROM(SELECT IfNULL(SUM(orderCount),0) AS orderCount FROM `qkzx_journalorders` WHERE JID = {$JID} and ReportStatus = 1 AND saleStyle = 21 AND Jyear ={$Year} AND nostart ={$No} ) f
 union
 select '本社' as orderUnit, orderCount from (select IfNULL(sum(orderCount),0) as orderCount from `qkzx_journalorders` where JID = {$JID} and ReportStatus = 1 and saleStyle in(1,2,6,8) and jyear = {$Year} and nostart <= {$No} and noend >= {$No}) d
-union
-select '未报数' as orderUnit, orderCount from (select IfNULL(sum(orderCount),0) as orderCount from `qkzx_journalorders` where JID = {$JID} and ReportStatus = 0 and jyear = {$Year} and nostart <= {$No} and noend >= {$No}) e
 EOF;
 //		$sql = "select '编辑部' as orderUnit, orderCount from (select ifnull(sum(orderCount),0) as orderCount from `qkzx_journalorders` where JID = ? and saleStyle = 5 and jyear =? and nostart <= ? and noend >=?) a";
 		$ret = $this->db->query($sql);
 		$data->rows = $ret->result();
+		
+		$sql = <<<EOF
+select count(*) as count from `qkzx_journalorders` where JID = {$JID} and ReportStatus = 0 and jyear = {$Year} and nostart <= {$No} and noend >= {$No}
+EOF;
+		$ret = $this->db->query($sql);
+		$ret = $ret->row_array();
+		$data->report = $ret['count'];
 		return $data;
 	}
 	private function  request_get_arrive_counts ()
@@ -696,6 +701,25 @@ EOF;
 		foreach($this->paras->data as $d){
 			if ($this->JournalStockManage->prepare($d->JID, $d->Year, $d->No)) {
 				$this->JournalStockManage->stock_out($d->Counts, 4, NULL, "特殊出库");
+			}
+		}
+		return 1;
+	}
+	
+	private function request_check_arrival()
+	{
+		$JID = (int)$this->paras->JID;
+		$Year = (int)$this->paras->Year;
+		$No = (int)$this->paras->No;
+		$arrival = $this->db->get_where("arrivalmanage", array("JID" => $JID, "Year" => $Year, "No" => $No))->row_array();
+		if ($arrival) {
+			$this->reply(500, "请注意,该期刊已经有到货");
+		}
+		if ($No > 1) {
+			$No = $No - 1;
+			$arrival = $this->db->get_where("arrivalmanage", array("JID" => $JID, "Year" => $Year, "No" => $No))->row_array();
+			if(!$arrival) {
+				$this->reply(500, "请注意,该期刊第{$No}期还没有到货");
 			}
 		}
 		return 1;

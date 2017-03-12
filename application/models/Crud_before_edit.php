@@ -76,14 +76,9 @@ class Crud_before_edit extends Crud_hook {
 			$d['Year'] = $d['Jyear'];
 			$this->load->model('JournalStockManage');
 			if ($d['OrderType'] == 1) {																/* 收订 - 预留库存 */
-			
-
-
 				if($customer['CType'] == 2) {														/* 收订 - 预留库存 */
 					$d['SaleStyle'] = 2;
 					$d['ReportStatus'] = 0;
-
-
 					unset($data[0]);
 					for ($i = $NoStart; $i <= $NoEnd; $i++) {
 						$d['NoStart'] = $i;
@@ -108,7 +103,6 @@ class Crud_before_edit extends Crud_hook {
 							$this->JournalStockManage->stock_out($OrderCount, 11, $d['CID']);
 							$data[] = $d;
 						}
-
 					}
 
 				} else {																			/* 收订 - 一般客户和其他客户 */
@@ -273,6 +267,7 @@ class Crud_before_edit extends Crud_hook {
 					$td['NoStart'] = $i;
 					$td['NoEnd'] = $i;
 					$td['ReportStatus'] = 0;
+					$td['SaleStyle'] = 1;
 					$data[] = $td;
 				}
 			}
@@ -317,7 +312,7 @@ class Crud_before_edit extends Crud_hook {
 			$this->load->model('ReportCounts');
 			$existreport = $this->ReportCounts->prepare($d['JID'], $d['Year'], $d['No']);
 			if ($existreport) {
-				return $this->result(false, "已有报数");
+				return $this->result(false, "该期次已有报数");
 			} else {
 				$save = array (
 					'ReportBatchID' => $d['BatchID'],
@@ -332,7 +327,7 @@ class Crud_before_edit extends Crud_hook {
 			}
 		} else {
 			$field = array(
-				'JID', 'No'
+				'JID', 'No', 'Year'
 			);
 			$this->array_merge_by_primary($model->primary, $data, $old, $field);
 			foreach($data as &$d) {
@@ -340,6 +335,17 @@ class Crud_before_edit extends Crud_hook {
 				if ($publishnotify) {
 					return $this->result(false, "已开印，不可修改");
 				}
+				$d['BatchID'] = sprintf("%s%04d",date('Ymj'), $_SESSION['userinfo']['id']);
+				$save = array (
+					'ReportBatchID' => $d['BatchID'],
+					'ReportStatus'	=> 1
+				);
+				
+				$this->db->where('Jyear', $d['Year']);
+				$this->db->where('JID', $d['JID']);
+				$this->db->where('NoStart', $d['No']);
+				$this->db->where('NoEnd', $d['No']);
+				$this->db->update('journalorders', $save);
 			}
 		}
 		return $this->result();
@@ -549,8 +555,12 @@ class Crud_before_edit extends Crud_hook {
 				$this->db->query("call AddArrivalAndDelivery(@BatchID, @JID, @AID, @Year, @Volume, @No, @Counts, @Note)");
 				//TODO: 检查返回状态
 				unset($data[0]);
+			} else if($d['Counts'] > 0) {
+				$this->load->model('JournalStockManage');
+				$this->JournalStockManage->prepare($d['JID'], $d['Year'], $d['No']);
+				$this->JournalStockManage->stock_in($d['Counts'], 1);
 			} else {
-				return $this->result(false, "到货数量小于订单数量");
+				return $this->result(false, "到货数量不正确");
 			}
 		}
 		return $this->result(true);
@@ -603,9 +613,60 @@ class Crud_before_edit extends Crud_hook {
 	{
 		if($oper == "create") {
 			$d = &$data[0];
+			
 			$exist = $this->db->get_where('publishrecords', array('JID' => $d['JID'], 'No' => $d['No']))->row_array();
 			if ($exist) {
 				return $this->result(false, "已存在该期次的印制责任卡");
+			}
+		} else {
+			$field = array(
+				'JID', 'No', 'EditOfficeNeedType', 'EditOfficeNeedCount'
+			);
+			$this->array_merge_by_primary($model->primary, $data, $old, $field);
+		}
+		foreach ($data as $d) {
+			$journal = $this->db->get_where('journalbaseinfo', array('id' => $d['JID']))->row_array();
+			if (!$journal) {
+				return $this->result(false, "期刊错误");
+			}
+			if (isset($d['EditOfficeNeedType']) && isset($d['EditOfficeNeedCount'])) {
+				$office = $this->db->get_where('editorialoffice', array('id' => $journal['EID']))->row_array();
+				if ($office['CID']) {
+					$order = $this->db->get_where('journalorders', array('JID' => $d['JID'], 'NoStart' => $d['No'], 'CID' => $office['CID']))->row_array();
+					if (!$order) {
+						$order = array(
+							"CID"	=>	$office['CID'],
+							"JID"	=>	$d['JID'],
+							"AID"	=>	$_SESSION['userinfo']['id'],
+							"Year"	=>	$journal['year'],
+							"jyear"	=>	$journal['year'],
+							"NoStart"	=>	$d['No'],
+							"NoEnd"	=>	$d['No'],
+							"CostDiscount"	=>	$journal['CostDiscount'],
+							"SaleDiscount"	=>	$journal['SaleDiscount'],
+							"SaleStyle"	=>	1,
+							"OrderType"	=>	1,
+							"IsNeedDeliver"	=>	1,
+							"Note"	=>	"由印制责任卡自动生成的订单"
+						);
+					}
+					
+					if ($d['EditOfficeNeedType'] == 2) {
+						$order['OrderCount'] = $d['EditOfficeNeedCount'];
+					} else {
+						$order['OrderCount'] = 0;
+					}
+					$order['TotalPrice'] = $order['OrderCount'] * $journal['Price'];
+					$order['SalesTotal'] = $order['TotalPrice'] * $order['CostDiscount'] / 100;
+					$order['CostTotal'] = $order['TotalPrice'] * $order['SaleDiscount'] / 100;
+					$order['ReportStatus'] = 0;
+					if (isset($order['id'])) {
+						$this->db->update('journalorders', $order, array('id' => $order['id']));
+					} else if ($order['OrderCount'] > 0) {
+						$this->db->insert('journalorders', $order);
+					}
+				}
+				
 			}
 		}
 		return $this->result(true);

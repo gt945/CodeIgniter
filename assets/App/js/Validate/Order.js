@@ -9,7 +9,7 @@ Class('App.Validate.Order', 'xui.Module',{
 			// ]]Code created by CrossUI RAD Studio
 		},
 		autoComplete:function(db){
-			data=db.getUIValue();
+			var data=db.getUIValue();
 			// var price=parseFloat("0"+data.CostTotal);
 			// var discount=parseInt("0"+data.SaleDiscount,10);
 

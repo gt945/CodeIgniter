@@ -66,9 +66,9 @@ Class('App.QKZX.PublishDeliverDetails', 'xui.Module',{
 					}
 					grid.setActiveRow(null);
 					grid.setUIValue(null,true);
-					_.arr.each(rsp.data.rows,function(row){
-						row.cells[0].disabled=true;
-					});
+//					_.arr.each(rsp.data.rows,function(row){
+//						row.cells[0].disabled=true;
+//					});
 					grid.setRows(rsp.data.rows);
 				}
 
@@ -91,7 +91,7 @@ Class('App.QKZX.PublishDeliverDetails', 'xui.Module',{
 						return false;
 					}
 				}
-				row.cells[0].disabled=true;
+//				row.cells[0].disabled=true;
 				return true;
 			}
 			return false;

@@ -367,7 +367,6 @@ class Crud_model extends Db_Model {
 			$this->db->from('user_group');
 			$this->db->where('id', $gid);
 			$tree_code = $this->db->cell('tree_code');
-			
 			if (!$tree_code) {
 				return null;
 			}
@@ -485,7 +484,6 @@ class Crud_model extends Db_Model {
 
 	public function build_children_tree_code($table, $pid, $tree_code, $pid_field = 'pid')
 	{
-		
 		$this->db->select("id,{$pid_field},tree_code");
 		$this->db->from($table);
 		$this->db->where($pid_field , $pid);
@@ -514,7 +512,6 @@ class Crud_model extends Db_Model {
 			$d['name'] = $d['actionName'];
 			$d['icon'] = $d['actionIcon'];
 			$flow_items[] = $d;
-
 		}
 		return $flow_items;
 	}

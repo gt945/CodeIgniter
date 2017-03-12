@@ -1,4 +1,4 @@
-Class('App.QKZX.PaperUseDetail', 'xui.Module',{
+Class('App.QKZX.PublishPaperUseDetail', 'xui.Module',{
 	Instance:{
 		autoDestroy : true,
 		properties : {},

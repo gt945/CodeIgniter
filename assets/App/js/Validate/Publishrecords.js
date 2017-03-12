@@ -9,7 +9,7 @@ Class('App.Validate.Publishrecords', 'xui.Module',{
 			// ]]Code created by CrossUI RAD Studio
 		},
 		autoComplete:function(db){
-			data=db.getUIValue();
+			var data=db.getUIValue();
 			var sp=parseInt('0'+data.StartPage,10);
 			var ep=parseInt('0'+data.EndPage,10);
 			if(sp<=ep&&sp&&ep) {
