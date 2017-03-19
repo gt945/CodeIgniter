@@ -47,7 +47,10 @@ class Crud_before_edit extends Crud_hook {
 	
 	function group_edit($oper, $model, &$data, $old)
 	{
-		
+		if ($oper == 'create') {
+			
+		} else {
+		}
 	}
 	
 	
@@ -310,21 +313,30 @@ class Crud_before_edit extends Crud_hook {
 			$d=&$data[0];
 			$d['BatchID'] = sprintf("%s%04d",date('Ymj'), $_SESSION['userinfo']['id']);
 			$this->load->model('ReportCounts');
+			$this->load->model('JournalBaseInfo');
+			$journal = $this->JournalBaseInfo->prepare($d['JID']);
+			if (!$journal) {
+				return $this->result(false, "无此期刊");
+			}
 			$existreport = $this->ReportCounts->prepare($d['JID'], $d['Year'], $d['No']);
 			if ($existreport) {
 				return $this->result(false, "该期次已有报数");
-			} else {
-				$save = array (
-					'ReportBatchID' => $d['BatchID'],
-					'ReportStatus'	=> 1
-				);
-				
-				$this->db->where('Jyear', $d['Year']);
-				$this->db->where('JID', $d['JID']);
-				$this->db->where('NoStart', $d['No']);
-				$this->db->where('NoEnd', $d['No']);
-				$this->db->update('journalorders', $save);
-			}
+			} 
+			$save = array (
+				'ReportBatchID' => $d['BatchID'],
+				'ReportStatus'	=> 1
+			);
+			
+			$this->db->where('Jyear', $d['Year']);
+			$this->db->where('JID', $d['JID']);
+			$this->db->where('NoStart', $d['No']);
+			$this->db->where('NoEnd', $d['No']);
+			$this->db->update('journalorders', $save);
+			
+			$this->load->model('message_model');
+			$message = "期刊<<{$journal['Name']}>> {$journal['year']}年第{$d['No']}期的报数已生成，现可以对相应期刊期次进行印制";
+			$this->message_model->send_by_group_name('生产', $message);
+			$this->message_model->send_by_group_name('管理员', $message);
 		} else {
 			$field = array(
 				'JID', 'No', 'Year'
@@ -625,7 +637,8 @@ class Crud_before_edit extends Crud_hook {
 			$this->array_merge_by_primary($model->primary, $data, $old, $field);
 		}
 		foreach ($data as $d) {
-			$journal = $this->db->get_where('journalbaseinfo', array('id' => $d['JID']))->row_array();
+			$this->load->model('JournalBaseInfo');
+			$journal = $this->JournalBaseInfo->prepare($d['JID']);
 			if (!$journal) {
 				return $this->result(false, "期刊错误");
 			}
@@ -667,6 +680,12 @@ class Crud_before_edit extends Crud_hook {
 					}
 				}
 				
+			}
+			if($oper == "create") {
+				$this->load->model('message_model');
+				$message = "期刊<<{$journal['Name']}>> {$journal['year']}年第{$d['No']}期的印制责任卡已做，现可以对相应期刊期次进行报数";
+				$this->message_model->send_by_group_name('销售', $message);
+				$this->message_model->send_by_group_name('管理员', $message);
 			}
 		}
 		return $this->result(true);

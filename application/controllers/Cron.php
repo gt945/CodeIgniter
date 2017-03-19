@@ -12,7 +12,6 @@ class Cron extends CI_Controller
 		$year = 2014; //date("Y");
 		$month = date("n");
 
-		$this->message_model->send_by_group_name("编辑", "test", true);
 		//出版
 		if ($setting['PublishEnable']) {
 			$preday = $setting['Publish'];

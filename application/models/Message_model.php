@@ -62,7 +62,9 @@ class Message_model extends CI_Model {
 			$users = $this->db->col('id');
 			if ($users && count($users)) {
 				foreach($users as $u) {
-//					$this->send($u, $message, $aid);
+					if ($u != $aid) {
+						$this->send($u, $message, $aid);
+					}
 				}
 			}
 		}
