@@ -37,5 +37,40 @@ AJAX={
 				_.tryF(onEnd,["fail"]);
 			}, threadid,options);
 		});
+	},
+	callService2:function(rpc, objectName, action, paras, callback, onStart, onEnd, file){
+		_.tryF(onStart);
+		paras=paras||{};
+		_.merge(paras,{action:action});
+		
+		var data={key:objectName, paras:paras}, options;
+		options={method:'post'};
+
+		if(file){
+			data.file=file;
+		}
+		xui.request(AJAX.serviceURI+rpc, data, function(rsp){
+			var obj=rsp,result="ok";
+			if(obj){
+				if(obj.code==200){
+					if(obj.data && obj.data.warn){
+						result="fail";
+						xui.message(obj.data.warn.message || obj.data.warn);
+					}else{
+						_.tryF(callback,[obj]);
+					}
+				}else{
+					result="fail";
+					xui.alert(obj.msg);
+				}
+			}else{
+				result="fail";
+				xui.alert(_.serialize(rsp));
+			}
+			_.tryF(onEnd,[result]);
+		},function(rsp){
+			xui.alert(_.serialize(rsp));
+			_.tryF(onEnd,["fail"]);
+		}, null,options);
 	}
 };

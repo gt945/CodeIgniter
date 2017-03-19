@@ -39,7 +39,18 @@ class Message extends MY_Controller {
 	{
 		$message = $this->paras->message;
 		$receiver = $this->paras->receiver;
-		$this->message_model->send($receiver, $message);
+		
+		$to = explode(";", $receiver);
+		if (is_array($to) && count($to)) {
+			foreach($to as $t) {
+				if(substr($t, 0, 1) == 'u') {
+					$this->message_model->send( (int) substr($t, 1), $message);
+				}
+			}
+		}
+		
+		
+		
 		return 1;
 	}
 	

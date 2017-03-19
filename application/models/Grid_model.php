@@ -396,6 +396,9 @@ class Grid_model extends Crud_Model
 				$this->$db->parse($paras->filters, true, $alias);
 			}
 			foreach ($conditions as $c) {
+				if ($c[2][0] == '$') {
+					eval('$c[2] = '.$c[2].';');
+				}
 				$this->$db->parse_rules("AND", $c[0], $c[1], $c[2], $alias);
 			}
 		} else {

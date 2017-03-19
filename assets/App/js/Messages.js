@@ -27,7 +27,6 @@ Class('App.Messages', 'xui.Module',{
 				.afterRowActive("_grid_afterrowactive")
 				.onDblclickCell("_grid_ondblclickcell")
 				.beforeColSorted("_grid_beforecolsorted")
-				.afterColResized("_grid_aftercolresized")
 				.onResize("_grid_resize")
 			);
 			
@@ -91,6 +90,14 @@ Class('App.Messages', 'xui.Module',{
 				}
 				grid.setHeader(ns.properties.gridHeaders);
 				ns.loadGridData(1);
+				var watchdog=function(fun){
+					if(ns.getParent().getParent().get(0).boxing().getUIValue()!="messages"){
+						var tab=ns.getParent().getParent().get(0).boxing();
+						ns.loadGridData(1);
+					}
+					_.asyRun(fun,60000,[fun], ns);
+				};
+				watchdog(watchdog);
 			},function(){
 				grid.busy("正在处理 ...");
 			},function(result){
@@ -111,7 +118,7 @@ Class('App.Messages', 'xui.Module',{
 				gid:ns._gid,
 				sub:ns._sub
 			};
-			AJAX.callService('xui/request',ns.properties.gridId,"getlist",post,function(rsp){
+			AJAX.callService2('xui/request',ns.properties.gridId,"getlist",post,function(rsp){
 				if(!ns.isDestroyed()){
 					callback(rsp);
 				}
@@ -205,9 +212,13 @@ Class('App.Messages', 'xui.Module',{
 						ns._navigate(this,dir);
 					},
 					onUpdateUI:function(id){
-						AJAX.callService('message/request',null,"message_show",{id:id},function(rsp){
-							ns.grid.updateCellByRowCol(id, 'IsRead', {value:'Y',caption:'已读'}, false, false);
-						});
+						var cell=ns.grid.getCellbyRowCol(id,'IsRead');
+						if(cell.value=='N'){
+							AJAX.callService('message/request',null,"message_show",{id:id},function(rsp){
+								ns.grid.updateCellByRowCol(id, 'IsRead', {value:'Y',caption:'已读'}, false, false);
+							});
+						}
+						
 					}
 				});
 			}
@@ -313,10 +324,6 @@ Class('App.Messages', 'xui.Module',{
 		},
 		_pagebar_onclick:function (profile, page){
 			this.loadGridData(page);
-		},
-		_grid_aftercolresized:function(profile,colId,width){
-			var ns = this, uictrl = profile.boxing();
-			AJAX.callService('xui/request',ns.properties.gridId,"resize",{name:colId,width:width}, null);
 		},
 		_grid_resize:function(profile,w,h){
 			var ns=this;

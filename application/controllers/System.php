@@ -249,4 +249,27 @@ class System extends MY_Controller {
 		return 1;
 	}
 	
+	private function request_notify_setting_get()
+	{
+		$ret = new stdClass();
+		$setting = $this->db->get("setting", array('id'=>1))->row_array();
+		unset($setting['id']);
+		foreach($setting as $k=>$v) {
+			if (strstr($k, "Enable")) {
+				$v = ($v == 1);
+			}
+			$ret->$k = (object) array(
+				"value" => $v
+			);
+		}
+		return $ret;
+	}
+	
+	private function request_notify_setting_set()
+	{
+		unset ($this->paras->action);
+		$save = (array)$this->paras;
+		$this->db->update('setting', $save, array('id'=>1));
+		return 1;
+	}
 }

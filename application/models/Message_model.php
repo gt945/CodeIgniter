@@ -26,21 +26,53 @@ class Message_model extends CI_Model {
 		return $ret;
 		
 	}
-	public function send($receiver, $message)
+	
+	public function send($receiver, $message, $aid = null)
 	{
-		$to = explode(";", $receiver);
-		foreach($to as $t) {
-			if(substr($t, 0, 1) == 'u') {
-				$save = array(
-					'AID' => $_SESSION['userinfo']['id'],
-					'ReceiverID' => (int) substr($t, 1),
-					'Priority' => 0,
-					'IsRead' => 'N',
-					'Content' => $message
-					
-				);
-				$this->db->insert('messages', $save);
+		if (!$aid) {
+			$aid = $_SESSION['userinfo']['id'];
+		}
+		$save = array(
+			'AID' =>$aid,
+			'ReceiverID' => (int) $receiver,
+			'Priority' => 0,
+			'IsRead' => 'N',
+			'Content' => $message
+			
+		);
+		$this->db->insert('messages', $save);
+	}
+	
+	public function send_by_group($gid, $message, $sub = false, $aid = null)
+	{
+		$group_info = $this->db->get_where("user_group", array("id" => $gid))->row_array();
+		if (!$group_info ) {
+			return false;
+		}
+		if ($sub) {
+			$this->db->from('user_group');
+			$this->db->like("tree_code", $group_info['tree_code'], "after");
+			$groups = $this->db->col('id');
+		} else {
+			$groups = array($group_info['id']);
+		}
+		if ($groups && count($groups)) {
+			$this->db->from('user');
+			$this->db->where_in('gid', $groups);
+			$users = $this->db->col('id');
+			if ($users && count($users)) {
+				foreach($users as $u) {
+//					$this->send($u, $message, $aid);
+				}
 			}
+		}
+	}
+	
+	public function send_by_group_name($group_name, $message, $sub = false, $aid = null)
+	{
+		$group_info = $this->db->get_where("user_group", array("groupname" => $group_name))->row_array();
+		if ($group_info) {
+			$this->send_by_group($group_info['id'], $message, $sub, $aid);
 		}
 	}
 }
