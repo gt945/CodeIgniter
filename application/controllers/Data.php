@@ -426,6 +426,88 @@ EOD;
 		$objWriter->save('php://output');
 		
 	}
+	
+	function delivery_bill($CID = 0)
+	{
+		ini_set('max_execution_time', 0);
+		$this->load->library('excel');
+
+		$this->load->model('grid_model');
+		
+
+		$ret = $this->db->get_where('customers', array('id' => (int) $CID))->result_array();
+		
+		if (!isset($ret[0])) {
+			die();
+		}
+		$customer = $ret[0];
+//		print_r($customer);
+		
+		$this->grid_model->table('DeliveryHistoryView');
+		$this->grid_model->prepare(true, false);
+		$paras = new stdClass();
+		$paras->search = true;
+		$paras->filters = (object) array(
+			"groupOp" => "AND",
+			"rules" => array(
+				(object) array(
+					"data" => $CID,
+					"op" => "eq",
+					"field" => "CID"
+				)
+			)
+		);
+		$ret = $this->grid_model->wrapper_sheet($paras);
+		$ret = $this->grid_model->sheet_to_grid($ret->data, false, true);
+//		print_r($ret);
+		$objPHPExcel = PHPExcel_IOFactory::load(BASEPATH.'../assets/reports/deliverybill.xls');
+		$sheet = $objPHPExcel->getActiveSheet();
+		
+//		if (isset($ret[0])) {
+//			$d = $ret[0]->cells;
+//			$sheet->setCellValue("B2", $d['JID']->caption);
+//		}
+		$sheet->setCellValue("A1", $customer['PostCode']);
+		$sheet->setCellValue("A2", $customer['Address']);
+		$sheet->setCellValue("A3", $customer['Name']);
+		$sheet->setCellValue("A4", $customer['ContactPerson']);
+		
+		$sheet->setCellValue("B8", $customer['Name']);
+		$sheet->setCellValue("F8", date('Y-m-d'));
+		
+		$i = 10;
+		$total = 0;
+		
+		foreach($ret as $r) {
+			$d = $r->cells;
+			$sheet->setCellValue("A{$i}", $i - 2);
+			$sheet->setCellValue("C{$i}", $d['JID']->caption);
+//			$sheet->mergeCells("A{$i}:F{$i}");
+//			$sheet->setCellValue("A{$i}", $d['CID']->caption);
+//			$sheet->getStyle("A{$i}")->getFont()->setSize(9);
+			$sheet->setCellValue("D{$i}", $d['Year']->value);
+			$sheet->setCellValue("E{$i}", $d['No']->value);
+			$sheet->setCellValue("F{$i}", $d['Counts']->value);
+//			$sheet->getRowDimension($i)->setRowHeight(18);
+//			$total += $d['Counts']->value;
+			$i++;
+			if ($i > 10) {
+				break;
+			}
+		}
+		
+//		$sheet->mergeCells("A{$i}:H{$i}");
+//		$sheet->getStyle("A{$i}")->getAlignment()->setHorizontal(PHPExcel_Style_Alignment::HORIZONTAL_CENTER);
+//		$sheet->setCellValue("A{$i}", "小计");
+//		$sheet->setCellValue("I{$i}", $total);
+		$sheet->getRowDimension($i)->setRowHeight(18);
+		$sheet->getStyle("A10:G{$i}")->getBorders()->getAllBorders()->setBorderStyle(PHPExcel_Style_Border::BORDER_THIN);
+		$objWriter = PHPExcel_IOFactory::createWriter($objPHPExcel, 'PDF');
+		header('Content-Type: application/pdf');
+		header('Content-Disposition: attachment;filename="DB'.$CID.'.pdf"');
+		$objWriter->save('php://output');
+	}
+	
 	function a()
 	{
 		ini_set('max_execution_time', 0);

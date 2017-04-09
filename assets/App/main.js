@@ -65,8 +65,8 @@ Class('App.main', 'xui.Module',{
 				.setItems([{
 					"id" : "before",
 					"pos" : "before",
-					"min" : 150,
-					"size" : 150,
+					"min" : 165,
+					"size" : 165,
 					"locked" : false,
 					"folded" : false,
 					"hidden" : false,
