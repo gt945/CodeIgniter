@@ -555,7 +555,8 @@ class Crud_before_edit extends Crud_hook {
 			$sql = "select sum(jo.orderCount) as counts from qkzx_journalorders jo where jo.jid = ? and year = ? and ? between nostart and noend and ( (jo.isneedDeliver = 1 and jo.saleStyle in (1,5,6,7,8,9) ) or (jo.saleStyle = 2))";
 			$result = $this->db->query($sql, array($d['JID'], $d['Year'], $d['No']));
 			$counts = $result->row_array();
-			if ($d['Counts'] >= $counts['counts']) {
+			//FIXME: 后面需要调整
+			if ($d['Counts'] >= $counts['counts'] || 1 ) {
 				$this->db->query("set @BatchID ='{$d['BatchID']}'");
 				$this->db->query("set @JID ={$d['JID']}");
 				$this->db->query("set @AID = {$d['AID']}");
