@@ -550,7 +550,7 @@ class Crud_before_edit extends Crud_hook {
 			}
 			$publish_notify = $this->db->get_where('publishnotify', array('JID' => $d['JID'], 'Year' => $d['Year'], 'No' => $d['No']))->result_array();
 			if (!count($publish_notify)) {
-				return $this->result(false, "未印制,无法到货");
+			//	return $this->result(false, "未印制,无法到货");
 			}
 			$sql = "select sum(jo.orderCount) as counts from qkzx_journalorders jo where jo.jid = ? and year = ? and ? between nostart and noend and ( (jo.isneedDeliver = 1 and jo.saleStyle in (1,5,6,7,8,9) ) or (jo.saleStyle = 2))";
 			$result = $this->db->query($sql, array($d['JID'], $d['Year'], $d['No']));
