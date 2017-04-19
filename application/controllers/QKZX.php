@@ -567,8 +567,8 @@ EOF;
 	private function request_delivery_by_cid()
 	{
 		$CID = $this->paras->CID->value;
-		$AID = 0;
-		$BatchID = date('ymd');
+		$AID = $_SESSION['userinfo']['id'];
+		$BatchID = date('Ymd');
 		$this->db->query("set @CID={$CID}");
 		$this->db->query("set @AID={$AID}");
 		$this->db->query("set @BatchID='{$BatchID}'");
@@ -583,8 +583,8 @@ EOF;
 		$JID = $this->paras->JID->value;
 		$Year = $this->paras->Year->value;
 		$No = $this->paras->No->value;
-		$AID = 0;
-		$BatchID = date('ymd');
+		$AID = $_SESSION['userinfo']['id'];
+		$BatchID = date('Ymd');
 		$this->db->query("set @JID={$JID}");
 		$this->db->query("set @Year={$Year}");
 		$this->db->query("set @No={$No}");
@@ -597,10 +597,11 @@ EOF;
 	}
 	private function request_delivery()
 	{
-		$BatchID = date('ymd');
+		$BatchID = date('Ymd');
 		foreach($this->paras->data as $d){
 			$save = array(
 				"batchID" => $BatchID,
+				"AID" => $_SESSION['userinfo']['id'],
 				"JID" => $d->JID,
 				"CID" => $d->CID,
 				"Year" => $d->Year,
@@ -608,7 +609,7 @@ EOF;
 				"No" => $d->No,
 				"Counts" => $d->RealCounts,
 				"DeliveryTime" => date('Y-m-d h:i:s'),
-				"DeliveStatus" => $d->DeliveStatus,
+				"DeliveStatus" => 1, //报订发货
 				"Note" => "已发",
 				"YingFa" => $d->NeedCounts,
 				'DaiFa' => $d->NeedCounts - $d->RealCounts
@@ -620,7 +621,7 @@ EOF;
 
 	private function request_delivery_retail()
 	{
-		$BatchID = date('ymd');
+		$BatchID = date('Ymd');
 		foreach($this->paras->data as $d){
 			$this->db->where('JID', $d->JID);
 			$this->db->where('CID', $d->CID);
@@ -639,6 +640,7 @@ EOF;
 
 				$save = array(
 					"batchID" => $BatchID,
+					"AID" => $_SESSION['userinfo']['id'],
 					"JID" => $d->JID,
 					"CID" => $d->CID,
 					"Year" => $d->Year,
@@ -672,12 +674,13 @@ EOF;
 	private function request_delivery_append()
 	{
 		$this->load->model('JournalStockManage');
-		$BatchID = date('ymd');
+		$BatchID = date('Ymd');
 		foreach($this->paras->data as $d){
 			if ($this->JournalStockManage->prepare($d->JID, $d->Year, $d->No)) {
 
 				$save = array(
 					"batchID" => $BatchID,
+					"AID" => $_SESSION['userinfo']['id'],
 					"JID" => $d->JID,
 					"CID" => $d->CID,
 					"Year" => $d->Year,
@@ -685,7 +688,7 @@ EOF;
 					"No" => $d->No,
 					"Counts" => $d->RealCounts,
 					"DeliveryTime" => date('Y-m-d h:i:s'),
-					"DeliveStatus" => $d->DeliveStatus,
+					"DeliveStatus" => 3, //补发
 					"Note" => "从库存补发!"
 				);
 				$this->db->insert('deliverydetails', $save);

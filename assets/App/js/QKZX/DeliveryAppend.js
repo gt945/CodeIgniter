@@ -154,7 +154,7 @@ Class('App.QKZX.DeliveryAppend', 'xui.Module',{
 			var datas=[];
 			_.arr.each(rows,function(row){
 				var data={};
-				_.arr.each(['CID','JID','Year','No','DeliveStatus','RealCounts'], function(i){
+				_.arr.each(['CID','JID','Year','No','RealCounts'], function(i){
 					var cell=grid.getCellbyRowCol(row.id,i);
 					data[i]=cell.value;
 				});
