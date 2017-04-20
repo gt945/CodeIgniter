@@ -75,7 +75,7 @@ class QKZX extends MY_Controller
 				);
 				break;
 			case "b":
-				$this->grid_model->table("arrivalmanage", array("JID", "Year", "Counts", "No", "KeepCounts"), true);
+				$this->grid_model->table("arrivalmanage", array("JID", "Year", "Counts", "No"), true);
 				break;
 			case "c":
 				$this->grid_model->table("journalstockmanage",array("JID","Year","Counts", "No"), true);
