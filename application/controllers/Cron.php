@@ -127,7 +127,7 @@ class Cron extends CI_Controller
 		$this->db_model->table('schedule');
 		$save = array(
 			"status" => "ok",
-			"CreateTime" => date('Y-m-d h:i:s')
+			"CreateTime" => date('Y-m-d H:i:s')
 		);
 		$this->db_model->save($save);
 	}

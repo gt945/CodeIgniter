@@ -42,7 +42,7 @@ class QKZX extends MY_Controller
 //			$this->crud_model->insert($dbContext, $d);
 //
 //		}
-		$this->reply(200, "Success");
+		$this->reply(200);
 	}
 
 	private function request_get_stock_and_order_info()
@@ -608,7 +608,7 @@ EOF;
 				"Volume" => "",
 				"No" => $d->No,
 				"Counts" => $d->RealCounts,
-				"DeliveryTime" => date('Y-m-d h:i:s'),
+				"DeliveryTime" => date('Y-m-d H:i:s'),
 				"DeliveStatus" => 1, //报订发货
 				"Note" => "已发",
 				"YingFa" => $d->NeedCounts,
@@ -647,7 +647,7 @@ EOF;
 					"Volume" => "",
 					"No" => $d->No,
 					"Counts" => $d->Counts,
-					"DeliveryTime" => date('Y-m-d h:i:s'),
+					"DeliveryTime" => date('Y-m-d H:i:s'),
 					"DeliveStatus" => $smd['StockTag']
 				);
 				$this->db->insert('deliverydetails', $save);
@@ -687,7 +687,7 @@ EOF;
 					"Volume" => "",
 					"No" => $d->No,
 					"Counts" => $d->RealCounts,
-					"DeliveryTime" => date('Y-m-d h:i:s'),
+					"DeliveryTime" => date('Y-m-d H:i:s'),
 					"DeliveStatus" => 3, //补发
 					"Note" => "从库存补发!"
 				);

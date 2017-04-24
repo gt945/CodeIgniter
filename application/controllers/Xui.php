@@ -19,7 +19,7 @@ class Xui extends MY_Controller {
 		$paras_json = $this->input->post_get("paras");
 		$paras = json_decode($paras_json);
 		if (!$paras) {
-			$this->reply(400,  "表单参数错误");
+			$this->reply(400, "表单参数错误");
 		}
 		$method = "request_{$paras->action}";
 		if (method_exists($this, $method)) {
@@ -28,28 +28,20 @@ class Xui extends MY_Controller {
 				if ($this->grid_model->table($table)) {
 					if ($this->grid_model->prepare()) {
 						$data = $this->$method($paras);
-						if (!$data) {
-							$error = "操作失败";
-						} else if(is_string($data)) {
-							$error=$data;
-						}
+						$this->reply(200, "Success", $data);
 					} else {
-						$error = "内部错误";
+						$this->reply(500, "内部错误");
 					}
 				} else {
-					$error = "数据表错误";
+					$this->reply(400, "数据表错误");
 				}
 			} else{
 				$data = $this->$method($paras);
-			}
-
-			if ($error) {
-				$this->reply(500, $error);
+				$this->reply(200, "Success", $data);
 			}
 		} else {
 			$this->reply(501, "不支持的操作");
 		}
-		$this->reply(200, "Success", $data);
 	}
 	
 	function request_grid($paras = null)
@@ -150,7 +142,7 @@ class Xui extends MY_Controller {
 				"rows" => array(),
 		);
 		if (!isset($paras->id)) {
-			return "参数错误";
+			$this->reply(400, "参数错误");
 		}
 		$id = $paras->id;
 		$paras->sub = true;
@@ -193,88 +185,58 @@ class Xui extends MY_Controller {
 				$ret->pid = $data->data[0][$this->grid_model->pid];
 			}
 		} else {
-			$ret->warn = (object) array(
-					//TODO
-				"message" => "无此数据"	
-			);
+			$this->reply(400, "无此数据");
 		}
 		return $ret;
 	}
 	
 	function request_set($paras)
 	{
-		$message = null;
 		$data = array();
 		if ($this->grid_model->crud_table['_role_u']) {
 			$ret = $this->grid_model->edit($paras->action, $paras->id, (array)$paras->fields);
-			if ($ret->message) {
-				$message = $ret->message;
+			if (!$ret->result) {
+				$this->reply(400, $ret->message);
 			}
 		} else {
-			$message = "无此权限";
+			$this->reply(500, "无此权限");
 		}
-		if ($message) {
-			return ( object ) array (
-				"warn" => ( object ) array (
-					"message" => $message
-				)
-			);
-		} else if ($ret->data){
-			return $ret->data;
-		} else {
-			return 1;
+		if ($ret->message) {
+			$this->warn($ret->message);
 		}
+		return $ret->data;
 	}
 	
 	function request_create($paras)
 	{
-		$message = null;
 		if ($this->grid_model->crud_table['_role_c']) {
 			$ret = $this->grid_model->edit($paras->action, null, (array)$paras->fields);
-			if ($ret->message) {
-				$message = $ret->message;
+			if (!$ret->result) {
+				$this->reply(400, $ret->message);
 			}
 		} else {
-			$message = "无此权限";
+			$this->reply(500, "无此权限");
 		}
-		if (isset($ret->data)) {
-			return $ret->data;
-		} else {
-			return $message;
+		if ($ret->message) {
+			$this->warn($ret->message);
 		}
-//		if ($message) {
-//			return ( object ) array (
-//					"warn" => ( object ) array (
-//							"message" => $message
-//					)
-//			);
-//		} else if($ret->id){
-//			return $this->request_get($ret);
-//		}else{
-//			return 0;
-//		}
+		return $ret->data;
 	}
 	
 	function request_delete($paras)
 	{
-		$message = null;
 		if ($this->grid_model->crud_table['_role_d']) {
 			$ret = $this->grid_model->edit($paras->action, $paras->ids, null);
-			if ($ret->message) {
-				$message = $ret->message;
+			if (!$ret->result) {
+				$this->reply(400, $ret->message);
 			}
 		} else {
-			$message = "无此权限";
+			$this->reply(500, "无此权限");
 		}
-		if ($message) {
-			return ( object ) array (
-					"warn" => ( object ) array (
-							"message" => $message
-					)
-			);
-		} else {
-			return 1;
+		if ($ret->message) {
+			$this->warn($ret->message);
 		}
+		return null;
 	}
 	
 	function request_tables($paras)
@@ -479,10 +441,10 @@ class Xui extends MY_Controller {
 		$this->load->model('grid_model', $db);
 		$this->$db->table($field_info['join_table'], $join_field);
 		if (!$this->$db->prepare(true)) {
-			return 2;
+			$this->reply(500, "内部错误");
 		}
 		if ($field_info['type'] != Crud_model::TYPE_SELECT) {
-			return 3;
+			$this->reply(500, "内部错误");
 		}
 		if (isset($paras->like) && strlen($paras->like)){
 			if(isset($paras->match) && $paras->match) {
@@ -648,7 +610,7 @@ class Xui extends MY_Controller {
 					if(!$data->message) {
 						$row->error = 0;
 					} else {
-						return $data->message;
+						$this->reply(400, $data->message);
 					}
 				}
 			} else {
@@ -660,7 +622,7 @@ class Xui extends MY_Controller {
 						$row->error = 0;
 						$row->id = (string)$data->id[0];
 					} else {
-						return $data->message;
+						$this->reply(400, $data->message);
 					}
 				}
 			}

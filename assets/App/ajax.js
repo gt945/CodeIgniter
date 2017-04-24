@@ -17,12 +17,10 @@ AJAX={
 				var obj=rsp,result="ok";
 				if(obj){
 					if(obj.code==200){
-						if(obj.data && obj.data.warn){
-							result="fail";
-							xui.message(obj.data.warn.message || obj.data.warn);
-						}else{
-							_.tryF(callback,[obj]);
+						if(obj.warn){
+							xui.message(obj.warn);
 						}
+						_.tryF(callback,[obj]);
 					}else{
 						result="fail";
 						xui.alert(obj.msg);
@@ -53,12 +51,10 @@ AJAX={
 			var obj=rsp,result="ok";
 			if(obj){
 				if(obj.code==200){
-					if(obj.data && obj.data.warn){
-						result="fail";
-						xui.message(obj.data.warn.message || obj.data.warn);
-					}else{
-						_.tryF(callback,[obj]);
+					if(obj.warn){
+						xui.message(obj.warn);
 					}
+					_.tryF(callback,[obj]);
 				}else{
 					result="fail";
 					xui.alert(obj.msg);

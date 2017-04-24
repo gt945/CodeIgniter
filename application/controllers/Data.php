@@ -345,14 +345,14 @@ EOD;
 		$objWriter->save('php://output');
 
 	}
-	public function delivers($JID = 0, $Year = 0, $No = 0)
+	public function delivers($ID/*$JID = 0, $Year = 0, $No = 0*/)
 	{
 		ini_set('max_execution_time', 0);
 		$this->load->library('excel');
 
 		$this->load->model('grid_model');
 
-/*
+
 		$ret = $this->db->get_where('arrivalmanage', array('id' => (int) $ID))->result_array();
 		
 		if (!isset($ret[0])) {
@@ -362,7 +362,7 @@ EOD;
 		$JID = $data['JID'];
 		$Year = $data['Year'];
 		$No = $data['No'];
-*/
+
 		$this->grid_model->table('DeliveryHistoryView');
 		$this->grid_model->prepare(true, false);
 		$paras = new stdClass();

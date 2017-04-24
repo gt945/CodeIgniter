@@ -35,7 +35,7 @@ EOF;
 			foreach($rows as $r) {
 				$total += $r['DeliverCount'];
 				$r['PNID'] = $ids[0];
-				$r['CreateTime'] = date('Y-m-d h:i:s');
+				$r['CreateTime'] = date('Y-m-d H:i:s');
 				$ret = $this->db->insert('publishnotifydeliver', $r);
 			}
 
@@ -82,7 +82,7 @@ EOF;
 					$save['ZoomPercent'] = 60;
 					$save['ZoomPaperCount'] = $save['colourCount'] * $save['ZoomPercent'] / 1000;
 					$save['TotalPaper'] = $save['PaperCount'] + $save['ZoomPaperCount'];
-					$save['CreateTime'] = date('Y-m-d h:i:s');
+					$save['CreateTime'] = date('Y-m-d H:i:s');
 					$ret = $this->db->insert('publishnotifydetails', $save);
 				}
 			}

@@ -112,7 +112,6 @@ Class('App.GridFilter', 'xui.Module',{
 		// 可以自定义哪些界面控件将会被加到父容器中
 		customAppend : function(parent, subId, left, top){
 			this.mainDlg.showModal(parent, left, top);
-			this._xui_ui_button_add_onclick();
 			return true;
 		},
 		// 加载其他资源可以用本函数
@@ -173,7 +172,7 @@ Class('App.GridFilter', 'xui.Module',{
 				ele.setUIValue(items[0].id);
 			}
 		},
-		_xui_ui_button_add_onclick:function (profile,e,src){
+		add_condition:function(field){
 			var ns = this;
 			var json_code ='new xui.UI.Pane({"key":"xui.UI.Pane","properties":{"dock":"width","width":"auto","height":25,"position":"relative"},"children":[[{"type":"field","key":"xui.UI.ComboInput","properties":{"dirtyMark":false,"left":10,"top":0,"type":"listbox"},"events":{"afterUIValueSet":"_xui_ui_field_onchange"}}],[{"type":"operation","key":"xui.UI.ComboInput","properties":{"dirtyMark":false,"left":135,"top":0,"width":70,"type":"listbox"}}],[{"key":"xui.UI.SButton","properties":{"right":10,"top":0,"width":20,"caption":"-"},"events":{"onClick":"_xui_ui_button_del_onclick"}}]]})';
 			var nb=_.unserialize(json_code);
@@ -184,8 +183,10 @@ Class('App.GridFilter', 'xui.Module',{
 				if(o.type=="field"){
 					var items=ns._get_fields_list(ns.properties.gridSetting);
 					if(items.length){
+						var i=_.arr.subIndexOf(items,'id',field);
+						if(i<0)i=0;
 						ob.setItems(items);
-						ob.setUIValue(items[0].id);
+						ob.setUIValue(items[i].id);
 						add=true;
 					}
 				}
@@ -193,14 +194,17 @@ Class('App.GridFilter', 'xui.Module',{
 			if(add){
 				this.xui_ui_block3.append(nb);
 			}
-
+			
+		},
+		_xui_ui_button_add_onclick:function (profile,e,src){
+			this.add_condition();
 		},
 		_xui_ui_button_del_onclick:function(profile,e,src){
 			profile.parent.boxing().removePanel();
 		},
-		_xui_ui_field_onchange:function (profile,oldValue,newValue,force,tag){
-			var ns = this, uictrl = profile.boxing();
-			var item = profile.getItemByItemId(newValue);
+		_change_field:function(profile,field){
+			var ns=this,uictrl = profile.boxing();
+			var item = profile.getItemByItemId(field);
 			var ele=_.unserialize(item.form);
 			var pane=profile.parent.boxing();
 			for(var i in profile.parent.children){
@@ -210,6 +214,11 @@ Class('App.GridFilter', 'xui.Module',{
 				} else if(tmp.type=='operation'){
 					ns._update_opt(tmp.boxing(), item.option);
 				}
+			}
+			if (ele.getType()=="datetime"){
+				var today=new Date();
+				today.setHours(0,0,0,0);
+				ele.setValue(today);
 			}
 			
 			ele.get(0).type="value";
@@ -221,6 +230,9 @@ Class('App.GridFilter', 'xui.Module',{
 				.setDirtyMark(false)
 				.setReadonly(false)
 			);
+		},
+		_xui_ui_field_onchange:function (profile,oldValue,newValue,force,tag){
+			this._change_field(profile,newValue);
 		},
 		_xui_ui_button_find_onclick:function(profile,e,src){
 			var ns=this;

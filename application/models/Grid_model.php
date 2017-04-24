@@ -454,25 +454,47 @@ class Grid_model extends Crud_Model
 
 		//sort
 		if (isset($paras->sidx) && isset($paras->sord)) {
-			if (isset($this->order) && !$paras->sidx) {
-				$paras->sidx = $this->order->field;
-				$paras->sord = $this->order->order;
-			}
-			$sort = $paras->sidx;
-			$sord = $paras->sord;
+			if (count($this->order) && !$paras->sidx) {
+				foreach($this->order as $order) {
+					if (isset($this->crud_field[$order->field])) {
+						$order->order = ($order->order === 'asc') ? 'asc' : 'desc';
+						$this->$db->order_by("{$alias}.{$order->field}", $order->order);
+						$this->order_by("a.{$order->field}", $order->order);
 
-			$sord = ($sord === 'asc') ? 'asc' : 'desc';
-			if (isset($this->crud_field[$sort]) && ($this->crud_field[$sort]['prop'] & Crud_model::PROP_FIELD_SORT)) {
-				$this->$db->order_by("{$alias}.{$sort}", $sord);
-				$this->order_by("a.{$sort}", $sord);
-				/*
-								if ($this->crud_field[$sort]['type'] == Crud_model::TYPE_SELECT) {
-									$this->order_by("{$this->crud_field[$sort]['_caption']}", $sord);
-								} else {
-									$this->$db->order_by("b.{$sort}", $sord);
-								}
-				*/
+					}
+				}
+			} else {
+				$sort = $paras->sidx;
+				$sord = $paras->sord;
+	
+				$sord = ($sord === 'asc') ? 'asc' : 'desc';
+				if (isset($this->crud_field[$sort]) && ($this->crud_field[$sort]['prop'] & Crud_model::PROP_FIELD_SORT)) {
+					$this->$db->order_by("{$alias}.{$sort}", $sord);
+					$this->order_by("a.{$sort}", $sord);
+					/*
+									if ($this->crud_field[$sort]['type'] == Crud_model::TYPE_SELECT) {
+										$this->order_by("{$this->crud_field[$sort]['_caption']}", $sord);
+									} else {
+										$this->$db->order_by("b.{$sort}", $sord);
+									}
+					*/
+				}
 			}
+//			$sort = $paras->sidx;
+//			$sord = $paras->sord;
+//
+//			$sord = ($sord === 'asc') ? 'asc' : 'desc';
+//			if (isset($this->crud_field[$sort]) && ($this->crud_field[$sort]['prop'] & Crud_model::PROP_FIELD_SORT)) {
+//				$this->$db->order_by("{$alias}.{$sort}", $sord);
+//				$this->order_by("a.{$sort}", $sord);
+//				/*
+//								if ($this->crud_field[$sort]['type'] == Crud_model::TYPE_SELECT) {
+//									$this->order_by("{$this->crud_field[$sort]['_caption']}", $sord);
+//								} else {
+//									$this->$db->order_by("b.{$sort}", $sord);
+//								}
+//				*/
+//			}
 		}
 		$this->stash_cache();
 
@@ -969,7 +991,9 @@ class Grid_model extends Crud_Model
 	public function edit($oper, $ids, $post)
 	{
 		$ret = (object)array(
-			"message" => "未知错误"
+			"result" => false,
+			"message" => "",
+			"data" => null
 		);
 
 		$this->load->model('crud_before_edit');
@@ -1108,7 +1132,7 @@ class Grid_model extends Crud_Model
 						$data['AID'] = $_SESSION['userinfo']['id'];
 					}
 					if (isset($this->fields['CreateTime'])) {
-						$data['CreateTime'] = date('Y-m-d h:i:s');
+						$data['CreateTime'] = date('Y-m-d H:i:s');
 					}
 					$save[] = $data;
 					$old = array();
@@ -1131,6 +1155,8 @@ class Grid_model extends Crud_Model
 					if (!$hook->result) {
 						$ret->message = $hook->message;
 						return $ret;
+					} else if ($hook->message) {
+						$ret->message = $ret->message . "<br>" . $hook->message;
 					}
 				}
 				$this->trans_start();
@@ -1143,7 +1169,7 @@ class Grid_model extends Crud_Model
 							$this->build_all_tree_code($table, $id, $this->pid);
 						}
 					}
-					$ret->message = null;
+//					$ret->message = null;
 				} else if ($oper == 'set') {
 					if ($this->pid && isset($data[$this->pid])) {
 						if (!$this->check_pid_confilct($ids, $data [$this->pid])) {
@@ -1157,7 +1183,7 @@ class Grid_model extends Crud_Model
 							$this->build_all_tree_code($table, $id, $this->pid);
 						}
 					}
-					$ret->message = null;
+//					$ret->message = null;
 				}
 
 				if (method_exists($this->crud_after_edit, $this->crud_table['after_edit'])) {
@@ -1167,6 +1193,8 @@ class Grid_model extends Crud_Model
 						$this->trans_rollback();
 						$ret->message = $hook->message;
 						return $ret;
+					} else if ($hook->message) {
+						$ret->message = $ret->message . "<br>" . $hook->message;
 					}
 				}
 				$this->trans_complete();
@@ -1195,6 +1223,7 @@ class Grid_model extends Crud_Model
 				} else {
 					$ret->data = null;
 				}
+				$ret->result = true;
 				break;
 			case 'delete' :
 				//TODO: change delete behavior
@@ -1214,6 +1243,8 @@ class Grid_model extends Crud_Model
 						if (!$hook->result) {
 							$ret->message = $hook->message;
 							return $ret;
+						} else if ($hook->message) {
+							$ret->message = $ret->message . "<br>" . $hook->message;
 						}
 					}
 					if (count($ids)) {
@@ -1225,9 +1256,11 @@ class Grid_model extends Crud_Model
 							if (!$hook->result) {
 								$ret->message = $hook->message;
 								return $ret;
+							} else if ($hook->message) {
+								$ret->message = $ret->message . "<br>" . $hook->message;
 							}
 						}
-						$ret->message = null;
+						$ret->result = true;
 					} else {
 						$ret->message = "无法删除";
 					}

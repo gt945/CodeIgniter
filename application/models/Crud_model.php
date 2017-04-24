@@ -121,15 +121,22 @@ class Crud_model extends Db_Model {
 				}
 				$crud_field [$f ['name']] = $f;
 			}
+			$this->order = array();
 			if ($crud_table['order'] ) {
-				$def_order = explode(":", $crud_table['order']);
-				if (isset($crud_field[$def_order[0]])) {
-					$this->order = (object)array (
-						"field" => $def_order[0],
-						"order" => strtolower($def_order[1])
-					);
-
+				$def_orders = explode(";", $crud_table['order']);
+				if (count($def_orders)) {
+					foreach($def_orders as $def_order) {
+						$order = explode(":", $def_order);
+						if (isset($crud_field[$order[0]])) {
+							$this->order[] = (object)array (
+								"field" => $order[0],
+								"order" => strtolower($order[1])
+							);
+		
+						}
+					}
 				}
+				
 			}
 		}
 		if (is_array($crud_table) && is_array($crud_field)) {

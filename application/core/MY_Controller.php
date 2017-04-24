@@ -15,11 +15,23 @@ class MY_Controller extends CI_Controller {
 		if (! $this->auth_model->check( false )) {
 			$this->reply(401, "请重新登录");
 		}
+		$this->warn = null;
 		
 	}
-
-	public function reply($code = 200, $msg = "Success", $data=null)
+	private function append($var, $msg)
 	{
+		if (isset($this->$var)) {
+			if ($this->$var == null) {
+				$this->$var = $msg;
+			} else if ($msg){
+				$this->$var = $this->$var . "<br>" . $msg;
+			}
+		}
+	}
+
+	public function reply($code = 200, $msg = "Success", $data = null, $warn = null)
+	{
+		$this->warn($warn);
 		if ($this->input->is_ajax_request()) {
 			$response = new stdClass();
 			$response->code = $code;
@@ -27,10 +39,17 @@ class MY_Controller extends CI_Controller {
 			if ($data) {
 				$response->data = $data;
 			}
+			if ($this->warn) {
+				$response->warn = $warn;
+			}
 			echo json_encode($response);
 		} else {
 			echo $msg;
 		}
 		die();
+	}
+	
+	public function warn($msg) {
+		$this->append('warn', $msg);
 	}
 }

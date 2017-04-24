@@ -126,6 +126,7 @@ class Crud_before_edit extends Crud_hook {
 							$stockcount = $this->JournalStockManage->stock_count();
 							if($stockcount === null) {												/* 收订 - 其他客户 - 代理类期刊 - 无库存*/
 								$d['ReportStatus'] = 0;
+								$this->append("无库存记录，创建成功！");
 							} else if ($stockcount < $OrderCount) {									/* 收订 - 其他客户 - 代理类期刊 - 库存不够*/
 								//TODO 库存不够
 								continue;
@@ -158,8 +159,7 @@ class Crud_before_edit extends Crud_hook {
 										$reserved = $this->db->row();
 										if ($reserved) {											/* 收订 - 其他客户 - 非代理类期刊 - 报数表有记录 - 无库存 - 有印制单 - 有预留库存*/
 											if ($reserved['OrderCount'] < $OrderCount) {			/* 收订 - 其他客户 - 非代理类期刊 - 报数表有记录 - 无库存 - 有印制单 - 有预留库存 - 预留库存不够*/
-												//TODO 预留库存不够
-												continue;
+												return $this->result(false, "已开印，预留库存不足，订单无法建立！");
 											} else {												/* 收订 - 其他客户 - 非代理类期刊 - 报数表有记录 - 无库存 - 有印制单 - 有预留库存 - 减预留库存*/
 												$reserved['OrderCount'] -= $OrderCount;
 												$save = array(
@@ -167,14 +167,15 @@ class Crud_before_edit extends Crud_hook {
 												);
 												$this->db->where('id', $reserved['id']);
 												$this->db->update('journalorders', $save);
+												$this->append("已开印，订单占预留库存，创建成功！");
 											}
 										} else {													/* 收订 - 其他客户 - 非代理类期刊 - 报数表有记录 - 无库存 - 有印制单 - 无预留库存*/
-											//TODO 无预留库存
-											continue;
+											return $this->result(false, "已开印，无预留库存，无法建立订单！");
 										}
 									} else {														/* 收订 - 其他客户 - 非代理类期刊 - 报数表有记录 - 无库存 - 无印制单*/
 										$d['ReportStatus'] = 1;
 										$this->ReportCounts->report_in($OrderCount);
+										$this->append("尚未开印，保存订单并更新报数！");
 									}
 								} else if ($stockcount < $OrderCount) {								/* 收订 - 其他客户 - 非代理类期刊 - 报数表有记录 - 库存不够*/
 									//TODO 库存不够
@@ -189,6 +190,7 @@ class Crud_before_edit extends Crud_hook {
 								$stockcount = $this->JournalStockManage->stock_count();
 								if($stockcount === null) {											/* 收订 - 其他客户 - 非代理类期刊 - 报数表无记录 - 无库存*/
 									$d['ReportStatus'] = 0;
+									$ths->append("无库存记录，创建成功！");
 								} else if ($stockcount < $OrderCount) {								/* 收订 - 其他客户 - 非代理类期刊 - 报数表无记录 - 库存不够*/
 									//TODO 库存不够
 									continue;
@@ -232,8 +234,9 @@ class Crud_before_edit extends Crud_hook {
 							$this->db->where('CID', $d['CID']);
 							$deliverydetails = $this->db->row();
 							if ($deliverydetails) {													/* 退订 - 退订数量小于等于订单总数 - 代理类期刊 - 已发货*/
-								$this->JournalStockManage->prepare($d['JID'], $d['Jyear'], $i);
-								$this->JournalStockManage->stock_in($OrderCount, 1);
+								//储运收货之后在入库存
+//								$this->JournalStockManage->prepare($d['JID'], $d['Jyear'], $i);
+//								$this->JournalStockManage->stock_in($OrderCount, 1);
 							} else {																/* 退订 - 退订数量小于等于订单总数 - 代理类期刊 - 未发货*/
 								// Do Nothing
 							}
@@ -303,6 +306,7 @@ class Crud_before_edit extends Crud_hook {
 				$d['SalesTotal'] = $d['TotalPrice'] * $SaleDiscount / 100;
 				$d['CostTotal'] = $d['TotalPrice'] * $CostDiscount / 100;
 			}
+			$d['BatchID'] = sprintf("%s%04d",date('Ymj'), $_SESSION['userinfo']['id']);
 		}
 		return $this->result(true);
 	}
@@ -576,9 +580,11 @@ EOT;
 				//TODO: 检查返回状态
 				unset($data[0]);
 			} else if($d['Counts'] > 0) {
+				//IMPORTANT: 入库0
 				$this->load->model('JournalStockManage');
 				$this->JournalStockManage->prepare($d['JID'], $d['Year'], $d['No']);
-				$this->JournalStockManage->stock_in($d['Counts'], 1);
+				//$this->JournalStockManage->stock_in($d['Counts'], 1);
+				$this->JournalStockManage->stock_in(0, 1);
 			} else {
 				return $this->result(false, "到货数量不正确");
 			}
@@ -596,7 +602,7 @@ EOT;
 			$d['Type'] = 1;
 			$d['Status'] = 1;
 			$d['BatchNo'] = sprintf('%.0f', microtime(true) * 1000);
-			$d['CreateTime'] = date('Y-m-d h:i:s');
+			$d['CreateTime'] = date('Y-m-d H:i:s');
 		}
 		return $this->result(true);
 	}
@@ -610,7 +616,7 @@ EOT;
 			$d['Type'] = 2;
 			$d['Status'] = 1;
 			$d['BatchNo'] = sprintf('%.0f', microtime(true) * 1000);
-			$d['CreateTime'] = date('Y-m-d h:i:s');
+			$d['CreateTime'] = date('Y-m-d H:i:s');
 		}
 		return $this->result(true);
 	}
@@ -624,7 +630,7 @@ EOT;
 			$d['Type'] = 3;
 			$d['Status'] = 1;
 			$d['BatchNo'] = sprintf('%.0f', microtime(true) * 1000);
-			$d['CreateTime'] = date('Y-m-d h:i:s');
+			$d['CreateTime'] = date('Y-m-d H:i:s');
 		}
 		return $this->result(true);
 	}

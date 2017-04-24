@@ -17,7 +17,7 @@ Class('App.QKZX.PrintDeliveryBill', 'xui.Module',{
 				.setLeft(25)
 				.setTop(19)
 				.setWidth(480)
-				.setHeight(124)
+				.setHeight(148)
 				.setResizer(true)
 				.setOverflow("hidden")
 				.setCaption("打印客户取刊单")
@@ -71,7 +71,7 @@ Class('App.QKZX.PrintDeliveryBill', 'xui.Module',{
 			var db=ns.databinder,data=db.getData();
 			var row=pgrid.getActiveRow();
 			if (row) {
-				_.arr.each(['CID'],function(f, i){
+				_.arr.each(['BatchID','CID'],function(f, i){
 					var cell=pgrid.getCellbyRowCol(row.id, f);
 					var ele=_.unserialize(editor_prop.gridSetting[f].form);
 					ns.ctl_block.append(ele

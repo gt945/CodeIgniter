@@ -29,6 +29,7 @@ Class('App.GridEditor', 'xui.Module',{
 				.beforeColSorted("_grid_beforecolsorted")
 				.afterColResized("_grid_aftercolresized")
 				.onResize("_grid_resize")
+				.onContextmenu("_grid_oncontextmenu")
 			);
 			
 			append((new xui.UI.ToolBar())
@@ -61,7 +62,7 @@ Class('App.GridEditor', 'xui.Module',{
 			// 	.setDock("bottom")
 			// 	.setBorderType("none")
 			// );
-
+			
 			return children;
 		},
 		events:{"onRender":"_com_onrender"},
@@ -237,15 +238,17 @@ Class('App.GridEditor', 'xui.Module',{
 				});
 			}
 		},
-		_openFilter:function(){
+		_openFilter:function(field){
 				var ns = this;
 				if (ns.properties.filterForm){
 					ns.properties.filterForm.mainDlg.show(null,true);
+					if(field)ns.properties.filterForm.add_condition(field);
 				}else{
 					xui.ModuleFactory.newCom(ns.properties.gridFilter,function(){
 						if (!_.isEmpty(this)){
 							ns.properties.filterForm=this;
 							this.show();
+							this.add_condition(field);
 						}
 					},null,ns.properties,{
 						onSelect:function(filters){
@@ -481,6 +484,16 @@ Class('App.GridEditor', 'xui.Module',{
 					}
 					break;
 			}
+		},
+		_grid_oncontextmenu:function(profile,e,src,item){
+			var ns=this;
+			if(item._cells){
+				var setting=ns.properties.gridSetting[item.id];
+				if (setting.filter){
+					ns._openFilter(item.id);
+				}
+			}
+			return false;
 		}
 	}
 });

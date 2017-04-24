@@ -36,7 +36,7 @@ class DeliveryDetail extends CI_Model {
 			"No" => $d->No,
 			"Counts" => $d->RealCounts,
 			"DeliveStatus" => 1,
-			"DeliveryTime" => date('Y-m-d h:i:s'),
+			"DeliveryTime" => date('Y-m-d H:i:s'),
 			"Volume" => "",
 			"Note" => "已发",
 			"YingFa" => $d->NeedCounts,
