@@ -993,7 +993,7 @@ class Grid_model extends Crud_Model
 		$ret = (object)array(
 			"result" => false,
 			"message" => "",
-			"data" => null
+			"data" => 1
 		);
 
 		$this->load->model('crud_before_edit');
