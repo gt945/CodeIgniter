@@ -428,14 +428,19 @@ EOD;
 		
 	}
 	
-	function delivery_bill($CID = 0)
+	function delivery_bill()
 	{
 		ini_set('max_execution_time', 0);
+		$CID = (int)$this->input->post_get("CID");
+		$BatchIDs = explode(',', $this->input->post_get("BatchIDs"));
+		foreach($BatchIDs as &$bid) {
+			$bid = (int)$bid;
+		}
+		$BatchIDs = implode(',', $BatchIDs);
 		$this->load->library('excel');
 
 		$this->load->model('grid_model');
 		
-
 		$ret = $this->db->get_where('customers', array('id' => (int) $CID))->result_array();
 		
 		if (!isset($ret[0])) {
@@ -444,7 +449,8 @@ EOD;
 		$customer = $ret[0];
 //		print_r($customer);
 		
-		$this->grid_model->table('DeliveryHistoryView');
+//		$this->grid_model->table('DeliveryHistoryView');
+		$this->grid_model->table('deliverydetails');
 		$this->grid_model->prepare(true, false);
 		$paras = new stdClass();
 		$paras->search = true;
@@ -455,12 +461,19 @@ EOD;
 					"data" => $CID,
 					"op" => "eq",
 					"field" => "CID"
+				),
+				(object) array(
+					"data" => $BatchIDs,
+					"op" => "in",
+					"field" => "BatchID"
 				)
 			)
 		);
 		$ret = $this->grid_model->wrapper_sheet($paras);
 		$ret = $this->grid_model->sheet_to_grid($ret->data, false, true);
+//		echo "<pre>";
 //		print_r($ret);
+//		echo "</pre>";
 		$objPHPExcel = PHPExcel_IOFactory::load(BASEPATH.'../assets/reports/deliverybill.xls');
 		$sheet = $objPHPExcel->getActiveSheet();
 		
@@ -481,7 +494,8 @@ EOD;
 		
 		foreach($ret as $r) {
 			$d = $r->cells;
-			$sheet->setCellValue("A{$i}", $i - 2);
+			$sheet->setCellValue("A{$i}", $i - 9);
+			$sheet->setCellValue("B{$i}", $d['BatchID']->value);
 			$sheet->setCellValue("C{$i}", $d['JID']->caption);
 //			$sheet->mergeCells("A{$i}:F{$i}");
 //			$sheet->setCellValue("A{$i}", $d['CID']->caption);
@@ -489,12 +503,10 @@ EOD;
 			$sheet->setCellValue("D{$i}", $d['Year']->value);
 			$sheet->setCellValue("E{$i}", $d['No']->value);
 			$sheet->setCellValue("F{$i}", $d['Counts']->value);
+			$sheet->setCellValue("G{$i}", $d['daiFa']->value);
 //			$sheet->getRowDimension($i)->setRowHeight(18);
 //			$total += $d['Counts']->value;
 			$i++;
-			if ($i > 10) {
-				break;
-			}
 		}
 		
 //		$sheet->mergeCells("A{$i}:H{$i}");

@@ -580,9 +580,9 @@ EOF;
 
 	private function request_delivery_by_jid()
 	{
-		$JID = $this->paras->JID->value;
-		$Year = $this->paras->Year->value;
-		$No = $this->paras->No->value;
+		$JID = (int)$this->paras->JID->value;
+		$Year = (int)$this->paras->Year->value;
+		$No = (int)$this->paras->No->value;
 		$AID = $_SESSION['userinfo']['id'];
 		$BatchID = date('Ymd');
 		$this->db->query("set @JID={$JID}");
@@ -602,17 +602,18 @@ EOF;
 			$save = array(
 				"batchID" => $BatchID,
 				"AID" => $_SESSION['userinfo']['id'],
-				"JID" => $d->JID,
-				"CID" => $d->CID,
-				"Year" => $d->Year,
+				"JID" => (int)$d->JID,
+				"CID" => (int)$d->CID,
+				"Year" => (int)$d->Year,
 				"Volume" => "",
-				"No" => $d->No,
-				"Counts" => $d->RealCounts,
+				"No" => (int)$d->No,
+				"Counts" => (int)$d->RealCounts,
 				"DeliveryTime" => date('Y-m-d H:i:s'),
 				"DeliveStatus" => 1, //报订发货
 				"Note" => "已发",
-				"YingFa" => $d->NeedCounts,
-				'DaiFa' => $d->NeedCounts - $d->RealCounts
+				"YingFa" => (int)$d->NeedCounts,
+				"DaiFa" => (int)$d->NeedCounts - (int)$d->RealCounts,
+				"yiFa" => (int)$d->SendCounts + (int)$d->RealCounts
 			);
 			$this->db->insert('deliverydetails', $save);
 		}
@@ -623,10 +624,10 @@ EOF;
 	{
 		$BatchID = date('Ymd');
 		foreach($this->paras->data as $d){
-			$this->db->where('JID', $d->JID);
-			$this->db->where('CID', $d->CID);
-			$this->db->where('Year', $d->Year);
-			$this->db->where('No', $d->No);
+			$this->db->where('JID', (int)$d->JID);
+			$this->db->where('CID', (int)$d->CID);
+			$this->db->where('Year', (int)$d->Year);
+			$this->db->where('No', (int)$d->No);
 			$this->db->where_in('StockTag', array(10,11));
 			$smd = $this->db->get('stockmanagedetails')->row_array();
 			if ($smd) {

@@ -71,6 +71,7 @@ Class('App.QKZX.PrintDeliveryBill', 'xui.Module',{
 			var db=ns.databinder,data=db.getData();
 			var row=pgrid.getActiveRow();
 			if (row) {
+				var cid_id;
 				_.arr.each(['BatchID','CID'],function(f, i){
 					var cell=pgrid.getCellbyRowCol(row.id, f);
 					var ele=_.unserialize(editor_prop.gridSetting[f].form);
@@ -81,9 +82,28 @@ Class('App.QKZX.PrintDeliveryBill', 'xui.Module',{
 						.setWidth(410)
 						.setDataBinder("databinder")
 						.setDataField(f)
+						.setReadonly(false)
 					);
 					data[f]={value:cell.value,caption:cell.caption};
+					if(f=='CID'){
+						cid_id=cell.value;
+					}
 				});
+				
+				var rows_id=pgrid.getUIValue();
+				if (rows_id) {
+					var batch=[];
+					var values=rows_id.split(";");
+					if (values.length>0){
+						_.arr.each(values, function(id){
+							var cell=pgrid.getCellbyRowCol(id,'BatchID');
+							var cid=pgrid.getCellbyRowCol(id,'CID');
+							if(cell&&cid&&cid.value==cid_id&&_.arr.indexOf(batch,cell.value)<0)
+								batch.push(cell.value);
+						});
+						data['BatchID'].value=batch.join(',');
+					}
+				}
 				db.setData(data).updateDataToUI();
 			}else{
 				xui.message("未选择条目!");
@@ -96,7 +116,7 @@ Class('App.QKZX.PrintDeliveryBill', 'xui.Module',{
 		_ctl_sbutton14_onclick:function(){
 			var ns=this,db=ns.databinder,data=db.getData();
 			if (!_.isEmpty(data)) {
-				xui.Dom.submit(SITEURL+'data/delivery_bill/'+data.CID.value,null);
+				xui.Dom.submit(SITEURL+'data/delivery_bill',{CID:data.CID.value,BatchIDs:data.BatchID.value},'post');
 			}
 		}
 	}

@@ -111,7 +111,7 @@ Class('App.QKZX.DeliveryAppend', 'xui.Module',{
 		},
 		_grid_onmousehover: function (profile, row, hover, e, src) {
 			if (profile.box.isHotRow(row)) {
-				return
+				return;
 			}
 			var ns = this,
 				grid = profile.boxing(),

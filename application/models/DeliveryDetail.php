@@ -40,7 +40,8 @@ class DeliveryDetail extends CI_Model {
 			"Volume" => "",
 			"Note" => "已发",
 			"YingFa" => $d->NeedCounts,
-			'DaiFa' => $d->NeedCounts - $d->RealCounts
+			"DaiFa" => $d->NeedCounts - $d->RealCounts,
+			"yiFa"=> $d->SendCounts + $d->RealCounts
 		);
 		$this->db->insert($this->name, $save);
 		return $this->db->insert_id ();

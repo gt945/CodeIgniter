@@ -111,7 +111,7 @@ Class('App.QKZX.Delivery', 'xui.Module',{
 		},
 		_grid_onmousehover: function (profile, row, hover, e, src) {
 			if (profile.box.isHotRow(row)) {
-				return
+				return;
 			}
 			var ns = this,
 				grid = profile.boxing(),
@@ -154,7 +154,7 @@ Class('App.QKZX.Delivery', 'xui.Module',{
 			var datas=[];
 			_.arr.each(rows,function(row){
 				var data={};
-				_.arr.each(['CID','JID','Year','No','NeedCounts','RealCounts'], function(i){
+				_.arr.each(['CID','JID','Year','No','NeedCounts','RealCounts','SendCounts'], function(i){
 					var cell=grid.getCellbyRowCol(row.id,i);
 					data[i]=cell.value;
 				});
