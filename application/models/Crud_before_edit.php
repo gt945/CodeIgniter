@@ -190,7 +190,7 @@ class Crud_before_edit extends Crud_hook {
 								$stockcount = $this->JournalStockManage->stock_count();
 								if($stockcount === null) {											/* 收订 - 其他客户 - 非代理类期刊 - 报数表无记录 - 无库存*/
 									$d['ReportStatus'] = 0;
-									$ths->append("无库存记录，创建成功！");
+									$this->append("无库存记录，创建成功！");
 								} else if ($stockcount < $OrderCount) {								/* 收订 - 其他客户 - 非代理类期刊 - 报数表无记录 - 库存不够*/
 									//TODO 库存不够
 									continue;
