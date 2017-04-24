@@ -1216,13 +1216,8 @@ class Grid_model extends Crud_Model
 							}
 						}
 						$ret->data = $newdata;
-					} else {
-						$ret->data = 1;
-					}
-
-				} else {
-					$ret->data = null;
-				}
+					} 
+				} 
 				$ret->result = true;
 				break;
 			case 'delete' :
