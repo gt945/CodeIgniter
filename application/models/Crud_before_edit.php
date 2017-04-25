@@ -552,21 +552,22 @@ class Crud_before_edit extends Crud_hook {
 			if(!isset($d['Note'])){
 				$d['Note'] = '';
 			}
-			$publish_notify = $this->db->get_where('publishnotify', array('JID' => $d['JID'], 'Year' => $d['Year'], 'No' => $d['No']))->result_array();
-			if (!count($publish_notify)) {
-			//	return $this->result(false, "未印制,无法到货");
+			$journalbaseinfo = $this->db->get_where('journalbaseinfo', array('id' => $d['JID']))->row_array();
+			$publish_notify = $this->db->get_where('publishnotify', array('JID' => $d['JID'], 'Year' => $d['Year'], 'No' => $d['No']))->row_array();
+			if (!$publish_notify && $journalbaseinfo['Classify'] != 1) {
+				return $this->result(false, "未印制,无法到货");
 			}
 			$sql = <<<EOT
 	select sum(jo.orderCount) as counts from qkzx_journalorders jo where 
 		jo.jid = ? and year = ? and ? between nostart and noend 
 		and (
 			(jo.isneedDeliver = 1 and jo.saleStyle in (1,5,6,7,8,9) )
-			or
-			(jo.saleStyle = 2)
 		)
 EOT;
 			$result = $this->db->query($sql, array($d['JID'], $d['Year'], $d['No']));
 			$counts = $result->row_array();
+			$this->load->model('JournalStockManage');
+			$this->JournalStockManage->prepare($d['JID'], $d['Year'], $d['No']);
 			if ($d['Counts'] >= $counts['counts'] ) {
 				$this->db->query("set @BatchID ='{$d['BatchID']}'");
 				$this->db->query("set @JID ={$d['JID']}");
@@ -578,15 +579,17 @@ EOT;
 				$this->db->query("set @Note ='{$d['Note']}'");
 				$this->db->query("call AddArrivalAndDelivery(@BatchID, @JID, @AID, @Year, @Volume, @No, @Counts, @Note)");
 				//TODO: 检查返回状态
+				$this->JournalStockManage->stock_in($d['Counts'] - $counts['counts'] , 1);
 				unset($data[0]);
 			} else if($d['Counts'] > 0) {
 				//IMPORTANT: 入库0
-				$this->load->model('JournalStockManage');
-				$this->JournalStockManage->prepare($d['JID'], $d['Year'], $d['No']);
-				//$this->JournalStockManage->stock_in($d['Counts'], 1);
 				$this->JournalStockManage->stock_in(0, 1);
 			} else {
 				return $this->result(false, "到货数量不正确");
+			}
+		} else {
+			foreach($data as $k=>$d) {
+				unset($data[$k]);
 			}
 		}
 		return $this->result(true);

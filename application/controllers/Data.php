@@ -351,8 +351,6 @@ EOD;
 		$this->load->library('excel');
 
 		$this->load->model('grid_model');
-
-
 		$ret = $this->db->get_where('arrivalmanage', array('id' => (int) $ID))->result_array();
 		
 		if (!isset($ret[0])) {
@@ -362,7 +360,8 @@ EOD;
 		$JID = $data['JID'];
 		$Year = $data['Year'];
 		$No = $data['No'];
-
+		$stock = $this->db->get_where('StockView', array('JID' => $JID, 'Year' => $Year, 'No' => $No))->row_array();
+//		print_r($stock);
 		$this->grid_model->table('DeliveryHistoryView');
 		$this->grid_model->prepare(true, false);
 		$paras = new stdClass();
@@ -400,6 +399,9 @@ EOD;
 		if (isset($ret[0])) {
 			$d = $ret[0]->cells;
 			$sheet->setCellValue("B2", $d['JID']->caption);
+		}
+		if ($stock) {
+			$sheet->setCellValue("G2", $stock['Counts']);
 		}
 		$sheet->setCellValue("I2", substr($data['CreateTime'], 0, 10));
 		foreach($ret as $r) {
