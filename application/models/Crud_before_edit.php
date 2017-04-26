@@ -579,7 +579,7 @@ EOT;
 				$this->db->query("set @Note ='{$d['Note']}'");
 				$query = $this->db->query("call AddArrivalAndDelivery(@BatchID, @JID, @AID, @Year, @Volume, @No, @Counts, @Note)");
 				$result = $query->result_array();
-				$query->next_result();
+				//$query->next_result();
 				$query->free_result();
 				//TODO: 检查返回状态
 				$this->JournalStockManage->stock_in($d['Counts'] - $counts['counts'] , 1);
