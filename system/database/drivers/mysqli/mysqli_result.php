@@ -120,6 +120,14 @@ class CI_DB_mysqli_result extends CI_DB_result {
 
 		return $retval;
 	}
+	
+	public function next_result()
+	{
+		if (is_object($this->result_id))
+		{
+			return $this->result_id->next_result();
+		}
+	}
 
 	// --------------------------------------------------------------------
 
