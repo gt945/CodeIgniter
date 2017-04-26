@@ -569,6 +569,8 @@ EOT;
 			$this->load->model('JournalStockManage');
 			$this->JournalStockManage->prepare($d['JID'], $d['Year'], $d['No']);
 			if ($d['Counts'] >= $counts['counts'] ) {
+				$this->JournalStockManage->stock_in($d['Counts'] - $counts['counts'] , 1);
+
 				$this->db->query("set @BatchID ='{$d['BatchID']}'");
 				$this->db->query("set @JID ={$d['JID']}");
 				$this->db->query("set @AID = {$d['AID']}");
@@ -582,7 +584,7 @@ EOT;
 				//$query->next_result();
 				$query->free_result();
 				//TODO: 检查返回状态
-				$this->JournalStockManage->stock_in($d['Counts'] - $counts['counts'] , 1);
+				//$this->JournalStockManage->stock_in($d['Counts'] - $counts['counts'] , 1);
 				unset($data[0]);
 			} else if($d['Counts'] > 0) {
 				//IMPORTANT: 入库0
