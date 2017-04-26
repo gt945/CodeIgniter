@@ -577,7 +577,7 @@ EOT;
 				$this->db->query("set @No = {$d['No']}");
 				$this->db->query("set @Counts ={$d['Counts']}");
 				$this->db->query("set @Note ='{$d['Note']}'");
-				$query = $this->db->query("call AddArrivalAndDelivery(@BatchID, @JID, @AID, @Year, @Volume, @No, @Counts, @Note)")->result_array();
+				$query = $this->db->query("call AddArrivalAndDelivery(@BatchID, @JID, @AID, @Year, @Volume, @No, @Counts, @Note)");
 				$result = $query->result_array();
 				$query->next_result();
 				$query->free_result();
