@@ -577,7 +577,7 @@ EOT;
 				$this->db->query("set @No = {$d['No']}");
 				$this->db->query("set @Counts ={$d['Counts']}");
 				$this->db->query("set @Note ='{$d['Note']}'");
-				$this->db->query("call AddArrivalAndDelivery(@BatchID, @JID, @AID, @Year, @Volume, @No, @Counts, @Note)");
+				$result = $this->db->query("call AddArrivalAndDelivery(@BatchID, @JID, @AID, @Year, @Volume, @No, @Counts, @Note)")->result_array();
 				//TODO: 检查返回状态
 				$this->JournalStockManage->stock_in($d['Counts'] - $counts['counts'] , 1);
 				unset($data[0]);
