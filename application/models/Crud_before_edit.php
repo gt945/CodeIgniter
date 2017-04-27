@@ -553,10 +553,10 @@ class Crud_before_edit extends Crud_hook {
 				$d['Note'] = '';
 			}
 			$journalbaseinfo = $this->db->get_where('journalbaseinfo', array('id' => $d['JID']))->row_array();
-			$publish_notify = $this->db->get_where('publishnotify', array('JID' => $d['JID'], 'Year' => $d['Year'], 'No' => $d['No']))->row_array();
-			if (!$publish_notify && $journalbaseinfo['Classify'] != 1) {
-				return $this->result(false, "未印制,无法到货");
-			}
+//			$publish_notify = $this->db->get_where('publishnotify', array('JID' => $d['JID'], 'Year' => $d['Year'], 'No' => $d['No']))->row_array();
+//			if (!$publish_notify && $journalbaseinfo['Classify'] != 1) {
+//				return $this->result(false, "未印制,无法到货");
+//			}
 			$sql = <<<EOT
 	select sum(jo.orderCount) as counts from qkzx_journalorders jo where 
 		jo.jid = ? and year = ? and ? between nostart and noend 
@@ -569,7 +569,6 @@ EOT;
 			$this->load->model('JournalStockManage');
 			$this->JournalStockManage->prepare($d['JID'], $d['Year'], $d['No']);
 			if ($d['Counts'] >= $counts['counts'] ) {
-				$this->JournalStockManage->stock_in($d['Counts'] - $counts['counts'] , 1);
 
 				$this->db->query("set @BatchID ='{$d['BatchID']}'");
 				$this->db->query("set @JID ={$d['JID']}");
@@ -579,12 +578,8 @@ EOT;
 				$this->db->query("set @No = {$d['No']}");
 				$this->db->query("set @Counts ={$d['Counts']}");
 				$this->db->query("set @Note ='{$d['Note']}'");
-				$query = $this->db->query("call AddArrivalAndDelivery(@BatchID, @JID, @AID, @Year, @Volume, @No, @Counts, @Note)");
-				$result = $query->result_array();
-				//$query->next_result();
-				$query->free_result();
+				$result = $this->db->query("call AddArrivalAndDelivery(@BatchID, @JID, @AID, @Year, @Volume, @No, @Counts, @Note)")->result_array();
 				//TODO: 检查返回状态
-				//$this->JournalStockManage->stock_in($d['Counts'] - $counts['counts'] , 1);
 				unset($data[0]);
 			} else if($d['Counts'] > 0) {
 				//IMPORTANT: 入库0
