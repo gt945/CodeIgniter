@@ -33,6 +33,8 @@ Class('App.QKZX.Delivery', 'xui.Module',{
 				.setRowHandlerWidth(18)
 				.setTreeMode(false)
 				.onRowHover("_grid_onmousehover")
+				.afterCellUpdated("_count_total")
+				.afterPropertyChanged("_count_total")
 			);
 			host.grid.append((new xui.UI.Image())
 				.setHost(host, 'btn_del')
@@ -69,6 +71,23 @@ Class('App.QKZX.Delivery', 'xui.Module',{
 				.setWidth(70)
 				.setCaption("取消")
 				.onClick("_ctl_sbutton486_onclick")
+			);
+			
+			host.xui_ui_block4.append(
+				(new xui.UI.ComboInput())
+					.setHost(host,"total")
+					.setLeft(10)
+					.setTop(5)
+					.setLabelSize(70)
+					.setLabelCaption("合计:")
+					.setType("none")
+					.setReadonly(true)
+					.setShowDirtyMark(false)
+					.setCustomStyle({
+						"LABEL" : {
+							"color" : "#000000"
+						}
+					})
 			);
 
 			return children;
@@ -118,9 +137,9 @@ Class('App.QKZX.Delivery', 'xui.Module',{
 				btn = ns.btn_del;
 			_.resetRun('TL_DEL', function () {
 				if (hover) {
-					var node = grid.getSubNode('SCROLL').get(0);
+					var node = grid.getSubNodeInGrid("CELLS1",row.id).get(0);
 					btn.setLeft(0);
-					xui(src).append(btn);
+					xui(node).append(btn);
 					btn.setDisplay('');
 					ns._curgrid = grid;
 					ns._currowid = row.id
@@ -144,7 +163,7 @@ Class('App.QKZX.Delivery', 'xui.Module',{
 					btn.setDisplay('none');
 					ns.grid.append(btn);
 					grid.removeRows([currowid]);
-
+					ns._count_total();
 				}, null, null, null, ns.mainDlg.getRoot().cssRegion())
 			}
 		},
@@ -185,6 +204,16 @@ Class('App.QKZX.Delivery', 'xui.Module',{
 				ns.btnClose.setLeft(w/2+30);
 			}
 
+		},
+		_count_total:function(){
+			var ns=this,grid=ns.grid,
+				cells=grid.getCells(null,'RealCounts','min')
+				total=0;
+			_.each(cells,function(cell){
+				total+=parseInt(cell);
+			});
+			ns.total.setValue(total);
+			return true;
 		}
 	}
 });

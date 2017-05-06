@@ -676,4 +676,14 @@ EOF;
 		$objWriter = PHPExcel_IOFactory::createWriter($objPHPExcel, 'Excel5');
 		$objWriter->save('php://output');
 	}
+	
+	
+	public function sales_stats()
+	{
+		ini_set('max_execution_time', 0);
+		$data = $this->input->post_get("data");
+		echo "<pre>";
+		print_r($data);
+		echo "</pre>";
+	}
 }

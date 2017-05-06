@@ -118,9 +118,9 @@ Class('App.QKZX.DeliverySpecial', 'xui.Module',{
 				btn = ns.btn_del;
 			_.resetRun('TL_DEL', function () {
 				if (hover) {
-					var node = grid.getSubNode('SCROLL').get(0);
+					var node = grid.getSubNodeInGrid("CELLS1",row.id).get(0);
 					btn.setLeft(0);
-					xui(src).append(btn);
+					xui(node).append(btn);
 					btn.setDisplay('');
 					ns._curgrid = grid;
 					ns._currowid = row.id

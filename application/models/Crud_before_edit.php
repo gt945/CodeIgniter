@@ -306,7 +306,7 @@ class Crud_before_edit extends Crud_hook {
 				$d['SalesTotal'] = $d['TotalPrice'] * $SaleDiscount / 100;
 				$d['CostTotal'] = $d['TotalPrice'] * $CostDiscount / 100;
 			}
-			$d['BatchID'] = sprintf("%s%d",date('Ymj'), $_SESSION['userinfo']['id']);
+			$d['BatchID'] = sprintf("%s%d",date('Ymd'), $_SESSION['userinfo']['id']);
 		}
 		return $this->result(true);
 	}
@@ -315,7 +315,7 @@ class Crud_before_edit extends Crud_hook {
 	{
 		if ($oper == 'create') {
 			$d=&$data[0];
-			$d['BatchID'] = sprintf("%s%d",date('Ymj'), $_SESSION['userinfo']['id']);
+			$d['BatchID'] = sprintf("%s%d",date('Ymd'), $_SESSION['userinfo']['id']);
 			$this->load->model('ReportCounts');
 			$this->load->model('JournalBaseInfo');
 			$journal = $this->JournalBaseInfo->prepare($d['JID']);
@@ -351,7 +351,7 @@ class Crud_before_edit extends Crud_hook {
 				if ($publishnotify) {
 					return $this->result(false, "已开印，不可修改");
 				}
-				$d['BatchID'] = sprintf("%s%d",date('Ymj'), $_SESSION['userinfo']['id']);
+				$d['BatchID'] = sprintf("%s%d",date('Ymd'), $_SESSION['userinfo']['id']);
 				$save = array (
 					'ReportBatchID' => $d['BatchID'],
 					'ReportStatus'	=> 1

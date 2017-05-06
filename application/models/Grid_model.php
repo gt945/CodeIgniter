@@ -1400,6 +1400,12 @@ class Grid_model extends Crud_Model
 			);
 			foreach ($custom_items as $k => $item) {
 				if ($this->auth_model->check_role($item['role_r'])) {
+					$prop = new stdClass();
+					if ($item['prop'] & 1) {
+						$prop->keep = true;
+					} else {
+						$prop->keep = false;
+					}
 					$items[1]->sub[] = (object)array(
 						"id" => "custom{$k}",
 						"image" => "@xui_ini.appPath@image/{$item['icon']}",
@@ -1408,7 +1414,8 @@ class Grid_model extends Crud_Model
 						"uri" => "{$item['uri']}",
 						"target" => "{$item['target']}",
 						"field" => "{$item['field']}",
-						"field2" => "{$item['field2']}"
+						"field2" => "{$item['field2']}",
+						"prop" => $prop
 					);
 				}
 

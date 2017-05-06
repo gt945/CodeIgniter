@@ -309,8 +309,8 @@ class Auth_model extends CI_Model {
 		$pubKey = openssl_pkey_get_details($res);
 		$pubKey = $pubKey["key"];
 		
-		$this->cache->save(Auth_model::CERT_PRIV, $privKey, 3600);
-		$this->cache->save(Auth_model::CERT_PUB, $pubKey, 3600);
+		$this->cache->save(Auth_model::CERT_PRIV, $privKey, 604800);
+		$this->cache->save(Auth_model::CERT_PUB, $pubKey, 604800);
 		return $pubKey;
 	}
 	
