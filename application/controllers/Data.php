@@ -681,9 +681,116 @@ EOF;
 	public function sales_stats()
 	{
 		ini_set('max_execution_time', 0);
-		$data = $this->input->post_get("data");
-		echo "<pre>";
-		print_r($data);
-		echo "</pre>";
+		$data = json_decode($this->input->post_get("data"));
+		$this->load->library('excel');
+		$objPHPExcel = PHPExcel_IOFactory::load(BASEPATH.'../assets/reports/SaleStats.xls');
+		$sheet = $objPHPExcel->getActiveSheet();
+		$i = 2;
+//		print_r($data);
+		foreach($data as $d) {
+			$JID = (int)$d->JID;
+			$No = (int)$d->NoStart;
+			
+			//
+			$this->db->select('id,Name,NofPerYear,Price');
+			$result1 = $this->db->get_where('journalbaseinfo', array('id'=> $JID))->row_array();
+			if ($result1) {
+				$sheet->setCellValue("A{$i}", $i - 1);
+				$sheet->setCellValue("B{$i}", $result1['Name']);
+				$sheet->setCellValue("C{$i}", $result1['NofPerYear']);
+				$sheet->setCellValue("D{$i}", $No);
+				$sheet->setCellValue("E{$i}", $result1['Price']);
+			}
+			//总印数
+			$this->db->select('PublishCounts');
+			$result2 = $this->db->get_where('publishnotify', array('JID'=> $JID, 'No'=> $No))->row_array();
+			if ($result2) {
+				$sheet->setCellValue("F{$i}", $result2['PublishCounts']);
+			}
+			$sheet->setCellValue("G{$i}", "=E{$i}*F{$i}");
+			//编辑部订单数
+			$this->db->select('ifnull(sum(orderCount), 0) AS EditOrderCount');
+			$this->db->where(array('saleStyle' => 5, 'JID' => $JID, 'NoStart' => $No));
+			$result3 = $this->db->get('journalorders')->row_array();
+			if ($result3){
+				$sheet->setCellValue("H{$i}", $result3['EditOrderCount']);
+			}
+			$sheet->setCellValue("I{$i}", "=E{$i}*H{$i}");
+			//邮局本市
+			$this->db->select('ifnull(sum(orderCount), 0) AS PostInCity');
+			$this->db->where(array('JID' => $JID, 'NoStart' => $No));
+			$this->db->where_in('saleStyle', array(20,21));
+			$result4 = $this->db->get('journalorders')->row_array();
+			if ($result4){
+				$sheet->setCellValue("J{$i}", $result4['PostInCity']);
+			}
+			
+			//邮局外埠
+			$this->db->select('ifnull(sum(orderCount), 0) AS PostOutCity');
+			$this->db->where(array('saleStyle' => 4, 'JID' => $JID, 'NoStart' => $No));
+			$result5 = $this->db->get('journalorders')->row_array();
+			if ($result5){
+				$sheet->setCellValue("K{$i}", $result5['PostOutCity']);
+			}
+			$sheet->setCellValue("L{$i}", "=J{$i}+K{$i}");
+			//送社
+			$this->db->select('ifnull(sum(orderCount), 0) AS ToPress');
+			$this->db->where(array('JID' => $JID, 'NoStart' => $No));
+			$this->db->where_in('saleStyle', array(1,2,6,8));
+			$result6 = $this->db->get('journalorders')->row_array();
+			if ($result6) {
+				$sheet->setCellValue("M{$i}", $result6['ToPress']);
+			}
+			
+			//自办销售
+			$this->db->select('ifnull(sum(jo.orderCount), 0) AS SelfSale');
+			$this->db->from('journalorders jo');
+			$this->db->from('customers c');
+			$this->db->where(array('jo.JID' => $JID, 'jo.NoStart' => $No));
+			$this->db->where('jo.cid = c.id');
+			$this->db->group_start();
+			$this->db->group_start();
+			$this->db->where(array('c.IsDelivery' => 1, 'c.isAlone' => 0, 'c.Discount<' => 100));
+			$this->db->where_not_in('jo.SaleStyle', array(2,5));
+			$this->db->group_end();
+			$this->db->or_where('jo.SaleStyle', 7);
+			$this->db->group_end();
+			$result7 = $this->db->get()->row_array();
+			if ($result7) {
+				$sheet->setCellValue("N{$i}", $result7['SelfSale']);
+			}
+			
+			//赠刊
+			$this->db->select('ifnull(sum(orderCount), 0) AS Gift');
+			$this->db->where(array('saleStyle' => 8, 'JID' => $JID, 'NoStart' => $No));
+			$result8 = $this->db->get('journalorders')->row_array();
+			if ($result8) {
+				$sheet->setCellValue("O{$i}", $result8['Gift']);
+			}
+			
+			//库存
+			$this->db->select('Counts AS StockCount');
+			$this->db->where(array('JID' => $JID, 'No' => $No));
+			$result9 = $this->db->get('journalstockmanage')->row_array();
+			if ($result9) {
+				$sheet->setCellValue("P{$i}", $result9['StockCount']);
+			}
+			
+			$sheet->setCellValue("R{$i}", "=F{$i}-P{$i}");
+			$sheet->setCellValue("S{$i}", "=E{$i}*R{$i}");
+			$sheet->setCellValue("T{$i}", "=(L{$i}-10)+N{$i}");
+			$sheet->setCellValue("U{$i}", "=T{$i}*E{$i}");
+			$sheet->setCellValue("V{$i}", "0");
+//			break;
+			$i++;
+		}
+		$sheet->getStyle("A2:V{$i}")->getBorders()->getAllBorders()->setBorderStyle(PHPExcel_Style_Border::BORDER_THIN);
+		
+		$filename = "销售月报表.xls";
+		header('Content-Type: application/vnd.ms-excel'); //mime type
+		header('Content-Disposition: attachment;filename="'.$filename.'"'); //tell browser what's the file name
+		header('Cache-Control: max-age=0'); //no cache
+		$objWriter = PHPExcel_IOFactory::createWriter($objPHPExcel, 'Excel5');
+		$objWriter->save('php://output');
 	}
 }
