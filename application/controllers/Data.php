@@ -193,6 +193,10 @@ EOD;
 
 	}
 
+
+	/**
+	 *  打印印制单
+	 */
 	public function publish_notify($PNID)
 	{
 		ini_set('max_execution_time', 0);
@@ -345,6 +349,10 @@ EOD;
 		$objWriter->save('php://output');
 
 	}
+
+	/**
+	 * 打印到货分发表
+	 */
 	public function delivers($ID/*$JID = 0, $Year = 0, $No = 0*/)
 	{
 		ini_set('max_execution_time', 0);
@@ -430,6 +438,9 @@ EOD;
 		
 	}
 	
+	/**
+	 * 打印客户取刊单
+	 */
 	function delivery_bill()
 	{
 		ini_set('max_execution_time', 0);
@@ -493,7 +504,7 @@ EOD;
 		
 		$i = 10;
 		$total = 0;
-		
+		$total2 = 0;
 		foreach($ret as $r) {
 			$d = $r->cells;
 			$sheet->setCellValue("A{$i}", $i - 9);
@@ -507,14 +518,16 @@ EOD;
 			$sheet->setCellValue("F{$i}", $d['Counts']->value);
 			$sheet->setCellValue("G{$i}", $d['daiFa']->value);
 //			$sheet->getRowDimension($i)->setRowHeight(18);
-//			$total += $d['Counts']->value;
+			$total += $d['Counts']->value;
+			$total2 += $d['daiFa']->value;
 			$i++;
 		}
 		
-//		$sheet->mergeCells("A{$i}:H{$i}");
+		$sheet->mergeCells("A{$i}:E{$i}");
 //		$sheet->getStyle("A{$i}")->getAlignment()->setHorizontal(PHPExcel_Style_Alignment::HORIZONTAL_CENTER);
-//		$sheet->setCellValue("A{$i}", "小计");
-//		$sheet->setCellValue("I{$i}", $total);
+		$sheet->setCellValue("A{$i}", "合计");
+		$sheet->setCellValue("F{$i}", $total);
+		$sheet->setCellValue("G{$i}", $total2);
 		$sheet->getRowDimension($i)->setRowHeight(18);
 		$sheet->getStyle("A10:G{$i}")->getBorders()->getAllBorders()->setBorderStyle(PHPExcel_Style_Border::BORDER_THIN);
 		$objWriter = PHPExcel_IOFactory::createWriter($objPHPExcel, 'PDF');
