@@ -53,7 +53,7 @@ class JournalStockManage extends CI_Model {
 				'No'	=>	$this->no,
 				'Counts'	=>	$count,
 				'StockTag'	=>	$tag,
-				'Note'  => $note
+				'Note'  => $this->stock['Note'] . '<br>' . $note
 			);
 			$this->db->insert('stockmanagedetails', $save);
 			$this->stock['Counts'] -= $count;
@@ -77,7 +77,7 @@ class JournalStockManage extends CI_Model {
 				'No'	=>	$this->no,
 				'Counts'	=>	$count,
 				'StockTag'	=>	$tag,
-				'Note'  => $note
+				'Note'  => $this->stock['Note'] . '<br>' . $note
 			);
 			$this->db->insert('stockmanagedetails', $save);
 			$this->stock['Counts'] += $count;

@@ -729,4 +729,36 @@ EOF;
 		return 1;
 	}
 
+	private function request_refunds()
+	{
+		$JID = (int)$this->paras->JID;
+		$Year = (int)$this->paras->Year;
+		$No = (int)$this->paras->No;
+		$Counts = (int)$this->paras->Counts;
+		$CID = (int)$this->paras->CID;
+		$this->load->model('JournalStockManage');
+		if ($this->JournalStockManage->prepare($JID, $Year, $No)) {
+			$this->JournalStockManage->stock_in($Counts, 6, NULL, "退订入库");
+			
+			$BatchID = date('Ymd');
+			$save = array(
+				"batchID" => $BatchID,
+				"AID" => $_SESSION['userinfo']['id'],
+				"JID" => $JID,
+				"CID" => $CID,
+				"Year" => $Year,
+				"Volume" => "",
+				"No" => $No,
+				"Counts" => -$Counts,
+				"DeliveryTime" => date('Y-m-d H:i:s'),
+				"DeliveStatus" => 4, //退货
+				"Note" => "退订退货"
+//				"YingFa" => 0,
+//				"DaiFa" => 0,
+//				"yiFa" => 0
+			);
+			$this->db->insert('deliverydetails', $save);
+		}
+		return 1;
+	}
 }

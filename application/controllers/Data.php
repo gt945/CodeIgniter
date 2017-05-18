@@ -527,7 +527,7 @@ EOD;
 //		$sheet->getStyle("A{$i}")->getAlignment()->setHorizontal(PHPExcel_Style_Alignment::HORIZONTAL_CENTER);
 		$sheet->setCellValue("A{$i}", "合计");
 		$sheet->setCellValue("F{$i}", $total);
-		$sheet->setCellValue("G{$i}", $total2);
+//		$sheet->setCellValue("G{$i}", $total2);
 		$sheet->getRowDimension($i)->setRowHeight(18);
 		$sheet->getStyle("A10:G{$i}")->getBorders()->getAllBorders()->setBorderStyle(PHPExcel_Style_Border::BORDER_THIN);
 		$objWriter = PHPExcel_IOFactory::createWriter($objPHPExcel, 'PDF');

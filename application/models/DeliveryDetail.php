@@ -26,7 +26,7 @@ class DeliveryDetail extends CI_Model {
 
 	}
 
-	public function create($d, $aid, $BatchID)
+	public function create($d, $aid, $BatchID, $Note = "已发")
 	{
 		$save = array(
 			"batchID" => $BatchID,
@@ -38,7 +38,7 @@ class DeliveryDetail extends CI_Model {
 			"DeliveStatus" => 1,
 			"DeliveryTime" => date('Y-m-d H:i:s'),
 			"Volume" => "",
-			"Note" => "已发",
+			"Note" => $Note,
 			"YingFa" => $d->NeedCounts,
 			"DaiFa" => $d->NeedCounts - $d->RealCounts,
 			"yiFa"=> $d->SendCounts + $d->RealCounts
