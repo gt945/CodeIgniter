@@ -150,7 +150,7 @@ Class('App.QKZX.ExportSalesStats', 'xui.Module',{
 			}
 		},
 		_ctl_sbutton4_onclick:function(p,e){
-			var ns=this,grid=ns.grid,rows=grid.getRows(),post=[],fields=["JID","NoStart"];
+			var ns=this,grid=ns.grid,rows=grid.getRows(),post=[],fields=["JID","No"];
 			_.arr.each(rows,function(row){
 				var data={};
 				_.arr.each(fields,function(f){
