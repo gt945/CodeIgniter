@@ -245,7 +245,7 @@ class Crud_before_edit extends Crud_hook {
 							$this->load->model('ReportCounts');
 							$this->ReportCounts->prepare($d['JID'], $d['Jyear'], $i);
 							$reportcounts = $this->ReportCounts->report_count();
-							if($stockcount === null) {												/* 退订 - 退订数量小于等于订单总数 - 非代理类期刊 - 未报数*/
+							if($reportcounts === null) {											/* 退订 - 退订数量小于等于订单总数 - 非代理类期刊 - 未报数*/
 								// Do Nothing
 							} else {																/* 退订 - 退订数量小于等于订单总数 - 非代理类期刊 - 已报数*/
 								
@@ -608,12 +608,12 @@ class Crud_before_edit extends Crud_hook {
 			(jo.isneedDeliver = 1 and jo.saleStyle in (1,5,6,7,8,9) )
 		)
 EOT;
-			$result = $this->db->query($sql, array($d['JID'], $d['Year'], $d['No']));
-			$counts = $result->row_array();
+			$counts = $this->db->get_where('DeliveryStockView_JADSONView', array('JID' => $d['JID'], 'Year' => $d['Year'], 'No' => $d['No']))->row_array();
+			//$result = $this->db->query($sql, array($d['JID'], $d['Year'], $d['No']));
+			//$counts = $result->row_array();
 			$this->load->model('JournalStockManage');
 			$this->JournalStockManage->prepare($d['JID'], $d['Year'], $d['No']);
-			if ($d['Counts'] >= $counts['counts'] ) {
-
+			if ($d['Counts'] >= $counts['NeedCounts'] ) {
 				$this->db->query("set @BatchID ='{$d['BatchID']}'");
 				$this->db->query("set @JID ={$d['JID']}");
 				$this->db->query("set @AID = {$d['AID']}");
