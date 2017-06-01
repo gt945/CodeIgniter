@@ -601,19 +601,36 @@ class Crud_before_edit extends Crud_hook {
 //			if (!$publish_notify && $journalbaseinfo['Classify'] != 1) {
 //				return $this->result(false, "未印制,无法到货");
 //			}
-			$sql = <<<EOT
-	select sum(jo.orderCount) as counts from qkzx_journalorders jo where 
-		jo.jid = ? and year = ? and ? between nostart and noend 
-		and (
-			(jo.isneedDeliver = 1 and jo.saleStyle in (1,5,6,7,8,9) )
-		)
-EOT;
-			$counts = $this->db->get_where('DeliveryStockView_JADSONView', array('JID' => $d['JID'], 'Year' => $d['Year'], 'No' => $d['No']))->row_array();
-			//$result = $this->db->query($sql, array($d['JID'], $d['Year'], $d['No']));
-			//$counts = $result->row_array();
+			$needcounts = 0;
+//			$sql = <<<EOT
+//	select sum(jo.orderCount) as counts from qkzx_journalorders jo where 
+//		jo.jid = ? and year = ? and ? between nostart and noend 
+//		and (
+//			(jo.isneedDeliver = 1 and jo.saleStyle in (1,3,4,5,6,8))
+//		)
+//EOT;
+			$this->db->select('sum(NeedCounts) as NeedCounts');
+			$this->db->from('DeliveryCustomView2');
+			$this->db->where(array('JID' => $d['JID'], 'Year' => $d['Year'], 'No' => $d['No']));
+			$counts = $this->db->get()->row_array();
+			//$counts = $this->db->get_where('DeliveryStockView_JADSONView', array('JID' => $d['JID'], 'Year' => $d['Year'], 'No' => $d['No']))->row_array();
+			if ($counts['NeedCounts']) {
+				$needcounts = $counts['NeedCounts'];
+			} else {
+				$this->db->select('sum(jo.orderCount) as counts');
+				$this->db->from('qkzx_journalorders jo');
+				$this->db->where(array('JID' => $d['JID'], 'Year' => $d['Year'], 'jo.isneedDeliver' => 1 ));
+				$this->db->where_in('jo.saleStyle', array(1,3,4,5,6,8));
+				$this->db->where("{$d['No']} between nostart and noend ");
+				$counts = $counts = $this->db->get()->row_array();
+//				$counts = $this->db->query($sql, array($d['JID'], $d['Year'], $d['No']))->row_array();
+				$needcounts = $counts['counts'];
+			}
+//			print_r($needcounts);
+//			die();
 			$this->load->model('JournalStockManage');
 			$this->JournalStockManage->prepare($d['JID'], $d['Year'], $d['No']);
-			if ($d['Counts'] >= $counts['NeedCounts'] ) {
+			if ($d['Counts'] >= $needcounts ) {
 				$this->db->query("set @BatchID ='{$d['BatchID']}'");
 				$this->db->query("set @JID ={$d['JID']}");
 				$this->db->query("set @AID = {$d['AID']}");
