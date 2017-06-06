@@ -690,13 +690,9 @@ EOF;
 		$objWriter->save('php://output');
 	}
 	
-	/**
-	 * 销售月报表
-	 */
-	public function sales_stats()
+	private function sales_stats_excel($data)
 	{
 		ini_set('max_execution_time', 0);
-		$data = json_decode($this->input->post_get("data"));
 		$this->load->library('excel');
 		$objPHPExcel = PHPExcel_IOFactory::load(BASEPATH.'../assets/reports/SaleStats.xls');
 		$sheet = $objPHPExcel->getActiveSheet();
@@ -782,6 +778,7 @@ EOF;
 				$this->db->select('ifnull(sum(orderCount), 0) AS ToPress');
 				$this->db->where(array('JID' => $JID, 'NoStart' => $No));
 				$this->db->where_in('saleStyle', array(1,2,6,8));
+				$this->db->where('IsNeedDeliver', 1);
 				$result6 = $this->db->get('journalorders')->row_array();
 				if ($result6) {
 					$sheet->setCellValue("M{$i}", $result6['ToPress']);						//送社
@@ -829,8 +826,8 @@ EOF;
 			$sheet->setCellValue("T{$i}", "=(L{$i}-10)+N{$i}");								//销售数量
 			$sheet->setCellValue("U{$i}", "=T{$i}*E{$i}");									//销售码洋
 			$result1['SaleDiscount'] = ((int)$result1['SaleDiscount'] )? $result1['SaleDiscount'] / 100 : 1;
-			$sheet->setCellValue("V{$i}", "{$result1['SaleDiscount']}");												//销售折扣
-			$sheet->setCellValue("W{$i}", "=U{$i}*V{$i}");												//销售实洋
+			$sheet->setCellValue("V{$i}", "{$result1['SaleDiscount']}");					//销售折扣
+			$sheet->setCellValue("W{$i}", "=U{$i}*V{$i}");									//销售实洋
 //			break;
 			$i++;
 		}
@@ -843,5 +840,113 @@ EOF;
 		header('Cache-Control: max-age=0'); //no cache
 		$objWriter = PHPExcel_IOFactory::createWriter($objPHPExcel, 'Excel5');
 		$objWriter->save('php://output');
+	}
+	/**
+	 * 销售月报表
+	 */
+	public function sales_stats()
+	{
+		$data = json_decode($this->input->post_get("data"));
+		$this->sales_stats_excel($data);
+	}
+	
+	public function sales_all_stats()
+	{
+		$this->load->model('grid_model');
+		$paras_json = $this->input->post_get("paras");
+		$paras = json_decode($paras_json);
+		$paras->page = 1;
+		$paras->size = 500;
+		$export = array();
+		$ret = $this->grid_model->table('DeliveryTotalForSaleStat', array('JID', 'No'));
+		if ($ret) {
+			if ($this->grid_model->prepare(false)) {
+				$count = 0;
+				$total = 0;
+				while ($count == 0 || $count < $total) {
+					$data = $this->grid_model->wrapper_sheet($paras);
+					$this->grid_model->pop_cache();
+					if (!count($data->data)) {
+						break;
+					}
+					foreach($data->data as $d) {
+						array_push($export, (object) $d);
+					}
+//					$export = array_merge($export, $data->data);
+					$total = $data->count;
+					$paras->page++;
+					$count += count($data->data);
+				}
+				$this->sales_stats_excel($export);
+			}
+		}
+
+	/*
+		$ret = $this->grid_model->table($table);
+		if ($ret) {
+			if ($this->grid_model->prepare()) {
+				$this->load->library('excel');
+				$this->excel->setActiveSheetIndex(0);
+				
+				$row = array();
+				if ($paras->key) {
+					$row[] = $this->grid_model->crud_field[$this->grid_model->primary]['caption'];
+				}
+
+				foreach($setting as $s){
+					if (isset($this->grid_model->crud_field[$s[0]]) && $this->grid_model->crud_field[$s[0]]['_role_r']) {
+						
+						$fields[$s[0]] = $s[1]?1:0;
+						if ($s[1]) {
+							$row[] = $this->grid_model->crud_field[$s[0]]['caption'];
+						}
+					}
+				}
+				$sheet[] = $row;
+				$this->excel->getActiveSheet()->fromArray($sheet, NULL, "A1");
+				$line = 2;
+				$count = 0;
+				$total = 0;
+				
+				while ($count == 0 || $count < $total) {
+					unset($sheet);
+					$sheet = array();
+					
+					
+					$data = $this->grid_model->wrapper_sheet($paras);
+					$this->grid_model->pop_cache();
+					if (!count($data->data)) {
+						break;
+					}
+					$total = $data->count;
+					$paras->page++;
+					foreach($data->data as $d) {
+						unset($row);
+						$row = array();
+						if ($paras->key) {
+							$row[] = $d[$this->grid_model->primary];
+						}
+						foreach($fields as $k=>$f) {
+							if ($f) {
+								if ($paras->raw) {
+									$row[] = $d[$k];
+								} elseif (isset($this->grid_model->crud_field[$k]['_caption'])) {
+									$this->grid_model->wrapper_caption($this->grid_model->crud_field[$k], $d);
+									$row[] = $d[$this->grid_model->crud_field[$k]['_caption']];
+								} else {
+									$row[] = $d[$k];
+								}
+							}
+						}
+						$sheet[] = $row;
+					}
+
+					$this->excel->getActiveSheet()->fromArray($sheet, NULL, "A{$line}");
+					$count += count($data->data);
+					$line += count($data->data);
+				}
+	 */
+	
+	
 	}
 }
