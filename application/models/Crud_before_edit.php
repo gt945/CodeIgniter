@@ -129,6 +129,7 @@ class Crud_before_edit extends Crud_hook {
 								$this->append("无库存记录，创建成功！");
 							} else if ($stockcount < $OrderCount) {									/* 收订 - 其他客户 - 代理类期刊 - 库存不够*/
 								//TODO 库存不够
+								$this->append("第{$d['NoStart']}期库存不够！");
 								continue;
 							} else {																/* 收订 - 其他客户 - 代理类期刊 - 减库存并记录*/
 								$d['ReportStatus'] = 1;
@@ -179,6 +180,7 @@ class Crud_before_edit extends Crud_hook {
 									}
 								} else if ($stockcount < $OrderCount) {								/* 收订 - 其他客户 - 非代理类期刊 - 报数表有记录 - 库存不够*/
 									//TODO 库存不够
+									$this->append("第{$d['NoStart']}期库存不够！");
 									continue;
 								} else {															/* 收订 - 其他客户 - 非代理类期刊 - 报数表有记录 - 减库存并记录*/
 									$d['ReportStatus'] = 1;
@@ -193,6 +195,7 @@ class Crud_before_edit extends Crud_hook {
 									$this->append("无库存记录，创建成功！");
 								} else if ($stockcount < $OrderCount) {								/* 收订 - 其他客户 - 非代理类期刊 - 报数表无记录 - 库存不够*/
 									//TODO 库存不够
+									$this->append("第{$d['NoStart']}期库存不够！");
 									continue;
 								} else {															/* 收订 - 其他客户 - 非代理类期刊 - 报数表无记录 - 减库存并记录*/
 									$d['ReportStatus'] = 1;

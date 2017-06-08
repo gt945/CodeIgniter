@@ -15,13 +15,13 @@ class MY_Controller extends CI_Controller {
 		if (! $this->auth_model->check( false )) {
 			$this->reply(401, "请重新登录");
 		}
-		$this->warn = null;
+		$this->warn_msg = "";
 		
 	}
 	private function append($var, $msg)
 	{
 		if (isset($this->$var)) {
-			if ($this->$var == null) {
+			if ($this->$var == "") {
 				$this->$var = $msg;
 			} else if ($msg){
 				$this->$var = $this->$var . "<br>" . $msg;
@@ -39,8 +39,8 @@ class MY_Controller extends CI_Controller {
 			if ($data) {
 				$response->data = $data;
 			}
-			if ($this->warn) {
-				$response->warn = $warn;
+			if ($this->warn_msg) {
+				$response->warn = $this->warn_msg;
 			}
 			echo json_encode($response);
 		} else {
@@ -50,6 +50,6 @@ class MY_Controller extends CI_Controller {
 	}
 	
 	public function warn($msg) {
-		$this->append('warn', $msg);
+		$this->append('warn_msg', $msg);
 	}
 }
