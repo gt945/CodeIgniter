@@ -858,7 +858,7 @@ EOF;
 		$paras->page = 1;
 		$paras->size = 500;
 		$export = array();
-		$ret = $this->grid_model->table('DeliveryTotalForSaleStat', array('JID', 'No'));
+		$ret = $this->grid_model->table('DeliveryTotalForSaleStat');
 		if ($ret) {
 			if ($this->grid_model->prepare(false)) {
 				$count = 0;
