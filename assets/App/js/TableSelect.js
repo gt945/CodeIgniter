@@ -180,7 +180,7 @@ Class('App.TableSelect', 'xui.Module',{
 			}
 			_.arr.each(ns.data.map,function(map){
 				index=_.arr.subIndexOf(ns.data.headers, 'id', map.id2);
-				if(index>=0)
+				if(index>=0&&row)
 					extra.push({id:map.id1,cell:row.cells[index]});
 			});
 			ns.fireEvent("onSelect",[{value:row.id,caption:caption},extra]);

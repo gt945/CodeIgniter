@@ -613,11 +613,11 @@ class Crud_before_edit extends Crud_hook {
 //		)
 //EOT;
 			$this->db->select('sum(NeedCounts) as NeedCounts');
-			$this->db->from('DeliveryCustomView2');
+			$this->db->from('DeliveryCustomView2_needs');
 			$this->db->where(array('JID' => $d['JID'], 'Year' => $d['Year'], 'No' => $d['No']));
 			$counts = $this->db->get()->row_array();
 			//$counts = $this->db->get_where('DeliveryStockView_JADSONView', array('JID' => $d['JID'], 'Year' => $d['Year'], 'No' => $d['No']))->row_array();
-			if ($counts['NeedCounts']) {
+			if (isset($counts['NeedCounts'])) {
 				$needcounts = $counts['NeedCounts'];
 			} else {
 				$this->db->select('sum(jo.orderCount) as counts');
