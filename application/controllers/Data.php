@@ -857,6 +857,8 @@ EOF;
 		$paras = json_decode($paras_json);
 		$paras->page = 1;
 		$paras->size = 500;
+		$paras->sidx = 'No';
+		$paras->sord = 'asc';
 		$export = array();
 		$ret = $this->grid_model->table('DeliveryTotalForSaleStat');
 		if ($ret) {
