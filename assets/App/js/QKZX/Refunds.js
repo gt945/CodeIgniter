@@ -71,15 +71,9 @@ Class('App.QKZX.Refunds', 'xui.Module',{
 			var db=ns.databinder,data=db.getData();
 			var row=pgrid.getActiveRow();
 			if (row) {
-				_.arr.each(['JID', 'CID', 'Year', 'NoStart', 'Counts'],function(f, i) {
+				_.arr.each(['JID', 'CID', 'Jyear', 'NoStart', 'Counts'],function(f, i) {
 					var ele,cell=pgrid.getCellbyRowCol(row.id, f);
-					if(f=='Note'){
-						ele=_.unserialize('new xui.UI.ComboInput({"properties":{"height":75,"type":"none","labelSize":110,"labelCaption":"备注","multiLines":true},"CS":{"LABEL":{"text-align":"left"}},"key":"xui.UI.ComboInput"})');
-					}else if(f=='Counts'){
-						ele=_.unserialize('new xui.UI.ComboInput({"properties":{"type":"none","labelSize":110,"labelCaption":"退货数量"},"CS":{"LABEL":{"text-align":"left"}},"key":"xui.UI.ComboInput"})');
-					}else{
-						ele=_.unserialize(editor_prop.gridSetting[f].form);
-					}
+					ele=_.unserialize(editor_prop.gridSetting[f].form);
 					ns.ctl_block.append(ele
 						.setHost(ns,'form_'+i)
 						.setLeft(15)
@@ -88,8 +82,8 @@ Class('App.QKZX.Refunds', 'xui.Module',{
 						.setDataBinder("databinder")
 						.setDataField(f)
 					);
-					if (f=='Counts'||f=='Note'){
-						data[f]={value:''};
+					if (f=='Counts'){
+						data[f]={value: -cell.value};
 					}else{
 						data[f]={value:cell.value,caption:cell.caption};
 					}
