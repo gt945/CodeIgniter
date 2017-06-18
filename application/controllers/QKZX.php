@@ -732,9 +732,9 @@ EOF;
 	private function request_refunds()
 	{
 		$JID = (int)$this->paras->JID;
-		$Year = (int)$this->paras->Year;
-		$No = (int)$this->paras->No;
-		$Counts = (int)$this->paras->Counts;
+		$Year = (int)$this->paras->Jyear;
+		$No = (int)$this->paras->NoStart;
+		$Counts = (int)$this->paras->OrderCount;
 		$CID = (int)$this->paras->CID;
 		$this->load->model('JournalStockManage');
 		if ($this->JournalStockManage->prepare($JID, $Year, $No)) {

@@ -17,7 +17,7 @@ Class('App.QKZX.Refunds', 'xui.Module',{
 				.setLeft(25)
 				.setTop(19)
 				.setWidth(480)
-				.setHeight(290)
+				.setHeight(236)
 				.setResizer(true)
 				.setOverflow("hidden")
 				.setCaption("确认退货")
@@ -71,7 +71,7 @@ Class('App.QKZX.Refunds', 'xui.Module',{
 			var db=ns.databinder,data=db.getData();
 			var row=pgrid.getActiveRow();
 			if (row) {
-				_.arr.each(['JID', 'CID', 'Jyear', 'NoStart', 'Counts'],function(f, i) {
+				_.arr.each(['JID', 'CID', 'Jyear', 'NoStart', 'OrderCount'],function(f, i) {
 					var ele,cell=pgrid.getCellbyRowCol(row.id, f);
 					ele=_.unserialize(editor_prop.gridSetting[f].form);
 					ns.ctl_block.append(ele
@@ -82,7 +82,7 @@ Class('App.QKZX.Refunds', 'xui.Module',{
 						.setDataBinder("databinder")
 						.setDataField(f)
 					);
-					if (f=='Counts'){
+					if (f=='OrderCount'){
 						data[f]={value: -cell.value};
 					}else{
 						data[f]={value:cell.value,caption:cell.caption};
@@ -98,7 +98,7 @@ Class('App.QKZX.Refunds', 'xui.Module',{
 			this.mainDlg.close(true);
 		},
 		_ctl_sbutton14_onclick:function(){
-			var ns=this,db=ns.databinder,data=db.getData();
+			var ns=this,db=ns.databinder,data=db.getData(null,true);
 			if (!_.isEmpty(data)) {
 				AJAX.callService('QKZX/request',null,"refunds",data,function(rsp) {
 					if (typeof(rsp.data)==='string'){
