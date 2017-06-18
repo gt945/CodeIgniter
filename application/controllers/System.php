@@ -236,11 +236,12 @@ class System extends MY_Controller {
 	{
 		$ret = new stdClass();
 		if (!isset($_SESSION['userinfo']['workyear'])) {
-			$_SESSION['userinfo']['workyear'] = 0;
+			$_SESSION['userinfo']['workyear'] = date('Y');
 		}
 		$ret->workyear = $_SESSION['userinfo']['workyear'];
 		return $ret;
 	}
+	
 	private function request_setting_set()
 	{
 		if (isset($this->paras->workyear)) {
