@@ -20,7 +20,7 @@ Class('App.QKZX.Refunds', 'xui.Module',{
 				.setHeight(290)
 				.setResizer(true)
 				.setOverflow("hidden")
-				.setCaption("特殊入库")
+				.setCaption("确认退货")
 				.setMinBtn(false)
 				// .setMaxBtn(false)
 			);
@@ -71,12 +71,12 @@ Class('App.QKZX.Refunds', 'xui.Module',{
 			var db=ns.databinder,data=db.getData();
 			var row=pgrid.getActiveRow();
 			if (row) {
-				_.arr.each(['JID', 'Year', 'No', 'Counts', 'Note'],function(f, i) {
+				_.arr.each(['JID', 'CID', 'Year', 'NoStart', 'Counts'],function(f, i) {
 					var ele,cell=pgrid.getCellbyRowCol(row.id, f);
 					if(f=='Note'){
 						ele=_.unserialize('new xui.UI.ComboInput({"properties":{"height":75,"type":"none","labelSize":110,"labelCaption":"备注","multiLines":true},"CS":{"LABEL":{"text-align":"left"}},"key":"xui.UI.ComboInput"})');
 					}else if(f=='Counts'){
-						ele=_.unserialize('new xui.UI.ComboInput({"properties":{"type":"none","labelSize":110,"labelCaption":"数量"},"CS":{"LABEL":{"text-align":"left"}},"key":"xui.UI.ComboInput"})');
+						ele=_.unserialize('new xui.UI.ComboInput({"properties":{"type":"none","labelSize":110,"labelCaption":"退货数量"},"CS":{"LABEL":{"text-align":"left"}},"key":"xui.UI.ComboInput"})');
 					}else{
 						ele=_.unserialize(editor_prop.gridSetting[f].form);
 					}

@@ -1,4 +1,4 @@
-Class('App.QKZX.Refunds', 'xui.Module',{
+Class('App.QKZX.ArriveSpecial', 'xui.Module',{
 	autoDestroy : true,
 	Instance:{
 		initialize : function(){
