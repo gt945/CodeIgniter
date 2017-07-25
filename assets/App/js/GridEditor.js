@@ -31,6 +31,7 @@ Class('App.GridEditor','xui.Module',{
 				.afterColResized("_grid_aftercolresized")
 				.onResize("_grid_resize")
 				.onContextmenu("_grid_oncontextmenu")
+				.setSelectable(true)
 			);
 			
 			append((new xui.UI.ToolBar())
