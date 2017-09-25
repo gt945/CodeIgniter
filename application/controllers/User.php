@@ -61,7 +61,7 @@ class User extends CI_Controller {
 			
 			// set variables from the form
 			$username = $this->input->post('username');
-			$email    = $this->input->post('email');
+			$email = $this->input->post('email');
 			$password = $this->input->post('password');
 			
 			if ($this->auth_model->create_user($username, $email, $password)) {
@@ -202,5 +202,4 @@ class User extends CI_Controller {
 		$response = $this->auth_model->updateinfo ($password, $newpassword, $name, $contact);
 		echo json_encode ( $response );
 	}
-
 }

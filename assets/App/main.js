@@ -38,27 +38,9 @@ Class('App.main', 'xui.Module',{
 				.setHAlign("right")
 				.setHandler(false)
 				.setDock("fill")
-				.setItems([{
-					"id" : "grp1",
-					"sub" : [{
-						"id" : "setting",
-						"image" : "@xui_ini.appPath@image/setting.png",
-						"caption" : "设置"
-					},{
-						"id" : "userinfo",
-						"image" : "@xui_ini.appPath@image/user.png",
-						"caption" : USERNAME
-					},{
-						"id" : "logout",
-						"image" : "@xui_ini.appPath@image/logout.png",
-						"caption" : "退出"
-					}],
-					"caption" : "grp1"
-				}])
 				.onClick("_toolbar_click")
-				, "before");
-			
-			
+				, "before");		
+
 			host.layout_v.append(
 				(new xui.UI.Layout())
 				.setHost(host,"layout_h")
@@ -103,11 +85,17 @@ Class('App.main', 'xui.Module',{
 		},
 		// 加载其他资源可以用本函数
 		iniResource: function(com, threadid){
-			//xui.Thread.suspend(threadid);
-			//var callback=function(/**/){
-			//	/**/
-			//	xui.Thread.resume(threadid);
-			//};
+			var ns=this;
+			xui.Thread.suspend(threadid);
+			var callback=function(){
+				xui.Thread.resume(threadid);
+			};
+			xui.request(SITEURL+"Main/toolbar", null, function(rsp){
+				ns.toolbar.setItems(rsp);
+				callback();
+			},function(){
+				callback();
+			});
 		},
 		// 加载其他Com可以用本函数
 		iniExComs : function(com, threadid){
@@ -161,7 +149,18 @@ Class('App.main', 'xui.Module',{
 					}
 				},null);
 				break;
-				
+			case "switch_to":
+				xui.ModuleFactory.newCom("App.Switch",function(){
+					if (!_.isEmpty(this)){
+						this.show();
+					}
+				},null);
+				break;
+			case "switch_back":
+				AJAX.callService('system/request', null, "user_switch_back", null, function(rsp){
+					location.reload();
+				});
+				break;
 			}
 		},
 		_xui_ui_main_tabs_beforepageclose:function (profile,item,src){

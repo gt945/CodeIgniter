@@ -50,7 +50,7 @@ class System extends MY_Controller {
 			(object) array(
 				"id" => 'name',
 				"caption" => "数据表",
-				"editable"  => false,
+				"editable" => false,
 				"width" => 200
 			)
 		);
@@ -272,5 +272,29 @@ class System extends MY_Controller {
 		$save = (array)$this->paras;
 		$this->db->update('setting', $save, array('id'=>1));
 		return 1;
+	}
+	
+	private function request_get_userlist()
+	{
+		return $this->auth_model->userlist();
+	}
+	
+	private function request_user_switch_to()
+	{
+		$uid = (int)$this->paras->user;
+		$msg = $this->auth_model->user_switch_to($uid);
+		if ($msg) {
+			$this->reply(403, $msg);
+		}
+		return 0;
+	}
+	
+	private function request_user_switch_back()
+	{
+		$msg = $this->auth_model->user_switch_back();
+		if ($msg) {
+			$this->reply(403, $msg);
+		}
+		return 0;
 	}
 }

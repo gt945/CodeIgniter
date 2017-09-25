@@ -16,7 +16,6 @@ class MY_Controller extends CI_Controller {
 			$this->reply(401, "请重新登录");
 		}
 		$this->warn_msg = "";
-		
 	}
 	private function append($var, $msg)
 	{

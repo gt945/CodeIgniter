@@ -49,74 +49,74 @@ class Main extends CI_Controller {
 			$this->crud_model->table("menu");
 			$menu_array = $this->crud_model->get_tree_data_by_pid(0, true);
 //			$menus = $this->xui_utils->menus($menu_array[0]['children'], $this->auth_model->role());
-            $menus = $menu_array[0]['children'];
-            $obj = (object) array(
-                "alias" => "menus",
-                "key" =>"xui.UI.Stacks",
-                "host" => "%SPA%",
-                "properties" => (object) array(
-                    "value" => null,
-                    "items" => array()
-                ),
-                "children" => array()
-            );
-            usort($menus, array($this, "menu_sort"));
-            foreach ($menus as $m) {
-                $item_m = (object) array(
-                    "id" => "m{$m['id']}",
-                    "caption" => "{$m['name']}"
-                );
+			$menus = $menu_array[0]['children'];
+			$obj = (object) array(
+				"alias" => "menus",
+				"key" =>"xui.UI.Stacks",
+				"host" => "%SPA%",
+				"properties" => (object) array(
+					"value" => null,
+					"items" => array()
+				),
+				"children" => array()
+			);
+			usort($menus, array($this, "menu_sort"));
+			foreach ($menus as $m) {
+				$item_m = (object) array(
+					"id" => "m{$m['id']}",
+					"caption" => "{$m['name']}"
+				);
 
-                if (!$this->auth_model->check_role($m['role_r'])) {
-                    continue;
-                }
+				if (!$this->auth_model->check_role($m['role_r'])) {
+					continue;
+			}
 
-                if (!$obj->properties->value) {
-                    $obj->properties->value = "m{$m['id']}";
-                }
-                $obj->properties->items[] = $item_m;
+				if (!$obj->properties->value) {
+					$obj->properties->value = "m{$m['id']}";
+				}
+				$obj->properties->items[] = $item_m;
 
-                $child = array();
-                $obj_c = (object) array(
-                    "alias" => "sub_menus{$m['id']}",
-                    "key" => "xui.UI.TreeView",
-                    "host" => "%SPA%",
-                    "properties" => (object) array(
-                        "items" => array()
-                    ),
-                    "events" => (object) array(
-                        "onItemSelected" => "_menus_selected"
-                    ),
-                );
-                usort($m['children'], array($this, "menu_sort"));
-                foreach($m['children'] as $c) {
-                    if (!$this->auth_model->check_role($c['role_r'])) {
-                        continue;
-                    }
-                    $item_c = (object) array(
-                        "id" => "c{$c['id']}",
-                        "caption" => "{$c['name']}",
-                        "target" => "{$c['target']}",
-                        "app" => "{$c['app']}"
-                    );
-                    $obj_c->properties->items[] = $item_c;
-                }
+				$child = array();
+				$obj_c = (object) array(
+					"alias" => "sub_menus{$m['id']}",
+					"key" => "xui.UI.TreeView",
+					"host" => "%SPA%",
+					"properties" => (object) array(
+						"items" => array()
+					),
+					"events" => (object) array(
+						"onItemSelected" => "_menus_selected"
+					),
+				);
+				usort($m['children'], array($this, "menu_sort"));
+				foreach($m['children'] as $c) {
+					if (!$this->auth_model->check_role($c['role_r'])) {
+						continue;
+					}
+					$item_c = (object) array(
+						"id" => "c{$c['id']}",
+						"caption" => "{$c['name']}",
+						"target" => "{$c['target']}",
+						"app" => "{$c['app']}"
+					);
+					$obj_c->properties->items[] = $item_c;
+				}
 
-                $child[0] = $obj_c;
-                $child[1] = "m{$m['id']}";
-                $obj->children[] = $child;
-            }
-            $json = json_encode($obj);
+				$child[0] = $obj_c;
+				$child[1] = "m{$m['id']}";
+				$obj->children[] = $child;
+			}
+			$json = json_encode($obj);
 
-            $search = array(
-                "\"%",
-                "%\""
-            );
-            $replace = array(
-                "",
-                ""
-            );
-            $menus = str_replace($search, $replace, " new xui.UI.Stacks({$json})");
+			$search = array(
+				"\"%",
+				"%\""
+			);
+			$replace = array(
+				"",
+				""
+			);
+			$menus = str_replace($search, $replace, " new xui.UI.Stacks({$json})");
 
 			$this->cache->save('menus', $menus);
 		}
@@ -126,10 +126,50 @@ class Main extends CI_Controller {
 	}
 
 	private function menu_sort($a, $b)
-    {
-        return ((int)$a['seq'] > (int)$b['seq']) ? +1 : -1;
-    }
+	{
+		return ((int)$a['seq'] > (int)$b['seq']) ? +1 : -1;
+	}
 
+public function toolbar()
+{
+	$items = array(
+		(object) array(
+			"id" => "grp1",
+			"sub" => array(),
+			"caption" => "grp1"
+		)
+	);
+	if ($this->auth_model->is_switch()) {
+		$items[0]->sub[] = (object) array(
+			"id" => "switch_back",
+			"image" => "@xui_ini.appPath@image/switch.png",
+			"caption" => "返回原始用户"
+		);
+	} else if ($this->auth_model->is_admin() || $this->auth_model->is_super()) {
+		$items[0]->sub[] = (object) array(
+			"id" => "switch_to",
+			"image" => "@xui_ini.appPath@image/switch.png",
+			"caption" => "切换用户"
+		);
+	}
+	
+	$items[0]->sub[] = (object) array(
+		"id" => "setting",
+		"image" => "@xui_ini.appPath@image/setting.png",
+		"caption" => "设置"
+	);
+	$items[0]->sub[] = (object) array(
+		"id" => "userinfo",
+		"image" => "@xui_ini.appPath@image/user.png",
+		"caption" => $_SESSION['userinfo']['username']
+	);
+	$items[0]->sub[] = (object) array(
+		"id" => "logout",
+		"image" => "@xui_ini.appPath@image/logout.png",
+		"caption" => "退出"
+	);
+	echo json_encode($items);
+}
 // 	public function install()
 // 	{
 // 		$this->load->model('crud_model');

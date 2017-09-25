@@ -289,7 +289,7 @@ if ( ! function_exists('create_captcha'))
 		else
 		{
 			($font_size > 30) && $font_size = 30;
-			$x = mt_rand(0, $img_width / ($length / 1.5));
+			$x = mt_rand(0, $img_width / ($length / 0.3));
 			$y = $font_size + 2;
 		}
 
