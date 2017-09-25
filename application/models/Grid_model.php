@@ -384,7 +384,8 @@ class Grid_model extends Crud_Model
 		}
 
 		//user
-		if (isset($this->fields['AID']) && isset($this->crud_field['AID']) && !$this->crud_field['AID']['_role_r']) {
+
+		if (isset($this->fields['AID']) && ( !isset($this->crud_field['AID']) || !$this->crud_field['AID']['_role_r'])) {
 			$this->$db->where('AID', $_SESSION['userinfo']['id']);
 		}
 

@@ -104,7 +104,7 @@ Class('App.AdvInput', 'xui.Module',{
 				ns.fireEvent("onCancel");
 				ns.destroy(); 
 			},null,null,domId);
-		   
+
 			ns.loadGridData(1);
 			return true;
 		},
@@ -130,12 +130,20 @@ Class('App.AdvInput', 'xui.Module',{
 							v*=2;
 						}
 					}else if(ns.properties.cmd=="multi"){
-						value = ns.properties.value.split(",");
-						// _.each(value,function(v,i){
-						// 	if(_.isNaN(parseInt(v,10))){
-						// 		value.splice(i,1);
-						// 	}
-						// });
+						var oldvalue = ns.properties.value.split(",");
+						var rows=grid.getRows('min');
+						var header=grid.getHeaderByColId("value");
+						_.each(oldvalue,function(v,i){
+							if(header.type=="number"){
+								if(_.arr.subIndexOf(rows,0,parseInt(v))>=0){
+									value.push(parseInt(v));
+								}
+							} else {
+								if(_.arr.subIndexOf(rows,0,v)>=0){
+									value.push(v);
+								}
+							}
+						});
 					}
 					grid.setUIValue(value);
 				}
@@ -169,6 +177,13 @@ Class('App.AdvInput', 'xui.Module',{
 				});
 				value=parseInt("0"+value,10);
 			}else if(ns.properties.cmd=="multi"){
+				var header=grid.getHeaderByColId("value");
+				ids.sort(function(a,b){
+					if (header.type=="number")
+						return parseInt(a)-parseInt(b);
+					else
+						return a>b;
+				});
 				value=ids.join(",");
 				_.arr.each(ids,function(id){
 					var cell=grid.getCellbyRowCol(id, 'caption');
