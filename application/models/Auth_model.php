@@ -38,13 +38,13 @@ class Auth_model extends CI_Model {
 	{
 	
 		$data = array(
-				'username'   => $username,
-				'password'   => hash_password($password),
-				'contact'    => $contact,
-				'remark'	 => $remark,
-				'rid'		 => "",
-				'gid'		 => 0,
-				'state'		 => 0,
+				'username'		=> $username,
+				'password'		=> hash_password($password),
+				'contact'		=> $contact,
+				'remark'		=> $remark,
+				'rid'			=> "",
+				'gid'			=> 0,
+				'state'			=> 0,
 				'create_date' => date('Y-m-j H:i:s'),
 		);
 	
@@ -74,12 +74,7 @@ class Auth_model extends CI_Model {
 		$hash = $userinfo ['password'];
 		unset($userinfo ['password']);
 		if ($this->verify_password_hash ( $password, $hash, $captcha)) {
-			
-			$this->session->set_userdata ( array( "userinfo" => $userinfo) );
-			$this->db->from ( 'user_group' );
-			$this->db->where ( 'id', $userinfo['gid'] );
-			$groupinfo = $this->db->get ()->row_array();
-			$this->session->set_userdata ( array( "groupinfo" => $groupinfo) );
+			$this->setup_user($userinfo['id']);
 			return 0;
 		} else {
 			return 2;
@@ -141,23 +136,38 @@ class Auth_model extends CI_Model {
 	
 		$this->db->from('user');
 		$this->db->where('id', $user_id);
-		return $this->db->get()->row();
+		return $this->db->get()->row_array();
 	
 	}
 	
+	public function get_group($user_gid)
+	{
+		$this->db->from ( 'user_group' );
+		$this->db->where ( 'id', $user_gid);
+		return $this->db->get ()->row_array();
+	}
+
+	public function setup_user($user_id)
+	{
+		$userinfo = $this->get_user($user_id);
+		$this->session->set_userdata ( array( "userinfo" => $userinfo) );
+		$groupinfo = $this->get_group($userinfo['gid']);
+		$this->session->set_userdata ( array( "groupinfo" => $groupinfo) );
+		unset($_SESSION['_uid']);
+	}
 	public function captcha()
 	{
 		$this->load->helper('captcha');
 		$base_url = base_url ();
 		$vals = array(
-				'img_path'      => BASEPATH.'../'.'captcha/',
-				'img_url'       => "{$base_url}captcha/",
-				'font_path'     => BASEPATH.'../'.'assets/font/vera.ttf',
-				'word_length'   => 4,
-				'font_size'     => 20,
-				'img_width'     => '120',
-				'img_height'     => '50',
-				'expiration'    => Auth_model::EXPIRATION,
+				'img_path'		=> BASEPATH.'../'.'captcha/',
+				'img_url'		=> "{$base_url}captcha/",
+				'font_path'		=> BASEPATH.'../'.'assets/font/cpc.ttf',
+				'word_length'	=> 4,
+				'font_size'		=> 30,
+				'img_width'		=> '120',
+				'img_height' 	=> '50',
+				'expiration'	=> Auth_model::EXPIRATION,
 		);
 		
 		$cap = create_captcha($vals);
@@ -327,30 +337,92 @@ class Auth_model extends CI_Model {
 		return $pubKey;
 	}
 	
-    public function check_role($role)
+	public function check_role($role)
 	{
-        if (strpos(",{$role},", ",-1,") !== false) {    //没有人有权限
-            return false;
-        }
-        if (strpos(",{$role},", ",0,") !== false) {     //任何人有权限
-            return true;
-        }
-        $rid = $_SESSION['userinfo']['rid'];
-        $rids = explode(',', $rid);
-        foreach ($rids as $r) {
-            if ($r == "") {
-                continue;
-            }
-            if (strpos(",1,{$role},", ",{$r},") !== false) {
-                return true;
-            }
-        }
-        return false;
+		if (strpos(",{$role},", ",-1,") !== false) {		//没有人有权限
+			return false;
+		}
+		if (strpos(",{$role},", ",0,") !== false) {			//任何人有权限
+			return true;
+		}
+		$rid = $_SESSION['userinfo']['rid'];
+		$rids = explode(',', $rid);
+		foreach ($rids as $r) {
+			if ($r == "") {
+				continue;
+			}
+			if (strpos(",1,{$role},", ",{$r},") !== false) {
+				return true;
+			}
+		}
+		return false;
 	}
 	
 	public function role()
 	{
-        return $_SESSION['userinfo']['rid'];
-    }
+		return $_SESSION['userinfo']['rid'];
+	}
 	
+	public function is_admin()
+	{
+		return $_SESSION['userinfo']['rid'] == 2;
+	}
+	
+	public function is_super()
+	{
+		return $_SESSION['userinfo']['id'] == 1;
+	}
+	
+	public function is_switch()
+	{
+		return isset($_SESSION['_uid']);
+	}
+	public function userlist()
+	{
+		$this->db->select('1');
+		$this->db->from('user_group');
+		$this->db->like('tree_code', $_SESSION['groupinfo']['tree_code'], 'after', false);
+		$this->db->where("id=b.gid", null, false);
+
+		$exist_sql = $this->db->get_compiled_select();
+		$this->db->select('id, username, name');
+		$this->db->from('user b');
+		$this->db->where("EXISTS({$exist_sql})");
+		$result = $this->db->get()->result_array();
+		return $result;
+	}
+	
+	public function user_switch_to($uid)
+	{
+
+		$userinfo = $this->get_user($uid);
+		if (!$userinfo) {
+			return "无此用户";
+		}
+		if ($userinfo['id'] == $_SESSION['userinfo']['id']) {
+			return "无需切换";
+		}
+		$groupinfo = $this->get_group($userinfo['gid']);
+			if ($groupinfo['id'] == $_SESSION['groupinfo']['id']) {
+			return "不可切换到同组用户";
+		}
+		if ( substr($groupinfo['tree_code'], 0, strlen($_SESSION['groupinfo']['tree_code']))
+			=== $_SESSION['groupinfo']['tree_code'] ) {
+			$_SESSION['_uid'] = $_SESSION['userinfo']['id'];
+			$this->session->set_userdata ( array( "userinfo" => $userinfo) );
+			$this->session->set_userdata ( array( "groupinfo" => $groupinfo) );
+		} else {
+			return "权限不足";
+		}
+		return null;
+	}
+	
+	public function user_switch_back()
+	{
+		if (!$this->is_switch()) {
+			return "权限不足";
+		}
+		$this->setup_user($_SESSION['_uid']);
+		return null;
+	}
 }
