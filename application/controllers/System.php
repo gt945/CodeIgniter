@@ -281,7 +281,7 @@ class System extends MY_Controller {
 	
 	private function request_user_switch_to()
 	{
-		$uid = (int)$this->paras->user;
+		$uid = (int)substr($this->paras->user, 1);
 		$msg = $this->auth_model->user_switch_to($uid);
 		if ($msg) {
 			$this->reply(403, $msg);

@@ -121,7 +121,9 @@ Class('App.SendMessage', 'xui.Module',{
 					this.setProperties({
 						field:"gid",
 						pos:ctrl.getRoot(),
-						value:ctrl.getUIValue()
+						value:ctrl.getUIValue(),
+						mode:'multibycheckbox',
+						type:'usergroup'
 					});
 					this.setEvents({
 						onCancel:function(){

@@ -47,7 +47,8 @@ Class('App.Switch', 'xui.Module',{
 				.setWidth(200)
 				.setLabelSize(80)
 				.setLabelCaption("用户")
-				.setType("listbox")
+				.setType("cmdbox")
+				.beforeComboPop("_cmdbox_beforecombopop")
 				.setCustomStyle({
 					"LABEL" : {
 						"text-align" : "center"
@@ -91,7 +92,7 @@ Class('App.Switch', 'xui.Module',{
 			return true;
 		},
 		iniResource: function(com, threadid){
-		    var ns=this;
+			var ns=this;
 			xui.Thread.suspend(threadid);
 			var callback=function(){
 				xui.Thread.resume(threadid);
@@ -114,6 +115,52 @@ Class('App.Switch', 'xui.Module',{
 		},
 		_close_click:function(){
 			this.dialog.close();
+		},
+		_cmdbox_beforecombopop:function(profile,pos,e,src){
+			var ns=this,ctrl=profile.boxing();
+			xui.ModuleFactory.newCom("App.UserGroupSelect", function(){
+				if (!_.isEmpty(this)){
+					this.setProperties({
+						field:"gid",
+						pos:ctrl.getRoot(),
+						value:ctrl.getUIValue(),
+						mode:'single',
+						type:'user'
+					});
+					this.setEvents({
+						onCancel:function(){
+							if(!ctrl.isDestroyed()){
+								ctrl.activate();
+							}
+						},
+						onSelect:function(val,extra){
+							if(!ctrl.isDestroyed()){
+								ctrl.setUIValue(val.value);
+								if(typeof(val.caption)==="string"){
+									ctrl.setCaption(val.caption);
+								}
+								ctrl.activate();
+								if(extra && _.isArr(extra)){
+									_.arr.each(extra,function(exval){
+										var setting=ns.properties.gridSetting;
+										var ele=db.getUI(exval.id);
+										if(ele){
+											ele.setUIValue(exval.cell.value);
+											if(typeof(exval.cell.caption)==="string"){
+												ele.setCaption(exval.cell.caption);
+											}
+										}else{
+											LOG.error(exval.id,1,2);
+										}
+									});
+								}
+							}
+						}
+					});
+					this.show();
+				}
+
+			});
 		},
 		_save_onclick:function(){
 			var ns=this;

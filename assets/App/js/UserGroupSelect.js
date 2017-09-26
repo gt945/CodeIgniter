@@ -23,7 +23,6 @@ Class('App.UserGroupSelect', 'xui.Module',{
 			host.mainPanel.append((new xui.UI.TreeView())
 				.setHost(host,"grid")
 				.onDblclick("_grid_ondblclick")
-				.setSelMode("multibycheckbox")
 				.onItemSelected("_grid_onitemselected")
 			);
 			
@@ -104,7 +103,7 @@ Class('App.UserGroupSelect', 'xui.Module',{
 				ns.fireEvent("onCancel");
 				ns.destroy(); 
 			},null,null,domId);
-		
+			ns.grid.setSelMode(ns.properties.mode);
 			ns.loadGridData(1);
 			return true;
 		},
@@ -175,8 +174,15 @@ Class('App.UserGroupSelect', 'xui.Module',{
 					caption.push(item.caption);
 				});
 				ns.fireEvent("onSelect",[{value:value.join(';'),caption:caption.join(';')}]);
-			}
 				ns.destroy();
+			} else if(value) {
+				var item=grid.getItemByItemId(value);
+				if (item){
+					ns.fireEvent("onSelect",[{value:value,caption:item.caption}]);
+					ns.destroy();
+				}
+			}
+			
 		},
 		_ctl_sbutton3_onclick:function(){
 			var ns=this;
@@ -187,8 +193,16 @@ Class('App.UserGroupSelect', 'xui.Module',{
 			var ns = this, uictrl = profile.boxing(),
 				value=uictrl.getUIValue(true);
 			if(typeof value!="undefined"){
-				ns.fireEvent("onSelect",[{value:value,caption:item.caption}]);
-				ns.destroy();
+				if (ns.properties.type=='user'){
+					if(value[0]=='u'){
+						ns.fireEvent("onSelect",[{value:value,caption:item.caption}]);
+						ns.destroy();
+					}
+				}else if(ns.properties.type=='usergroup'){
+					ns.fireEvent("onSelect",[{value:value,caption:item.caption}]);
+					ns.destroy();
+				}
+				
 			}
 		},
 		_grid_onitemselected:function(profile,item,e,src,type){

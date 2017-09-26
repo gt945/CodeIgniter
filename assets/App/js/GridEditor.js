@@ -496,7 +496,7 @@ Class('App.GridEditor','xui.Module',{
 		},
 		_grid_oncontextmenu:function(profile,e,src,item){
 			var ns=this;
-			if(item._cells){
+			if(item&&item._cells){
 				var setting=ns.properties.gridSetting[item.id];
 				if (setting.filter){
 					ns._openFilter(item.id);

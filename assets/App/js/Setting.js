@@ -40,7 +40,7 @@ Class('App.Setting', 'xui.Module',{
 			var items=[
 				{id:0,caption:"全部"}
 			];
-			for(var i=2013;i<=current_year;i++){
+			for(var i=2013;i<=current_year+1;i++){
 				items.push(
 					{id:i,caption:i}
 				);

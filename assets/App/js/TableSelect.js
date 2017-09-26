@@ -123,7 +123,6 @@ Class('App.TableSelect', 'xui.Module',{
 				ns.fireEvent("onCancel");
 				ns.destroy(); 
 			},null,null,domId);
-		   
 			ns.loadGridData(1);
 			return true;
 		},
@@ -164,7 +163,7 @@ Class('App.TableSelect', 'xui.Module',{
 					if(!ns.isDestroyed())
 						ns.destroy(); 
 				}
-			});   
+			});
 		},
 		_ctl_sbutton1_onclick:function (profile, e, src, value){
 			this.loadGridData(this._curPage);
@@ -177,13 +176,13 @@ Class('App.TableSelect', 'xui.Module',{
 			var extra=[];
 			if(index>=0&&row){
 				caption=row.cells[index].value;
+				_.arr.each(ns.data.map,function(map){
+					index=_.arr.subIndexOf(ns.data.headers, 'id', map.id2);
+					if(index>=0&&row)
+						extra.push({id:map.id1,cell:row.cells[index]});
+				});
+				ns.fireEvent("onSelect",[{value:row.id,caption:caption},extra]);
 			}
-			_.arr.each(ns.data.map,function(map){
-				index=_.arr.subIndexOf(ns.data.headers, 'id', map.id2);
-				if(index>=0&&row)
-					extra.push({id:map.id1,cell:row.cells[index]});
-			});
-			ns.fireEvent("onSelect",[{value:row.id,caption:caption},extra]);
 			ns.destroy();
 		},
 		_ctl_sbutton3_onclick:function(){
