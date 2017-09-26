@@ -28146,7 +28146,7 @@ Class("xui.UI.Slider", ["xui.UI","xui.absValue"],{
     		'u':'[A-Z]',
     		'l':'[a-z]',
     		'*':'[A-Za-z0-9]',
-            '@':'[\\s\\S]'
+    		'@':'[\\s\\S]{0,1}'
         },
         _maskSpace:'_',
         Appearances:{
@@ -28851,7 +28851,7 @@ Class("xui.UI.Slider", ["xui.UI","xui.absValue"],{
                     //get corret string according to maskTxt
                     var a=[];
                     _.arr.each(maskTxt.split(''),function(o,i){
-                        a.push( map[o]?(((new RegExp('^'+map[o]+'$')).test(t.charAt(i))) ? t.charAt(i) : maskStr.charAt(i)):maskStr.charAt(i))
+                        a.push( map[o]?(((new RegExp('^'+map[o]+'$')).test(t.charAt(i))) ? t.charAt(i) : (o=='@'?' ':maskStr.charAt(i))):maskStr.charAt(i))
                     });
     
                     //if input visible char
@@ -28887,7 +28887,7 @@ Class("xui.UI.Slider", ["xui.UI","xui.absValue"],{
                     a=[];
                 //get corret string according to maskTxt
                 _.arr.each(maskTxt.split(''),function(o,i){
-                    a.push( (new RegExp('^'+(map[o]?map[o]:'\\'+o)+'$').test(t.charAt(i))) ? t.charAt(i) : maskStr.charAt(i))
+                    a.push( map[o]?(((new RegExp('^'+map[o]+'$')).test(t.charAt(i))) ? t.charAt(i) : (o=='@'?' ':maskStr.charAt(i))) : maskStr.charAt(i))
                 });
                 value=a.join('');
                 src.value=value;
@@ -28939,7 +28939,7 @@ Class("xui.UI.Slider", ["xui.UI","xui.absValue"],{
                 //for mask
                 if(profile.properties.mask){
                     if(src.value.length != profile.$Mask.length)
-                        profile.box._changeMask(profile,src,'',true,resetCaret);
+                        profile.box._changeMask(profile,src,'',true,false);
                 }
 
                 //for onchange event
