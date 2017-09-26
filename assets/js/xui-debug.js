@@ -28596,7 +28596,7 @@ Class("xui.UI.Slider", ["xui.UI","xui.absValue"],{
                         ns.$Mask = function(ns, v){
                             var m=ns._maskMap,a=[],s=ns._maskSpace;
                             _.arr.each(v.split(''),function(o,i){
-                                a.push(m[o]?s:o);
+                                a.push(m[o]?(o=='@'?' ':s):o);
                             });
                             return  a.join('');
                         }(b,value);
@@ -28820,7 +28820,7 @@ Class("xui.UI.Slider", ["xui.UI","xui.absValue"],{
     
                 //for caret is from a fix char, nav to the next 'input allow' char
                 if(dir===true){
-                    if(maskStr.charAt(caret[0])!=ms){
+                    if(maskStr.charAt(caret[0])!=ms&&maskTxt.charAt(caret[0])!='@'){
                         var from = caret[0] + maskStr.substr(caret[0],maskStr.length).indexOf(ms);
                         input.caret(from,Math.max(caret[1],from))
                     }
@@ -28851,7 +28851,7 @@ Class("xui.UI.Slider", ["xui.UI","xui.absValue"],{
                     //get corret string according to maskTxt
                     var a=[];
                     _.arr.each(maskTxt.split(''),function(o,i){
-                        a.push( map[o]?(((new RegExp('^'+map[o]+'$')).test(t.charAt(i))) ? t.charAt(i) : (o=='@'?' ':maskStr.charAt(i))):maskStr.charAt(i))
+                        a.push( map[o]?(((new RegExp('^'+map[o]+'$')).test(t.charAt(i))) ? t.charAt(i) : maskStr.charAt(i)):maskStr.charAt(i))
                     });
     
                     //if input visible char
@@ -28887,7 +28887,7 @@ Class("xui.UI.Slider", ["xui.UI","xui.absValue"],{
                     a=[];
                 //get corret string according to maskTxt
                 _.arr.each(maskTxt.split(''),function(o,i){
-                    a.push( map[o]?(((new RegExp('^'+map[o]+'$')).test(t.charAt(i))) ? t.charAt(i) : (o=='@'?' ':maskStr.charAt(i))) : maskStr.charAt(i))
+                    a.push( map[o]?(((new RegExp('^'+map[o]+'$')).test(t.charAt(i))) ? t.charAt(i) : maskStr.charAt(i)) : maskStr.charAt(i))
                 });
                 value=a.join('');
                 src.value=value;
