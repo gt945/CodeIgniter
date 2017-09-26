@@ -13,6 +13,7 @@ Class('App.GridEditor','xui.Module',{
 			ns._curPage=1;
 			ns._nodeid=0;
 			ns._items={};
+			ns._sub=0;
 		},
 		iniComponents : function(){
 			var host=this,children=[],append=function(child){children.push(child.get(0));};
@@ -266,7 +267,7 @@ Class('App.GridEditor','xui.Module',{
 		},
 		_openExporter:function(){
 			var ns=this;
-			var prop={_filter:ns._filters,_search:ns._search,_sidx:ns.properties.sidx,_sord:ns.properties.sord};
+			var prop={_filter:ns._filters,_search:ns._search,_sidx:ns.properties.sidx,_sord:ns.properties.sord,_sub:ns._sub};
 			_.merge(prop,ns.properties);
 			ns.properties.filterForm=xui.ModuleFactory.newCom(ns.properties.gridExporter,function(){
 				if(!_.isEmpty(this)){
