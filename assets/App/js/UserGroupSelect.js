@@ -208,7 +208,7 @@ Class('App.UserGroupSelect', 'xui.Module',{
 		_grid_onitemselected:function(profile,item,e,src,type){
 			var ns = this, uictrl = profile.boxing();
 			var str=uictrl.getUIValue();
-			if(str==""){
+			if(!str||str==""){
 				var value=[];
 			}else{
 				var value=str.split(";");
