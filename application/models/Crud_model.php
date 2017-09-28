@@ -41,11 +41,13 @@ class Crud_model extends Db_Model {
 	const PROP_FIELD_STRING		= 0x1000;
 	const PROP_FIELD_INLINE		= 0x2000;
 	const PROP_FIELD_STATIC		= 0x4000;
+	const PROP_FIELD_CAPTION	= 0x8000;
 
 	const PROP_TABLE_EXPORT		= 0x0001;
 	const PROP_TABLE_IMPORT		= 0x0002;
 	const PROP_TABLE_VIEW		= 0x0004;
 	const PROP_TABLE_YEAR		= 0x0008;
+	const PROP_TABLE_VALIDATE	= 0x0010;
 
 	const SEARCH_OPTION_EQ		= 0x0001;
 	const SEARCH_OPTION_NE		= 0x0002;
@@ -92,6 +94,7 @@ class Crud_model extends Db_Model {
 
 			if ($crud_table['prop'] & Crud_model::PROP_TABLE_VIEW) {
 				$this->primary = null;
+				$this->caption = 'id';
 				$crud_table['_role_c'] = false;
 				$crud_table['_role_r'] = true;
 				$crud_table['_role_u'] = false;
@@ -118,6 +121,9 @@ class Crud_model extends Db_Model {
 					&& !in_array($f['name'], $select)
 					&& !in_array(strtolower($f['name']), $select)) {
 					continue;
+				}
+				if ($f['prop'] & Crud_model::PROP_FIELD_CAPTION) {
+					$this->caption = $f ['name'];
 				}
 				$crud_field [$f ['name']] = $f;
 			}

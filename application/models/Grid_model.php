@@ -685,11 +685,16 @@ class Grid_model extends Crud_Model
 		$this->filter = false;
 		$this->export = false;
 		$this->import = false;
+		$this->validate = false;
+		
 		if ($this->crud_table['prop'] & Crud_model::PROP_TABLE_EXPORT) {
 			$this->export = true;
 		}
 		if ($this->crud_table['prop'] & Crud_model::PROP_TABLE_IMPORT) {
 			$this->import = true;
+		}
+		if ($this->crud_table['prop'] & Crud_model::PROP_TABLE_VALIDATE) {
+			$this->validate = true;
 		}
 		foreach ($this->crud_field as $k => $f) {
 			if (!$f['_role_r']) {
@@ -1372,10 +1377,19 @@ class Grid_model extends Crud_Model
 		if ($this->import) {
 			$items[0]->sub[] = (object)array(
 				"id" => "import",
-				"image" => "@xui_ini.appPath@image/export.png",
+				"image" => "@xui_ini.appPath@image/import.png",
 				"caption" => "导入"
 			);
 		}
+		
+		if ($this->validate) {
+			$items[0]->sub[] = (object)array(
+				"id" => "validate",
+				"image" => "@xui_ini.appPath@image/validate.png",
+				"caption" => "检查"
+			);
+		}
+		
 		if (count($flow_items) > 0) {
 			$items[1] = (object)array(
 				"id" => "flow",

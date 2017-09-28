@@ -276,6 +276,18 @@ Class('App.GridEditor','xui.Module',{
 			},null,prop);
 				
 		},
+		_openImporter:function(){
+		},
+		_validate:function(){
+			var ns=this;
+			var prop={_filter:ns._filters,_search:ns._search,_sidx:ns.properties.sidx,_sord:ns.properties.sord,_sub:ns._sub};
+			_.merge(prop,ns.properties);
+			xui.ModuleFactory.newCom("App.Validate",function(){
+				if(!_.isEmpty(this)){
+					this.show();
+				}
+			},null,prop);
+		},
 		_delRecords:function(ids){
 			var ns=this,grid=ns.grid;
 			AJAX.callService('xui/request',ns.properties.gridId,"delete",{ids:ids},function(rsp){
@@ -359,6 +371,12 @@ Class('App.GridEditor','xui.Module',{
 				break;
 			case "export":
 				ns._openExporter();
+				break;
+			case "import":
+				ns._openImporter();
+				break;
+			case "validate":
+				ns._validate();
 				break;
 			default:
 				switch(group.id){

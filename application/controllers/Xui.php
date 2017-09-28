@@ -44,7 +44,7 @@ class Xui extends MY_Controller {
 		}
 	}
 	
-	function request_grid($paras = null)
+	private function request_grid($paras = null)
 	{
 		
 		$this->load->library( 'xui_utils' );
@@ -110,7 +110,7 @@ class Xui extends MY_Controller {
 		return $ret;
 	}
 	
-	function request_getlist($paras)
+	private function request_getlist($paras)
 	{
 		$ret = new stdClass();
 		if (!$paras) {
@@ -135,7 +135,7 @@ class Xui extends MY_Controller {
 		return $ret;
 	}
 	
-	function request_get($paras)
+	private function request_get($paras)
 	{
 
 		$ret = (object) array(
@@ -190,7 +190,7 @@ class Xui extends MY_Controller {
 		return $ret;
 	}
 	
-	function request_set($paras)
+	private function request_set($paras)
 	{
 		$data = array();
 		if ($this->grid_model->crud_table['_role_u']) {
@@ -207,7 +207,7 @@ class Xui extends MY_Controller {
 		return $ret->data;
 	}
 	
-	function request_create($paras)
+	private function request_create($paras)
 	{
 		if ($this->grid_model->crud_table['_role_c']) {
 			$ret = $this->grid_model->edit($paras->action, null, (array)$paras->fields);
@@ -223,7 +223,7 @@ class Xui extends MY_Controller {
 		return $ret->data;
 	}
 	
-	function request_delete($paras)
+	private function request_delete($paras)
 	{
 		if ($this->grid_model->crud_table['_role_d']) {
 			$ret = $this->grid_model->edit($paras->action, $paras->ids, null);
@@ -239,7 +239,7 @@ class Xui extends MY_Controller {
 		return null;
 	}
 	
-	function request_tables($paras)
+	private function request_tables($paras)
 	{
 		$this->db->select("id,name,caption,w,h");
 		$this->db->from(Crud_model::CRUD_TABLE);
@@ -247,7 +247,7 @@ class Xui extends MY_Controller {
 		return $ret;
 	}
 	
-	function request_fields($paras)
+	private function request_fields($paras)
 	{
 		$ret = new stdClass ();
 		$ret->fields = array();
@@ -299,7 +299,7 @@ class Xui extends MY_Controller {
 		return $ret;
 	}
 	
-	function request_setting($paras)
+	private function request_setting($paras)
 	{
 		$this->grid_model->trans_start ();
 
@@ -326,7 +326,7 @@ class Xui extends MY_Controller {
 		return 1;
 	}
 	
-	function request_get_select($paras)
+	private function request_get_select($paras)
 	{
 		$data=$this->grid_model->get_left_join_for_list($paras->field);
 		if ($data) {
@@ -336,7 +336,7 @@ class Xui extends MY_Controller {
 		}
 	}
 	
-	function request_advance_input($paras)
+	private function request_advance_input($paras)
 	{
 		$ret = new stdClass ();
 		$data = $this->grid_model->get_left_join_for_advance_input($paras->field, $paras );
@@ -360,7 +360,7 @@ class Xui extends MY_Controller {
 		return $ret;
 	}
 	
-	function request_advance_select($paras)
+	private function request_advance_select($paras)
 	{
 		$this->load->library( 'xui_utils' );
 		$ret = new stdClass ();
@@ -384,7 +384,7 @@ class Xui extends MY_Controller {
 		return $ret;
 	}
 	
-	function request_auto_complete($paras)
+	private function request_auto_complete($paras)
 	{
 		$ret = new stdClass ();
 		$data = $this->grid_model->get_left_join_for_autocomplete ($paras->field, $paras);
@@ -409,7 +409,7 @@ class Xui extends MY_Controller {
 	
 	}
 
-	function request_table_select($paras)
+	private function request_table_select($paras)
 	{
 		$ret = new stdClass ();
 		$join_field = array();
@@ -524,12 +524,12 @@ class Xui extends MY_Controller {
 
 	}
 	
-	function request_add_table($paras)
+	private function request_add_table($paras)
 	{
 		return $this->grid_model->install($paras->table);
 	}
 	
-	function request_resize($paras)
+	private function request_resize($paras)
 	{
 		if (isset($this->grid_model->crud_field[$paras->name])) {
 			$this->db->set("width", $paras->width);
@@ -540,7 +540,7 @@ class Xui extends MY_Controller {
 		return 0;
 	}
 
-	function request_inline_grid($paras)
+	private function request_inline_grid($paras)
 	{
 		$field_info = $this->grid_model->crud_field[$paras->field];
 		$db = "db_".__LINE__;
@@ -577,7 +577,7 @@ class Xui extends MY_Controller {
 		return $ret;
 	}
 
-	function request_form($paras)
+	private function request_form($paras)
 	{
 		$field_info = $this->grid_model->crud_field[$paras->field];
 		$db = "db_".__LINE__;
@@ -592,7 +592,7 @@ class Xui extends MY_Controller {
 		return $ret;
 	}
 
-	function request_inline_save($paras)
+	private function request_inline_save($paras)
 	{
 		$ret = new stdClass();
 		$db = "db_".__LINE__;
@@ -631,7 +631,7 @@ class Xui extends MY_Controller {
 		return $ret;
 	}
 
-	function request_flow_action($paras)
+	private function request_flow_action($paras)
 	{
 		$flow_items = $this->grid_model->get_flow_items($paras->actionId);
 		if (count($flow_items)) {
@@ -643,6 +643,39 @@ class Xui extends MY_Controller {
 		}
 
 		return 1;
+	}
+	
+	private function request_data_validate($paras)
+	{
+		$result = "";
+		ini_set('max_execution_time', 0);
+		$paras->page = 1;
+		$paras->size = 500;
+		$fields = array();
+		$sheet = array();
+		
+		$count = 0;
+		$total = 0;
+		while ($count == 0 || $count < $total) {
+			$data = $this->grid_model->wrapper_sheet($paras);
+			$this->grid_model->pop_cache();
+			if (!count($data->data)) {
+				break;
+			}
+			$total = $data->count;
+			$paras->page++;
+			foreach($data->data as $d) {
+				foreach ($this->grid_model->crud_field as $k => $f) {
+					if ($f ['type'] == Crud_model::TYPE_SELECT) {
+						if (!$d[$f['_caption']]) {
+							$result .= "{$d[$this->grid_model->caption]} {$f['caption']} 填写不正确 \n";
+						}
+					}
+				}
+			}
+			$count += count($data->data);
+		}
+		return $result;
 	}
 	
 }
