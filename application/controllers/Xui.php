@@ -647,8 +647,10 @@ class Xui extends MY_Controller {
 	
 	private function request_data_validate($paras)
 	{
-		$result = "";
+		$result = "结果：\n";
 		ini_set('max_execution_time', 0);
+		$setting = $paras->setting;
+		$fields = array();
 		$paras->page = 1;
 		$paras->size = 500;
 		$fields = array();
@@ -656,6 +658,13 @@ class Xui extends MY_Controller {
 		
 		$count = 0;
 		$total = 0;
+		
+		foreach($setting as $s){
+			if (isset($this->grid_model->crud_field[$s[0]]) && $this->grid_model->crud_field[$s[0]]['_role_r']) {
+				$fields[$s[0]] = $s[1]?1:0;
+			}
+		}
+				
 		while ($count == 0 || $count < $total) {
 			$data = $this->grid_model->wrapper_sheet($paras);
 			$this->grid_model->pop_cache();
@@ -665,10 +674,13 @@ class Xui extends MY_Controller {
 			$total = $data->count;
 			$paras->page++;
 			foreach($data->data as $d) {
-				foreach ($this->grid_model->crud_field as $k => $f) {
-					if ($f ['type'] == Crud_model::TYPE_SELECT) {
-						if (!$d[$f['_caption']]) {
-							$result .= "{$d[$this->grid_model->caption]} {$f['caption']} 填写不正确 \n";
+				foreach($fields as $k=>$e) {
+					if ($e) {
+						$f = $this->grid_model->crud_field[$k];
+						if ($f ['type'] == Crud_model::TYPE_SELECT) {
+							if (!$d[$f['_caption']]) {
+								$result .= "{$d[$this->grid_model->caption]} {$f['caption']} 填写不正确 \n";
+							}
 						}
 					}
 				}

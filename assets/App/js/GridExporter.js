@@ -39,7 +39,6 @@ Class('App.GridExporter', 'xui.Module',{
 			host.ctl_block8.append((new xui.UI.ToolBar())
 				.setHost(host,"toolbar")
 				.setHandler(false)
-//                .setDock("fill")
 				.setItems([{
 					"id" : "grp1",
 					"sub" : [{
@@ -60,20 +59,16 @@ Class('App.GridExporter', 'xui.Module',{
 			host.dialog.append((new xui.UI.TreeGrid())
 				.setHost(host,"grid")
 				.setRowNumbered(false)
-				.setRowHandler(false)
+				.setRowHandler(true)
 				.setShowDirtyMark(false)
+				.setTreeMode(false)
+				.setRowHandlerWidth(80)
+				.setSelMode("multi")
 				.setHeader([{
 					"id" : "field",
 					"caption" : "字段",
 					"relWidth" : true,
 					"type" : "label"
-				},{
-					"id" : "dump",
-					"caption" : "导出",
-					"relWidth" : true,
-					"type" : "checkbox",
-					"editable" : true,
-					"editMode" : "inline"
 				}])
 			);
 
@@ -114,7 +109,7 @@ Class('App.GridExporter', 'xui.Module',{
 			var ns=this,grid=ns.grid;
 			var rows=[];
 			for(i in ns.properties.gridSetting){
-				rows.push({cells:[{value:i,caption:ns.properties.gridSetting[i].caption[0]},{value:1}]});
+				rows.push({cells:[{value:i,caption:ns.properties.gridSetting[i].caption[0]}]});
 			}
 			grid.setRows(rows);
 		},
@@ -142,8 +137,14 @@ Class('App.GridExporter', 'xui.Module',{
 		},
 		_export_onclick:function(){
 			var ns=this,grid=ns.grid;
+			var setting=[];
+			var ids=grid.getUIValue(true);
+			_.arr.each(ids,function(id){
+				var cell=grid.getCellbyRowCol(id, 0, 'min');
+				setting.push([cell,1]);
+			});
 			var paras={
-				setting:grid.getRows('min'),
+				setting:setting,
 				filters:ns.properties._filter,
 				search:ns.properties._search,
 				key:ns._key,
