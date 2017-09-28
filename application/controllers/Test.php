@@ -116,9 +116,9 @@ EOD;
 	
 	public function relates()
 	{
-        if (preg_match ( "/abc.{0,5}[\d]{3,4}/i", "abc00!!!-1234", $matchs )) {
-                echo "OK";
-        }
+		if (preg_match ( "/abc.{0,5}[\d]{3,4}/i", "abc00!!!-1234", $matchs )) {
+				echo "OK";
+		}
 	
 	}
 	public function prepare()
@@ -177,224 +177,236 @@ EOD;
 	
 	public function db()
 	{
-        $this->load->model ( 'db_model' );
-        $this->db_model->table('menu');
-        echo "<pre>";
-        print_r($this->db_model->sheet());
-        echo "</pre>";
+		$this->load->model ( 'db_model' );
+		$this->db_model->table('menu');
+		echo "<pre>";
+		print_r($this->db_model->sheet());
+		echo "</pre>";
 	}
 	
-    public function crud()
+	public function crud()
 	{
-        $this->load->model ( 'crud2_model' );
-        $this->crud2_model->table('test');
-        $this->crud2_model->prepare();
-        echo "<pre>";
-        print_r($this->crud2_model);
-        //print_r($this->crud2_model->sheet());
-        echo "</pre>";
+		$this->load->model ( 'crud2_model' );
+		$this->crud2_model->table('test');
+		$this->crud2_model->prepare();
+		echo "<pre>";
+		print_r($this->crud2_model);
+		//print_r($this->crud2_model->sheet());
+		echo "</pre>";
 	}
 	
-    public function grid()
+	public function grid()
 	{
-        $this->load->model ( 'grid_model' );
-        $this->grid_model->table('menu');
-        $this->grid_model->prepare();
-        
-        echo "<pre>";
-//        print_r($this->grid_model->save_cache());
-//         print_r($this->grid_model->request_grid());
-//        print_r($this->grid_model);
-        $this->grid_model->stash_cache();
-        print_r($this->grid_model->sheet());
-        $this->grid_model->pop_cache();
-        print_r($this->grid_model->sheet());
-        echo "</pre>";
+		$this->load->model ( 'grid_model' );
+		$this->grid_model->table('menu');
+		$this->grid_model->prepare();
+		
+		echo "<pre>";
+//		print_r($this->grid_model->save_cache());
+//		 print_r($this->grid_model->request_grid());
+//		print_r($this->grid_model);
+		$this->grid_model->stash_cache();
+		print_r($this->grid_model->sheet());
+		$this->grid_model->pop_cache();
+		print_r($this->grid_model->sheet());
+		echo "</pre>";
 	}
 	public function all()
-    {
-        $this->load->model ( 'db_model' );
-        $this->load->model ( 'crud2_model' );
-        $this->load->model ( 'grid_model' );
-        $this->db_model->table('menu');
-        $this->db_model->prepare();
-        $this->crud2_model->table('menu');
-        $this->crud2_model->prepare(false);
-        $this->grid_model->table('menu');
-        $this->grid_model->prepare();
-        echo "<pre>";
-        print_r($this->db_model->sheet());
-        print_r($this->crud2_model->sheet());
-        print_r($this->grid_model->sheet());
-        echo "</pre>";
-    }
-    
-    public function two()
-    {
-        $this->load->model ( 'crud2_model', 'db1' );
-        $this->load->model ( 'crud2_model', 'db2' );
-        $this->db1->table('menu');
-        $this->db2->table('crud_table');
-        $this->db1->prepare();
-        $this->db2->prepare();
-        echo "<pre>";
-        print_r($this->db1->sheet());
-        print_r($this->db2->sheet());
-        echo "</pre>";
-    }
-    
-    public function test2()
-    {
-        $this->load->model ( 'grid_model' );
-        $this->grid_model->table('test');
-        $this->grid_model->prepare();
-        echo "<pre>";
-//         print_r($this->grid_model);
-//         print_r($this->grid_model->get_left_join_for_list('select_t'));
+	{
+		$this->load->model ( 'db_model' );
+		$this->load->model ( 'crud2_model' );
+		$this->load->model ( 'grid_model' );
+		$this->db_model->table('menu');
+		$this->db_model->prepare();
+		$this->crud2_model->table('menu');
+		$this->crud2_model->prepare(false);
+		$this->grid_model->table('menu');
+		$this->grid_model->prepare();
+		echo "<pre>";
+		print_r($this->db_model->sheet());
+		print_r($this->crud2_model->sheet());
+		print_r($this->grid_model->sheet());
+		echo "</pre>";
+	}
+	
+	public function two()
+	{
+		$this->load->model ( 'crud2_model', 'db1' );
+		$this->load->model ( 'crud2_model', 'db2' );
+		$this->db1->table('menu');
+		$this->db2->table('crud_table');
+		$this->db1->prepare();
+		$this->db2->prepare();
+		echo "<pre>";
+		print_r($this->db1->sheet());
+		print_r($this->db2->sheet());
+		echo "</pre>";
+	}
+	
+	public function test2()
+	{
+		$this->load->model ( 'grid_model' );
+		$this->grid_model->table('test');
+		$this->grid_model->prepare();
+		echo "<pre>";
+//		 print_r($this->grid_model);
+//		 print_r($this->grid_model->get_left_join_for_list('select_t'));
 		print_r($this->grid_model->get_left_join_for_advance_input('select_t'));
 
-        echo "</pre>";
-    }
+		echo "</pre>";
+	}
 
-    public function test3()
-    {
-        $this->db->where('id', 1);
-        $this->db->from('test');
-        print_r($this->db->sheet());
-    }
+	public function test3()
+	{
+		$this->db->where('id', 1);
+		$this->db->from('test');
+		print_r($this->db->sheet());
+	}
 
 
-    public function test4()
-    {
-//        print_r(microtime(true) * 1000);
-//        list($s1, $s2) = explode(' ', microtime(true));
-//        print_r((floatval($s1) + floatval($s2)));
-        echo  sprintf('%.0f', microtime(true)  * 1000);
-    }
+	public function test4()
+	{
+//		print_r(microtime(true) * 1000);
+//		list($s1, $s2) = explode(' ', microtime(true));
+//		print_r((floatval($s1) + floatval($s2)));
+		echo  sprintf('%.0f', microtime(true)  * 1000);
+	}
 
-    public function test5()
-    {
-        $this->load->view('test');
-    }
+	public function test5()
+	{
+		$this->load->view('test');
+	}
 
-    public function fixrole()
-    {
-        $this->db->from('user_role');
-        $roles = $this->db->col('id');
-        $data = $this->db->get('crud_table')->result_array();
-        foreach($data as $d) {
-            $save = array();
-            $this->autorole($d);
-            foreach(array('role_c', 'role_r', 'role_u', 'role_d') as $f) {
-                $role = explode(',', $d[$f]);
-                foreach($role as $k=>$r) {
-                    if (!in_array($r, $roles)) {
-                        unset($role[$k]);
-                    }
-                }
-                $save[$f] = implode(',', $role);
-            }
+	public function fixrole()
+	{
+		$this->db->from('user_role');
+		$roles = $this->db->col('id');
+		$data = $this->db->get('crud_table')->result_array();
+		foreach($data as $d) {
+			$save = array();
+			$this->autorole($d);
+			foreach(array('role_c', 'role_r', 'role_u', 'role_d') as $f) {
+				$role = explode(',', $d[$f]);
+				foreach($role as $k=>$r) {
+					if (!in_array($r, $roles)) {
+						unset($role[$k]);
+					}
+				}
+				$save[$f] = implode(',', $role);
+			}
 
-            $this->db->where('id', $d['id']);
-            $this->db->update('crud_table', $save);
-        }
-        $data = $this->db->get('crud_field')->result_array();
-        foreach($data as $d) {
-            $save = array();
-            $this->autorole($d);
-            foreach(array( 'role_r', 'role_u') as $f) {
-                $role = explode(',', $d[$f]);
-                foreach($role as $k=>$r) {
-                    if (!in_array($r, $roles)) {
-                        unset($role[$k]);
-                    }
-                }
-                $save[$f] = implode(',', $role);
-            }
+			$this->db->where('id', $d['id']);
+			$this->db->update('crud_table', $save);
+		}
+		$data = $this->db->get('crud_field')->result_array();
+		foreach($data as $d) {
+			$save = array();
+			$this->autorole($d);
+			foreach(array( 'role_r', 'role_u') as $f) {
+				$role = explode(',', $d[$f]);
+				foreach($role as $k=>$r) {
+					if (!in_array($r, $roles)) {
+						unset($role[$k]);
+					}
+				}
+				$save[$f] = implode(',', $role);
+			}
 
-            $this->db->where('id', $d['id']);
-            $this->db->update('crud_field', $save);
-        }
-        $data = $this->db->get('menu')->result_array();
-        foreach($data as $d) {
-            $save = array();
-            $this->autorole($d);
-            foreach(array( 'role_r') as $f) {
-                $role = explode(',', $d[$f]);
-                foreach($role as $k=>$r) {
-                    if (!in_array($r, $roles)) {
-                        unset($role[$k]);
-                    }
-                }
-                $save[$f] = implode(',', $role);
-            }
+			$this->db->where('id', $d['id']);
+			$this->db->update('crud_field', $save);
+		}
+		$data = $this->db->get('menu')->result_array();
+		foreach($data as $d) {
+			$save = array();
+			$this->autorole($d);
+			foreach(array( 'role_r') as $f) {
+				$role = explode(',', $d[$f]);
+				foreach($role as $k=>$r) {
+					if (!in_array($r, $roles)) {
+						unset($role[$k]);
+					}
+				}
+				$save[$f] = implode(',', $role);
+			}
 
-            $this->db->where('id', $d['id']);
-            $this->db->update('menu', $save);
-        }
-    }
-    function autorole(&$d){
-        if (isset($d['role_d'])){
-            $role_d = explode(",", $d['role_d']);
-        }
-        if (isset($d['role_c'])){
-            $role_c = explode(",", $d['role_c']);
-        }
-        if (isset($d['role_u'])){
-            $role_u = explode(",", $d['role_u']);
-        }
-        if (isset($d['role_r'])){
-            $role_r = explode(",", $d['role_r']);
-        }
-        if (isset($role_d)){
-            $tmp = $role_d;
-            if ( ($i = array_search(-1, $tmp)) !== false ){
-                unset($tmp[$i]);
-            }
-            if (isset($role_c)){
-                $role_c = array_unique(array_merge($tmp , $role_c));
-            }
-            if (isset($role_u)){
-                $role_u = array_unique(array_merge($tmp , $role_u));
-            }
-            if (isset($role_r)){
-                $role_r = array_unique(array_merge($tmp , $role_r));
-            }
-        }
-        if (isset($role_c)){
-            $tmp = $role_c;
-            if ( ($i = array_search(-1, $tmp)) !== false ){
-                unset($tmp[$i]);
-            }
-            if (isset($role_u)){
-                $role_u = array_unique(array_merge($tmp , $role_u));
-            }
-            if (isset($role_r)){
-                $role_r = array_unique(array_merge($tmp , $role_r));
-            }
-        }
-        if (isset($role_u)){
-            $tmp = $role_u;
-            if ( ($i = array_search(-1, $tmp)) !== false ){
-                unset($tmp[$i]);
-            }
-            if (isset($role_r)){
-                $role_r = array_unique(array_merge($tmp , $role_r));
-            }
-        }
+			$this->db->where('id', $d['id']);
+			$this->db->update('menu', $save);
+		}
+	}
+	function autorole(&$d){
+		if (isset($d['role_d'])){
+			$role_d = explode(",", $d['role_d']);
+		}
+		if (isset($d['role_c'])){
+			$role_c = explode(",", $d['role_c']);
+		}
+		if (isset($d['role_u'])){
+			$role_u = explode(",", $d['role_u']);
+		}
+		if (isset($d['role_r'])){
+			$role_r = explode(",", $d['role_r']);
+		}
+		if (isset($role_d)){
+			$tmp = $role_d;
+			if ( ($i = array_search(-1, $tmp)) !== false ){
+				unset($tmp[$i]);
+			}
+			if (isset($role_c)){
+				$role_c = array_unique(array_merge($tmp , $role_c));
+			}
+			if (isset($role_u)){
+				$role_u = array_unique(array_merge($tmp , $role_u));
+			}
+			if (isset($role_r)){
+				$role_r = array_unique(array_merge($tmp , $role_r));
+			}
+		}
+		if (isset($role_c)){
+			$tmp = $role_c;
+			if ( ($i = array_search(-1, $tmp)) !== false ){
+				unset($tmp[$i]);
+			}
+			if (isset($role_u)){
+				$role_u = array_unique(array_merge($tmp , $role_u));
+			}
+			if (isset($role_r)){
+				$role_r = array_unique(array_merge($tmp , $role_r));
+			}
+		}
+		if (isset($role_u)){
+			$tmp = $role_u;
+			if ( ($i = array_search(-1, $tmp)) !== false ){
+				unset($tmp[$i]);
+			}
+			if (isset($role_r)){
+				$role_r = array_unique(array_merge($tmp , $role_r));
+			}
+		}
 
-        if (isset($d['role_d'])){
-            $d['role_d'] = implode(',', $role_d);
-        }
-        if (isset($d['role_c'])){
-            $d['role_c'] = implode(',', $role_c);
-        }
-        if (isset($d['role_u'])){
-            $d['role_u'] = implode(',', $role_u);
-        }
-        if (isset($d['role_r'])){
-            $d['role_r'] = implode(',', $role_r);
-        }
-    }
-
+		if (isset($d['role_d'])){
+			$d['role_d'] = implode(',', $role_d);
+		}
+		if (isset($d['role_c'])){
+			$d['role_c'] = implode(',', $role_c);
+		}
+		if (isset($d['role_u'])){
+			$d['role_u'] = implode(',', $role_u);
+		}
+		if (isset($d['role_r'])){
+			$d['role_r'] = implode(',', $role_r);
+		}
+	}
+	
+	public function pinyin()
+	{
+		$this->load->library('py');
+		echo $this->py->abbr('拼音测试');
+	}
+	
+	public function class_test()
+	{
+		$b = new B();
+		$b->show();
+		$b->edit('bar'); 
+	}
 }

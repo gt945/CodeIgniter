@@ -296,6 +296,7 @@ class Xui extends MY_Controller {
 				}
 			}
 		}
+		$ret->id = $this->grid_model->crud_table['id'];
 		return $ret;
 	}
 	
@@ -491,6 +492,7 @@ class Xui extends MY_Controller {
 		$data = $this->$db->wrapper_sheet($paras);
 
 		$grid_info = $this->$db->grid_info();
+		$ret->sql = $data->sql;
 		$ret->caption = $field_info['join_caption'];
 		$ret->count = $data->count;
 		$ret->headers = $grid_info->headers;
@@ -654,7 +656,6 @@ class Xui extends MY_Controller {
 		$paras->page = 1;
 		$paras->size = 500;
 		$fields = array();
-		$sheet = array();
 		
 		$count = 0;
 		$total = 0;
@@ -688,6 +689,47 @@ class Xui extends MY_Controller {
 			$count += count($data->data);
 		}
 		return $result;
+	}
+	
+	private function request_update_pinyin($paras)
+	{
+		ini_set('max_execution_time', 0);
+		$this->load->library('py');
+		
+		$fields = array();
+		$paras->page = 1;
+		$paras->size = 20;
+		
+		$count = 0;
+		$total = 0;
+		
+		while ($count == 0 || $count < $total) {
+			$save = array();
+			$data = $this->grid_model->wrapper_sheet($paras);
+			$this->grid_model->pop_cache();
+			if (!count($data->data)) {
+				break;
+			}
+			$total = $data->count;
+			$paras->page++;
+			foreach($data->data as $d) {
+				$row = array();
+				foreach($this->grid_model->crud_field as $k=>$f) {
+					if ($f ['prop'] & Crud_model::PROP_FIELD_PINYIN) {
+						$row ['id'] = $d['id'];
+						$row["{$k}_py"] = $this->py->abbr($d[$k]);
+					}
+				}
+				if (count($row)) {
+					$save[] = $row;
+				}
+			}
+			$count += count($data->data);
+			//print_r($save);
+			$this->grid_model->save($save);
+			unset($save);
+		}
+		return 1;
 	}
 	
 }

@@ -26,22 +26,24 @@ class Crud_model extends Db_Model {
 	const ALIGN_CENTER			= 1;
 	const ALIGN_RIGHT			= 2;
 	
-	const PROP_FIELD_PRIMARY	= 0x0001;
-	const PROP_FIELD_FILTER		= 0x0002;
-	const PROP_FIELD_HIDE		= 0x0004;
-	const PROP_FIELD_UNIQUE		= 0x0008;
-	const PROP_FIELD_READONLY	= 0x0010;
-	const PROP_FIELD_SORT		= 0x0020;
-	const PROP_FIELD_MINIFY		= 0x0040;
-	const PROP_FIELD_ADVANCE	= 0x0080;
-	const PROP_FIELD_TABLE		= 0x0100;
-	const PROP_FIELD_CURRENCY	= 0x0200;
-	const PROP_FIELD_REQUIRED	= 0x0400;
-	const PROP_FIELD_VIRTUAL	= 0x0800;
-	const PROP_FIELD_STRING		= 0x1000;
-	const PROP_FIELD_INLINE		= 0x2000;
-	const PROP_FIELD_STATIC		= 0x4000;
-	const PROP_FIELD_CAPTION	= 0x8000;
+	const PROP_FIELD_PRIMARY	= 0x00000001;
+	const PROP_FIELD_FILTER		= 0x00000002;
+	const PROP_FIELD_HIDE		= 0x00000004;
+	const PROP_FIELD_UNIQUE		= 0x00000008;
+	const PROP_FIELD_READONLY	= 0x00000010;
+	const PROP_FIELD_SORT		= 0x00000020;
+	const PROP_FIELD_MINIFY		= 0x00000040;
+	const PROP_FIELD_ADVANCE	= 0x00000080;
+	const PROP_FIELD_TABLE		= 0x00000100;
+	const PROP_FIELD_CURRENCY	= 0x00000200;
+	const PROP_FIELD_REQUIRED	= 0x00000400;
+	const PROP_FIELD_VIRTUAL	= 0x00000800;
+	const PROP_FIELD_STRING		= 0x00001000;
+	const PROP_FIELD_INLINE		= 0x00002000;
+	const PROP_FIELD_STATIC		= 0x00004000;
+	const PROP_FIELD_CAPTION	= 0x00008000;
+	const PROP_FIELD_PINYIN		= 0x00010000;
+	const PROP_FIELD_UID		= 0x00020000;
 
 	const PROP_TABLE_EXPORT		= 0x0001;
 	const PROP_TABLE_IMPORT		= 0x0002;
@@ -119,7 +121,8 @@ class Crud_model extends Db_Model {
 					$this->primary = $f['name'];
 				} else if(count($select)
 					&& !in_array($f['name'], $select)
-					&& !in_array(strtolower($f['name']), $select)) {
+					&& !in_array(strtolower($f['name']), $select)
+					&& !($f['prop'] & Crud_model::PROP_FIELD_UID)) {
 					continue;
 				}
 				if ($f['prop'] & Crud_model::PROP_FIELD_CAPTION) {
@@ -348,6 +351,9 @@ class Crud_model extends Db_Model {
 						}
 						if ($f->name === 'password') {
 							$data ['type'] = Crud_model::TYPE_PASSWORD;
+						}
+						if (substr($f->name,-3) === '_py') {
+							$data ['prop'] |= Crud_model::PROP_FIELD_HIDE;
 						}
 						$this->insert ( Crud_model::CRUD_FIELD, $data );
 					}

@@ -166,6 +166,16 @@ Class('App.TableSetting', 'xui.Module',{
 				.setCaption("增加分组")
 				.onClick("_addgroup_onclick")
 			);
+			
+			append(
+				(new xui.UI.Button())
+				.setHost(host,"updatepy")
+				.setLeft(520)
+				.setTop(120)
+				.setWidth(100)
+				.setCaption("更新拼音")
+				.onClick("_updatepy_onclick")
+			);
 
 			append(
 				(new xui.UI.Pane())
@@ -237,6 +247,7 @@ Class('App.TableSetting', 'xui.Module',{
 				ns._fillList(rsp.data.fields);
 				ns._fillGroups(rsp.data.groups);
 				ns._update_layout();
+				ns.tablename.setUIValue(rsp.data.id);
 			});
 			return true;
 		},
@@ -505,6 +516,15 @@ Class('App.TableSetting', 'xui.Module',{
 			var rows=grid.getRows();
 			grid.insertRows(["Group_"+(rows.length+1),0,1,1,1]);
 			ns._update_layout();
+		},
+		_updatepy_onclick:function() {
+			var ns = this;
+			var table = ns.tablename.getUIValue();
+			if (table.length) {
+				AJAX.callService('xui/request', table, "update_pinyin", null, function (rsp) {
+					//xui.message(rsp.data);
+				});
+			}
 		},
 		_ctl_group1_ondrop:function(profile, e, node, key, data, item){
 			var target = profile.boxing(),

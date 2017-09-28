@@ -67,7 +67,18 @@ class Db_Model extends CI_Model
 				if (isset($this->crud_field) && !$this->crud_field[$r->field]['_role_r']) {			 //没有读权限
 					continue;
 				}
-				$this->parse_rules($filters->groupOp, $r->field, $r->op, $r->data, $alias);
+				if (isset($this->fields) && isset($this->fields["{$r->field}_py"])) {
+					if ($filters->groupOp === "OR") {
+						$this->or_group_start();
+					} else {
+						$this->group_start();
+					}
+					$this->parse_rules("OR", $r->field, $r->op, $r->data, $alias);
+					$this->parse_rules("OR", "{$r->field}_py", $r->op, $r->data, $alias);
+					$this->group_end();
+				} else {
+					$this->parse_rules($filters->groupOp, $r->field, $r->op, $r->data, $alias);
+				}
 				$is_blank = false;
 			}
 		}

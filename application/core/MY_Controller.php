@@ -11,6 +11,7 @@ class MY_Controller extends CI_Controller {
 	function __construct()
 	{
 		parent::__construct();
+		header('Content-Type: application/json');
 		$this->load->model ( 'auth_model' );
 		if (! $this->auth_model->check( false )) {
 			$this->reply(401, "请重新登录");

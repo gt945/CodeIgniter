@@ -354,6 +354,8 @@ class Grid_model extends Crud_Model
 			$this->$db->table($table);
 			$this->$db->from("{$table} b");
 			$this->$db->select("b.{$this->primary}");
+			$this->$db->fields = $this->grid_model->fields;
+			$this->$db->crud_field = $this->grid_model->crud_field;
 			$alias = "b";
 		}
 
@@ -385,7 +387,7 @@ class Grid_model extends Crud_Model
 
 		//user
 
-		if (isset($this->fields['AID']) && ( !isset($this->crud_field['AID']) || !$this->crud_field['AID']['_role_r'])) {
+		if (isset($this->fields['AID']) && isset($this->crud_field['AID']) && !$this->crud_field['AID']['_role_r']) {
 			$this->$db->where('AID', $_SESSION['userinfo']['id']);
 		}
 
@@ -556,7 +558,7 @@ class Grid_model extends Crud_Model
 			) {
 				$this->wrapper_caption($f, $d);
 				$cell->value = $d [$f ['name']];
-				if (isset($f ['_caption'])) {
+				if (isset($f ['_caption']) && isset($d [$f ['_caption']])) {
 					$cell->caption = $d [$f ['_caption']];
 				}
 			} elseif ($f ['type'] == Crud_model::TYPE_PASSWORD) {
@@ -1111,6 +1113,10 @@ class Grid_model extends Crud_Model
 							}
 						}
 
+					}
+					if ($f ['prop'] & Crud_model::PROP_FIELD_PINYIN) {
+						$this->load->library('py');
+						$data ["{$k}_py"] = $this->py->abbr($data [$k]);
 					}
 
 					if ($data [$k] === null) {							// drop null data
