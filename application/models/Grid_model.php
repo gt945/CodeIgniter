@@ -458,13 +458,22 @@ class Grid_model extends Crud_Model
 		//sort
 		if (isset($paras->sidx) && isset($paras->sord)) {
 			if (count($this->order) && !$paras->sidx) {
+				$sub_sort = false;
+				$count = 0;
 				foreach($this->order as $order) {
 					if (isset($this->crud_field[$order->field])) {
 						$order->order = ($order->order === 'asc') ? 'asc' : 'desc';
 						$this->$db->order_by("{$alias}.{$order->field}", $order->order);
 						$this->order_by("a.{$order->field}", $order->order);
-
+						if ($this->crud_field[$order->field]['type'] == Crud_model::TYPE_DATETIME) {
+							$sub_sort = true;
+						}
+						$count++;
 					}
+				}
+				if ($sub_sort && $count == 1) {
+					$this->$db->order_by("{$alias}.id", "asc");
+					$this->order_by("a.id", "asc");
 				}
 			} else {
 				$sort = $paras->sidx;
@@ -474,6 +483,10 @@ class Grid_model extends Crud_Model
 				if (isset($this->crud_field[$sort]) && ($this->crud_field[$sort]['prop'] & Crud_model::PROP_FIELD_SORT)) {
 					$this->$db->order_by("{$alias}.{$sort}", $sord);
 					$this->order_by("a.{$sort}", $sord);
+					if ($this->crud_field[$sort]['type'] == Crud_model::TYPE_DATETIME) {
+						$this->$db->order_by("{$alias}.id", $sord);
+						$this->order_by("a.id", $sord);
+					}
 					/*
 									if ($this->crud_field[$sort]['type'] == Crud_model::TYPE_SELECT) {
 										$this->order_by("{$this->crud_field[$sort]['_caption']}", $sord);
