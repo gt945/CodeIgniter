@@ -149,7 +149,7 @@ class CI_Cache extends CI_Driver_Library {
 	 * @param	bool	$raw	Whether to store the raw value
 	 * @return	bool	TRUE on success, FALSE on failure
 	 */
-	public function save($id, $data, $ttl = 1 /**3600*/, $raw = FALSE)
+	public function save($id, $data, $ttl = 3600, $raw = FALSE)
 	{
 		return $this->{$this->_adapter}->save($this->key_prefix.$id, $data, $ttl, $raw);
 	}

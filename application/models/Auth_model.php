@@ -24,7 +24,11 @@ class Auth_model extends CI_Model {
 		$this->load->helper(array('url', 'bool'));
 		$this->load->library(array('session'));
 		$this->load->database ();
-		$this->load->driver('cache', array('adapter' => 'file'));
+		if (isset($_SESSION['userinfo'])) {
+			$this->load->driver('cache', array('adapter' => 'file', 'key_prefix' => "u{$_SESSION['userinfo']['id']}_"));
+		} else {
+			$this->load->driver('cache', array('adapter' => 'file'));
+		}
 	}
 	
 	/**

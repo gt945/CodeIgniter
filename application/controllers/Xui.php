@@ -381,6 +381,7 @@ class Xui extends MY_Controller {
 			$data = $this->grid_model->get_left_join_for_list($paras->field, $paras);
 			$ret->count = $data->count;
 			$ret->items = $data->data;
+			$ret->sql = $data->sql;
 		}
 		return $ret;
 	}
@@ -725,7 +726,6 @@ class Xui extends MY_Controller {
 				}
 			}
 			$count += count($data->data);
-			//print_r($save);
 			$this->grid_model->save($save);
 			unset($save);
 		}

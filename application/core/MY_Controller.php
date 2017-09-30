@@ -11,7 +11,7 @@ class MY_Controller extends CI_Controller {
 	function __construct()
 	{
 		parent::__construct();
-		header('Content-Type: application/json');
+		
 		$this->load->model ( 'auth_model' );
 		if (! $this->auth_model->check( false )) {
 			$this->reply(401, "请重新登录");
@@ -37,11 +37,15 @@ class MY_Controller extends CI_Controller {
 			$response->code = $code;
 			$response->msg = $msg;
 			if ($data) {
+				if (isset($data->sql)) {
+					unset($data->sql);
+				}
 				$response->data = $data;
 			}
 			if ($this->warn_msg) {
 				$response->warn = $this->warn_msg;
 			}
+			header('Content-Type: application/json');
 			echo json_encode($response);
 		} else {
 			echo $msg;

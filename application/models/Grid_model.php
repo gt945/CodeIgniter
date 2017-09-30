@@ -36,6 +36,7 @@ class Grid_model extends Crud_Model
 		$ret = new stdClass();
 		$field_info = $this->crud_field[$field];
 		$db = "db_".__LINE__;
+		$alias = "a";
 		$this->load->model('Crud_model', $db);
 		if (!$this->$db->table($field_info['join_table'])){
 			return false;
@@ -86,12 +87,15 @@ class Grid_model extends Crud_Model
 // 					$this->$db->select ( "{$$this->$db->pid} _pid" );
 // 				}
 				if ($field_info['join_condition'] != '' && $field_info['join_condition_value'] != '') {
-					$this->$db->where ( $field_info['join_condition'], $field_info['join_condition_value'] );
+					$this->$db->where ( "{$alias}.{$field_info['join_condition']}", $field_info['join_condition_value'] );
 				}
 				if (isset($paras->like)) {
 					$this->$db->group_start();
-					$this->$db->like($field_info['join_caption'], $paras->like, 'both');
-					$this->$db->or_like($field_info['join_value'], $paras->like, 'both');
+					$this->$db->like("{$alias}.{$field_info['join_caption']}", $paras->like, 'both');
+					$this->$db->or_like("{$alias}.{$field_info['join_value']}", $paras->like, 'both');
+					if (isset($this->$db->fields["{$field_info['join_caption']}_py"])) {
+						$this->$db->or_like("{$alias}.{$field_info['join_caption']}_py", $paras->like, 'both');
+					}
 					$this->$db->group_end();
 				}
 				if ($field_info['type'] == Crud_model::TYPE_SELECT ) {
@@ -103,14 +107,18 @@ class Grid_model extends Crud_Model
 				}
 				$this->$db->order_by("_value", "asc");
 				$ret->data = $this->$db->sheet();
+				$ret->sql = array(
+					array($this->$db->elapsed_time(), $this->$db->total_queries(), $this->$db->db3->queries),
+					array($this->db->elapsed_time(), $this->db->total_queries(), $this->db->queries)
+				);
 				break;
 			case Crud_model::TYPE_AUTOCOMPLETE :
-				$this->$db->select ( "a.{$field_info['join_value']} _value");
-				$this->$db->select ( "a.{$field_info['join_caption']} _caption");
+				$this->$db->select ( "{$alias}.{$field_info['join_value']} _value");
+				$this->$db->select ( "{$alias}.{$field_info['join_caption']} _caption");
 				if (isset($paras->like)) {
 					$this->$db->group_start();
-					$this->$db->like($field_info['join_value'], $paras->like, 'both');
-					$this->$db->or_like($field_info['join_caption'], $paras->like, 'both');
+					$this->$db->like("{$alias}.{$field_info['join_value']}", $paras->like, 'both');
+					$this->$db->or_like("{$alias}.{$field_info['join_caption']}", $paras->like, 'both');
 					$this->$db->group_end();
 				}
 				$ret->count = $this->$db->count_all_results();
@@ -120,6 +128,10 @@ class Grid_model extends Crud_Model
 				}
 				$this->$db->order_by("_caption", "asc");
 				$ret->data = $this->$db->sheet();
+				$ret->sql = array(
+					array($this->$db->elapsed_time(), $this->$db->total_queries(), $this->$db->db3->queries),
+					array($this->db->elapsed_time(), $this->db->total_queries(), $this->db->queries)
+				);
 				break;
 			default :
 				return false;
@@ -496,21 +508,6 @@ class Grid_model extends Crud_Model
 					*/
 				}
 			}
-//			$sort = $paras->sidx;
-//			$sord = $paras->sord;
-//
-//			$sord = ($sord === 'asc') ? 'asc' : 'desc';
-//			if (isset($this->crud_field[$sort]) && ($this->crud_field[$sort]['prop'] & Crud_model::PROP_FIELD_SORT)) {
-//				$this->$db->order_by("{$alias}.{$sort}", $sord);
-//				$this->order_by("a.{$sort}", $sord);
-//				/*
-//								if ($this->crud_field[$sort]['type'] == Crud_model::TYPE_SELECT) {
-//									$this->order_by("{$this->crud_field[$sort]['_caption']}", $sord);
-//								} else {
-//									$this->$db->order_by("b.{$sort}", $sord);
-//								}
-//				*/
-//			}
 		}
 		$this->stash_cache();
 
@@ -528,9 +525,10 @@ class Grid_model extends Crud_Model
 		}
 		$ret->data = $this->sheet();
 		$ret->sql = array(
-			array($this->elapsed_time(), $this->total_queries(), $this->db3->queries),
-			array($this->$db->elapsed_time(), $this->$db->total_queries(), $this->$db->db3->queries),
-			array($this->db->elapsed_time(), $this->db->total_queries(), $this->db->queries)
+			array($this->elapsed_time(), $this->db3->total_queries(), $this->db3->queries),
+			array($this->db->elapsed_time(), $this->db->total_queries(), $this->db->queries),
+			array($this->$db->elapsed_time(), $this->$db->db3->total_queries(), $this->$db->db3->queries),
+			array($this->$db->elapsed_time(), $this->$db->db->total_queries(), $this->$db->db->queries),
 		);
 
 		return $ret;

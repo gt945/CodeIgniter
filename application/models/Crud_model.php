@@ -81,107 +81,121 @@ class Crud_model extends Db_Model {
 	
 	public function table($name, $select = array())
 	{
-		
-		$crud_field = array();
-		$fields = array();
-		
-		$this->db->where ( 'name', $name );
-		$this->db->or_where ( 'id', $name );
-		$this->db->or_where ( 'caption', $name );
-		$this->db->limit(1);
-		$this->db->from ( Crud_model::CRUD_TABLE );
-		$crud_table = $this->db->row();
-		if ($crud_table) {
-			parent::table($crud_table['name'], $select);
-
-			if ($crud_table['prop'] & Crud_model::PROP_TABLE_VIEW) {
-				$this->primary = null;
-				$this->caption = 'id';
-				$crud_table['_role_c'] = false;
-				$crud_table['_role_r'] = true;
-				$crud_table['_role_u'] = false;
-				$crud_table['_role_d'] = false;
-
-			} else {
-				$crud_table['_role_c'] = $this->auth_model->check_role($crud_table['role_c'] );
-				$crud_table['_role_r'] = $this->auth_model->check_role($crud_table['role_r'] );
-				$crud_table['_role_u'] = $this->auth_model->check_role($crud_table['role_u'] );
-				$crud_table['_role_d'] = $this->auth_model->check_role($crud_table['role_d'] );
-			}
-			$this->db->where ( 'tid', $crud_table ['id'] );
-			$this->db->order_by ( 'seq', 'asc' );
-			$this->db->from (Crud_model::CRUD_FIELD);
-			$crud_field = $this->db->sheet();
-			foreach ( $crud_field as $k => $f ) {
-				$f['_role_r'] = $this->auth_model->check_role($f['role_r']);
-				$f['_role_u'] = $this->auth_model->check_role($f['role_u']);
-				$fields[$f ['name']] = true;
-				unset ( $crud_field [$k] );
-				if($f['prop'] & Crud_model::PROP_FIELD_PRIMARY) {
-					$this->primary = $f['name'];
-				} else if(count($select)
-					&& !in_array($f['name'], $select)
-					&& !in_array(strtolower($f['name']), $select)
-					&& !($f['prop'] & Crud_model::PROP_FIELD_UID)) {
-					continue;
+		$select_str = md5(implode(',', $select));
+		$cache_id = "table_{$name}_" .$select_str;
+		//echo $cache_id;
+		if ( ! ($obj = $this->cache->get($cache_id) )) {
+			
+			$crud_field = array();
+			$fields = array();
+			
+			$obj = new stdClass();
+			$this->db->where ( 'name', $name );
+			$this->db->or_where ( 'id', $name );
+			$this->db->or_where ( 'caption', $name );
+			$this->db->limit(1);
+			$this->db->from ( Crud_model::CRUD_TABLE );
+			$crud_table = $this->db->row();
+			if ($crud_table) {
+				parent::table($crud_table['name'], $select);
+				$obj->caption = 'id';
+	
+				if ($crud_table['prop'] & Crud_model::PROP_TABLE_VIEW) {
+					$obj->primary = null;
+					$obj->caption = null; //FIXME
+					$crud_table['_role_c'] = false;
+					$crud_table['_role_r'] = true;
+					$crud_table['_role_u'] = false;
+					$crud_table['_role_d'] = false;
+	
+				} else {
+					$crud_table['_role_c'] = $this->auth_model->check_role($crud_table['role_c'] );
+					$crud_table['_role_r'] = $this->auth_model->check_role($crud_table['role_r'] );
+					$crud_table['_role_u'] = $this->auth_model->check_role($crud_table['role_u'] );
+					$crud_table['_role_d'] = $this->auth_model->check_role($crud_table['role_d'] );
 				}
-				if ($f['prop'] & Crud_model::PROP_FIELD_CAPTION) {
-					$this->caption = $f ['name'];
+				$this->db->where ( 'tid', $crud_table ['id'] );
+				$this->db->order_by ( 'seq', 'asc' );
+				$this->db->from (Crud_model::CRUD_FIELD);
+				$crud_field = $this->db->sheet();
+				foreach ( $crud_field as $k => $f ) {
+					$f['_role_r'] = $this->auth_model->check_role($f['role_r']);
+					$f['_role_u'] = $this->auth_model->check_role($f['role_u']);
+					$fields[$f ['name']] = true;
+					unset ( $crud_field [$k] );
+					if($f['prop'] & Crud_model::PROP_FIELD_PRIMARY) {
+						$obj->primary = $f['name'];
+					} else if(count($select)
+						&& !in_array($f['name'], $select)
+						&& !in_array(strtolower($f['name']), $select)
+						&& !($f['prop'] & Crud_model::PROP_FIELD_UID)) {
+						continue;
+					}
+					if ($f['prop'] & Crud_model::PROP_FIELD_CAPTION) {
+						$obj->caption = $f ['name'];
+					}
+					$crud_field [$f ['name']] = $f;
 				}
-				$crud_field [$f ['name']] = $f;
-			}
-			$this->order = array();
-			if ($crud_table['order'] ) {
-				$def_orders = explode(";", $crud_table['order']);
-				if (count($def_orders)) {
-					foreach($def_orders as $def_order) {
-						$order = explode(":", $def_order);
-						if (isset($crud_field[$order[0]])) {
-							$this->order[] = (object)array (
-								"field" => $order[0],
-								"order" => strtolower($order[1])
-							);
-		
+				$obj->order = array();
+				if ($crud_table['order'] ) {
+					$def_orders = explode(";", $crud_table['order']);
+					if (count($def_orders)) {
+						foreach($def_orders as $def_order) {
+							$order = explode(":", $def_order);
+							if (isset($crud_field[$order[0]]) && $crud_field[$order[0]]['_role_r']) {
+								$obj->order[] = (object)array (
+									"field" => $order[0],
+									"order" => strtolower($order[1])
+								);
+			
+							}
 						}
 					}
+					
 				}
-				
 			}
-		}
-		if (is_array($crud_table) && is_array($crud_field)) {
-			$this->tree_code = $_SESSION['groupinfo']['tree_code'];
-			$this->crud_table = $crud_table;
-			$this->crud_field = $crud_field;
-			$this->fields = $fields;
-			$this->prepared = false;
-			if ($crud_table['pid_field'] === '') {						//TreeGrid flag
-				$this->pid = null;
+			if (is_array($crud_table) && is_array($crud_field)) {
+				$obj->tree_code = $_SESSION['groupinfo']['tree_code'];
+				$obj->crud_table = $crud_table;
+				$obj->crud_field = $crud_field;
+				$obj->fields = $fields;
+				$obj->prepared = false;
+				if ($crud_table['pid_field'] === '') {						//TreeGrid flag
+					$obj->pid = null;
+				} else {
+					$obj->pid = $crud_table['pid_field'];
+				}
+				if (isset($crud_field['gid']) && $crud_table['name'] !== 'user_group') {	//user group
+						$obj->group = $this->get_group_ids($_SESSION['userinfo']['gid'], true);
+	//					$dbContextGroup = $this->table("user_group");
+	//					$this->groupTree = $this->get_tree_data_by_id($dbContextGroup, $_SESSION['userinfo']['gid'], true);
+	//					$this->groupTreeOption = $this->get_tree_option($this->groupTree, 'id', 'groupname');
+				} else {
+					$obj->group = null;
+				}
+				if (isset($crud_field['uid'])) {
+					$obj->user = true;
+				} else {
+					$obj->user = false;
+				}
+				if (isset($crud_field['tree_code'])) {						//TreeCode flag
+					$obj->tree = true;
+				} else {
+					$obj->tree = false;
+				}
+	
 			} else {
-				$this->pid = $crud_table['pid_field'];
+				return false;
 			}
-			if (isset($crud_field['gid']) && $crud_table['name'] !== 'user_group') {	//user group
-					$this->group = $this->get_group_ids($_SESSION['userinfo']['gid'], true);
-//				  $dbContextGroup = $this->table("user_group");
-// 					$this->groupTree = $this->get_tree_data_by_id($dbContextGroup, $_SESSION['userinfo']['gid'], true);
-// 					$this->groupTreeOption = $this->get_tree_option($this->groupTree, 'id', 'groupname');
-			} else {
-				$this->group = null;
-			}
-			if (isset($crud_field['uid'])) {
-				$this->user = true;
-			} else {
-				$this->user = false;
-			}
-			if (isset($crud_field['tree_code'])) {						//TreeCode flag
-				$this->tree = true;
-			} else {
-				$this->tree = false;
-			}
-
+			$this->cache->save($cache_id, $obj);
 		} else {
-			return false;
+			parent::table($obj->crud_table['name'], $select);
 		}
+
 		
+		foreach($obj as $k=>$v) {
+			$this->$k = $v;
+		}
 		return true;
 	}
 	
@@ -196,9 +210,9 @@ class Crud_model extends Db_Model {
 		$this->start_cache();
 		$this->cached = true;
 		$this->from("{$table} a");
-// 		if ($this->group) {
-// 			$this->where_in("a.gid", $this->group);
-// 		}
+//		if ($this->group) {
+//			$this->where_in("a.gid", $this->group);
+//		}
 		
 //		if ($this->user) {
 //			$this->where("a.uid", $_SESSION['userinfo']['id']);
@@ -206,7 +220,7 @@ class Crud_model extends Db_Model {
 		
 		$i = 1;
 		foreach ( $this->crud_field as &$f ) {
-			if ($f['type'] > Crud_model::TYPE_MAX ||  ($f['prop'] & Crud_model::PROP_FIELD_VIRTUAL) ) {
+			if ($f['type'] > Crud_model::TYPE_MAX || ($f['prop'] & Crud_model::PROP_FIELD_VIRTUAL) ) {
 				continue;
 			}
 			$this->select ( "a.{$f['name']}" );
@@ -242,16 +256,26 @@ class Crud_model extends Db_Model {
 		if (!$this->auth_model->check_role(1)){
 			return 0;
 		}
-		if (!$this->table_exists($table)) {
-			return 0;
+		$tid = null;
+		$this->db->where ( 'name', $table );
+		$this->db->or_where ( 'id', $table );
+		$this->db->or_where ( 'caption', $table );
+		$this->db->limit(1);
+		$this->db->from ( Crud_model::CRUD_TABLE );
+		$crud_table = $this->db->row();
+		if (!$crud_table) {
+			if (!$this->table_exists($table)) {
+				return 0;
+			}
+		} else {
+			$table = $crud_table['name'];
+			$tid = $crud_table['id'];
 		}
+		
 		$fields = $this->field_data ( $table );						//get all fields in table
 
 		if (count ( $fields ) > 0) {
-			$this->select ( 'id' );
-			$this->where ( 'name', $table );
 				
-			$tid = $this->get ( Crud_model::CRUD_TABLE )->row ( 'id' );
 			if (! $tid) {
 				$data = array (
 						'name' => $table,
@@ -269,10 +293,9 @@ class Crud_model extends Db_Model {
 				$tid = $this->insert_id ();
 			}
 			if ($tid) {
-				$this->select ( 'id,name' );
+				$this->select ( 'id,name,type,prop' );
 				$this->where ( 'tid', $tid );						//get all fields in crud_field table
 				$exist_fields = $this->get ( Crud_model::CRUD_FIELD )->result_array ();
-	
 				$this->trans_start ();
 				foreach ( $fields as $f ) {
 					$find = false;
@@ -379,13 +402,9 @@ class Crud_model extends Db_Model {
 		$cache_id = "user_group_ids_{$gid}";
 		
 		
-		//$db = $this->load->database ('default', true);
-// 		if ( ! $result = $this->cache->get($cache_id)) {
+//		if ( ! $result = $this->cache->get($cache_id)) {
 			
-			$this->db->select('tree_code');
-			$this->db->from('user_group');
-			$this->db->where('id', $gid);
-			$tree_code = $this->db->cell('tree_code');
+			$tree_code = $this->get_group_tree_code($gid);
 			if (!$tree_code) {
 				return null;
 			}
@@ -396,17 +415,13 @@ class Crud_model extends Db_Model {
 			} else {
 				$this->db->where('tree_code', $tree_code);
 			}
-			$data = $this->db->sheet();
-			$result = array();
-			foreach ($data as $d) {
-				array_push($result, $d['id']);
-			}
+			$result = $this->db->col('id');
 			if (!count($result)) {
 				return null;
 			}
 			
-// 			$this->cache->save($cache_id, $result);
-// 		}
+//			$this->cache->save($cache_id, $result);
+//		}
 		return $result;
 	}
 	
@@ -426,7 +441,7 @@ class Crud_model extends Db_Model {
 
 	private function _get_tree_data_by_id($id = 0, $prepare = false)
 	{
-
+		
 		$this->stash_cache();
 		$this->where("a.id", $id);
 		$data = $this->get()->row_array();

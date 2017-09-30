@@ -15,7 +15,7 @@ AJAX={
 			}
 			xui.request(AJAX.serviceURI+rpc, data, function(rsp){
 				var obj=rsp,result="ok";
-				if(obj){
+				if(obj && obj.code){
 					if(obj.code==200){
 						if(obj.warn){
 							xui.message(obj.warn);
@@ -27,7 +27,8 @@ AJAX={
 					}
 				}else{
 					result="fail";
-					xui.alert(_.serialize(rsp));
+					xui.alert("有错误发生");
+					LOG.error(_.serialize(rsp));
 				}
 				_.tryF(onEnd,[result]);
 			},function(rsp){
@@ -49,7 +50,7 @@ AJAX={
 		}
 		xui.request(AJAX.serviceURI+rpc, data, function(rsp){
 			var obj=rsp,result="ok";
-			if(obj){
+			if(obj && obj.code){
 				if(obj.code==200){
 					if(obj.warn){
 						xui.message(obj.warn);
@@ -61,7 +62,8 @@ AJAX={
 				}
 			}else{
 				result="fail";
-				xui.alert(_.serialize(rsp));
+				xui.alert("有错误发生");
+				LOG.error(_.serialize(rsp));
 			}
 			_.tryF(onEnd,[result]);
 		},function(rsp){

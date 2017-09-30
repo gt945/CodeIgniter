@@ -21,13 +21,14 @@ class Db_Model extends CI_Model
 		$this->primary = 'id';
 		$this->selected = $select;
 		$this->cached = false;
-		$this->cache = array();
+//		$this->cache = array();
 	}
 
 	public function prepare()
 	{
 
 	}
+	
 	public function save($datas)
 	{
 		$ret = array();
@@ -191,8 +192,10 @@ class Db_Model extends CI_Model
 			$field = $require;
 		}
 		if ($type == 'JN') {
-			$this->join ( "{$table} b", "b.{$field}='{$value}'", 'LEFT' );
-			$this->where("b.{$caption} = `{$replace}`");
+			$this->join ("{$table} b", "b.{$field}='{$value}'", 'LEFT');
+			if ($caption && $replace) {
+				$this->where("b.{$caption} = a.`{$replace}`");
+			}
 		} else {
 			$this->parse_rules("AND", $field, $type, $value, "a");
 		}
