@@ -282,7 +282,7 @@ Class('App.GridEditor','xui.Module',{
 			var ns=this;
 			var prop={_filter:ns._filters,_search:ns._search,_sidx:ns.properties.sidx,_sord:ns.properties.sord,_sub:ns._sub};
 			_.merge(prop,ns.properties);
-			xui.ModuleFactory.newCom("App.Validate",function(){
+			xui.ModuleFactory.newCom("App.Check",function(){
 				if(!_.isEmpty(this)){
 					this.show();
 				}

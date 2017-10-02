@@ -235,17 +235,19 @@ class System extends MY_Controller {
 	private function request_setting_get()
 	{
 		$ret = new stdClass();
-		if (!isset($_SESSION['userinfo']['workyear'])) {
-			$_SESSION['userinfo']['workyear'] = (int)date('Y');
+		if (!isset($_SESSION['settings']->workyear)) {
+			$_SESSION['settings']->workyear = (int)date('Y');
+			$this->auth_model->user_update_setting();
 		}
-		$ret->workyear = $_SESSION['userinfo']['workyear'];
+		$ret->workyear = $_SESSION['settings']->workyear;
 		return $ret;
 	}
 	
 	private function request_setting_set()
 	{
 		if (isset($this->paras->workyear)) {
-			$_SESSION['userinfo']['workyear'] = (int)$this->paras->workyear;
+			$_SESSION['settings']->workyear = (int)$this->paras->workyear;
+			$this->auth_model->user_update_setting();
 		}
 		return 1;
 	}
@@ -296,5 +298,55 @@ class System extends MY_Controller {
 			$this->reply(403, $msg);
 		}
 		return 0;
+	}
+	
+	private function request_update_shortkey()
+	{
+		$_SESSION['settings'] = $this->paras->settings;
+		$this->auth_model->user_update_setting();
+	}
+	
+	private function request_toolbar()
+	{
+		$rsp = new stdClass();
+		$items = array(
+			(object) array(
+				"id" => "grp1",
+				"sub" => array(),
+				"caption" => "grp1"
+			)
+		);
+		if ($this->auth_model->is_switch()) {
+			$items[0]->sub[] = (object) array(
+				"id" => "switch_back",
+				"image" => "@xui_ini.appPath@image/switch.png",
+				"caption" => "返回原始用户"
+			);
+		} else if ($this->auth_model->is_admin() || $this->auth_model->is_super()) {
+			$items[0]->sub[] = (object) array(
+				"id" => "switch_to",
+				"image" => "@xui_ini.appPath@image/switch.png",
+				"caption" => "切换用户"
+			);
+		}
+		
+		$items[0]->sub[] = (object) array(
+			"id" => "setting",
+			"image" => "@xui_ini.appPath@image/setting.png",
+			"caption" => "设置"
+		);
+		$items[0]->sub[] = (object) array(
+			"id" => "userinfo",
+			"image" => "@xui_ini.appPath@image/user.png",
+			"caption" => $_SESSION['userinfo']['username']
+		);
+		$items[0]->sub[] = (object) array(
+			"id" => "logout",
+			"image" => "@xui_ini.appPath@image/logout.png",
+			"caption" => "退出"
+		);
+		$rsp->toolbar = $items;
+		$rsp->settings = $_SESSION['settings'];
+		return $rsp;
 	}
 }

@@ -1,5 +1,5 @@
 // 默认的代码是一个从 xui.Module 派生来的类
-Class('App.Validate', 'xui.Module',{
+Class('App.Check', 'xui.Module',{
 	autoDestroy : true,
 	// 要确保键值对的值不能包含外部引用
 	Instance:{

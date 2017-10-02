@@ -392,9 +392,9 @@ class Grid_model extends Crud_Model
 
 		//workyear
 		if ($this->crud_table['prop'] & Crud_model::PROP_TABLE_YEAR
-			&& isset($_SESSION['userinfo']['workyear'])
-			&& $_SESSION['userinfo']['workyear'] > 0){
-			$this->$db->parse_rules("AND", "Year", "eq", $_SESSION['userinfo']['workyear'], $alias);
+			&& isset($_SESSION['settings']->workyear)
+			&& $_SESSION['settings']->workyear > 0){
+			$this->$db->parse_rules("AND", "Year", "eq", $_SESSION['settings']->workyear, $alias);
 		}
 
 		//user

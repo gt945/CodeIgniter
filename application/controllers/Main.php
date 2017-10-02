@@ -130,46 +130,6 @@ class Main extends CI_Controller {
 		return ((int)$a['seq'] > (int)$b['seq']) ? +1 : -1;
 	}
 
-public function toolbar()
-{
-	$items = array(
-		(object) array(
-			"id" => "grp1",
-			"sub" => array(),
-			"caption" => "grp1"
-		)
-	);
-	if ($this->auth_model->is_switch()) {
-		$items[0]->sub[] = (object) array(
-			"id" => "switch_back",
-			"image" => "@xui_ini.appPath@image/switch.png",
-			"caption" => "返回原始用户"
-		);
-	} else if ($this->auth_model->is_admin() || $this->auth_model->is_super()) {
-		$items[0]->sub[] = (object) array(
-			"id" => "switch_to",
-			"image" => "@xui_ini.appPath@image/switch.png",
-			"caption" => "切换用户"
-		);
-	}
-	
-	$items[0]->sub[] = (object) array(
-		"id" => "setting",
-		"image" => "@xui_ini.appPath@image/setting.png",
-		"caption" => "设置"
-	);
-	$items[0]->sub[] = (object) array(
-		"id" => "userinfo",
-		"image" => "@xui_ini.appPath@image/user.png",
-		"caption" => $_SESSION['userinfo']['username']
-	);
-	$items[0]->sub[] = (object) array(
-		"id" => "logout",
-		"image" => "@xui_ini.appPath@image/logout.png",
-		"caption" => "退出"
-	);
-	echo json_encode($items);
-}
 // 	public function install()
 // 	{
 // 		$this->load->model('crud_model');

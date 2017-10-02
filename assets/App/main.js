@@ -39,7 +39,7 @@ Class('App.main', 'xui.Module',{
 				.setHandler(false)
 				.setDock("fill")
 				.onClick("_toolbar_click")
-				, "before");		
+				, "before");
 
 			host.layout_v.append(
 				(new xui.UI.Layout())
@@ -59,8 +59,9 @@ Class('App.main', 'xui.Module',{
 				}])
 				.setType("horizontal")
 				, "main");
-			
-			host.layout_h.append( _.unserialize(MENUS), "before");
+			var menus=_.unserialize(MENUS);
+			menus.setHost(host,'menus');
+			host.layout_h.append( menus, "before");
 			
 			host.layout_h.append(
 				(new xui.UI.Tabs())
@@ -74,7 +75,15 @@ Class('App.main', 'xui.Module',{
 				.setValue("messages")
 				.beforePageClose("_xui_ui_main_tabs_beforepageclose")
 				.onIniPanelView("_tabs_oninipanelview")
+				.onContextmenu("_tabs_oncontextmenu")
 				, "main");
+			
+			append(
+				(new xui.UI.PopMenu)
+				.setHost(host,"tabs_popmenu")
+				.setWidth(82)
+				.setHeight(80)
+			);
 			return children;
 			// ]]Code created by CrossUI RAD Studio
 		},
@@ -90,10 +99,25 @@ Class('App.main', 'xui.Module',{
 			var callback=function(){
 				xui.Thread.resume(threadid);
 			};
-			xui.request(SITEURL+"Main/toolbar", null, function(rsp){
-				ns.toolbar.setItems(rsp);
-				callback();
-			},function(){
+			AJAX.callService('system/request', null, "toolbar", null, function(rsp){
+				ns.toolbar.setItems(rsp.data.toolbar);
+				ns.properties.settings=rsp.data.settings;
+				for(var i=0;i<10;i++){
+					xui.Event.keyboardHook(String(i),0,0,1,function(key){
+						var shortkey=ns.properties.settings.shortkey;
+						var target=shortkey['key'+key];
+						if(target){
+							var submenus=ns.menus.getChildren();
+							_.arr.each(submenus,function(m){
+								var item=m.getItemByItemId(target);
+								if (item){
+									m.boxing().fireItemClickEvent(target);
+									return false;
+								}
+							});
+						}
+					},[i]);
+				}
 				callback();
 			});
 		},
@@ -113,6 +137,12 @@ Class('App.main', 'xui.Module',{
 				.append(this)
 				.show(tabs,item.id);
 			},null,{target:item.target,id:item.id});
+			_.each(SPA.properties.settings.shortkey, function(id,index){
+				if(id==item.id){
+					var key=parseInt(index.substr(3));
+					tabs.updateItem(item.id,{caption:'['+key+']'+item.caption,_caption:item.caption,_key:key});
+				}
+			});
 		},
 		_menus_selected: function(profile, item, src) {
 			var tabs=SPA.main_tabs,id=item.id;
@@ -176,7 +206,98 @@ Class('App.main', 'xui.Module',{
 			if (id=="messages"){
 				SPA._load_tab(item);
 			}
+		},
+		_tabs_oncontextmenu:function(profile,e,src,item){
+			var ns=this,tabs=ns.main_tabs;
+			var target=e.target||e.srcElement;
+			var tab=tabs.getItemByDom(target.id);
+			if (tab) {
+				ns.tabs_popmenu.setItems([{
+					"id" : "close_all",
+					"caption" : "全部关闭"
+				},
+				{
+					"id" : "close_others",
+					"caption" : "关闭其他"
+				},
+				{
+					"id" : "short_key",
+					"caption" : tab._key >= 0 ? "清除快捷键":"设置快捷键"
+				}])
+				.pop(target);
+				ns.tabs_popmenu.onMenuSelected(function(profile,item,src){
+					var items=tabs.getItems();
+					switch(item.id){
+						case "close_all":
+							var r=[];
+							_.arr.each(items,function(i){
+								if(i.closeBtn){
+									r.push(i.id);
+								}
+							});
+							tabs.removeItems(r);
+							break;
+						case "close_others":
+							var r=[];
+							_.arr.each(items,function(i){
+								if(i.closeBtn&&i.id!=tab.id){
+									r.push(i.id);
+								}
+							});
+							tabs.removeItems(r);
+							break;
+						case "short_key":
+							if(tab.closeBtn){
+								if(tab._key>=0){
+									ns._setup_shortkey(-1,tab);
+								}else{
+									xui.ModuleFactory.newCom("App.Input",function(){
+										this.show();
+									},null,{caption:"输入一个0～9的数字",label:"设置之后可以通过Alt+数字快速切换到标签页"},
+									{
+										onSelect:function(key){
+											var num=parseInt(key);
+											if(num>=0&&num<10){
+												ns._setup_shortkey(num,tab);
+											}
+										}
+									});
+								}
+							}
+							break;
+					}
+				});
+				return false;
+			}
+			return true;
+			
+		},
+		_setup_shortkey:function(num,tab){
+			var ns=this,settings=ns.properties.settings,tabs=ns.main_tabs;
+			var key='key'+(num>=0?num:tab._key);
+			var old=tab._caption ? tab._caption : tab.caption;
+			var caption=old;
+			if(!settings.shortkey){
+				settings.shortkey={};
+			}
+			if(num>=0){
+				if(settings.shortkey[key]){
+					xui.alert('该快捷键已被占用');
+					return false;
+				}else{
+					settings.shortkey[key] = tab.id;
+					caption = '['+num+']'+old;
+				}
+			}else{
+				delete settings.shortkey[key];
+			}
+			AJAX.callService('system/request', null, "update_shortkey", {settings:ns.properties.settings}, function(rsp){
+				tabs.updateItem(tab.id,{caption:caption,_caption:old,_key:num});
+			});
+			return true;
+			
 		}
+		
 	}
 });
 

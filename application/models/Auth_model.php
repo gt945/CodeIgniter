@@ -155,6 +155,11 @@ class Auth_model extends CI_Model {
 	{
 		$userinfo = $this->get_user($user_id);
 		$this->session->set_userdata ( array( "userinfo" => $userinfo) );
+		$settings = json_decode($userinfo['settings']);
+		if (!$settings) {
+			$settings = new stdClass();
+		}
+		$this->session->set_userdata ( array( "settings" => $settings));
 		$groupinfo = $this->get_group($userinfo['gid']);
 		$this->session->set_userdata ( array( "groupinfo" => $groupinfo) );
 		unset($_SESSION['_uid']);
@@ -429,4 +434,15 @@ class Auth_model extends CI_Model {
 		$this->setup_user($_SESSION['_uid']);
 		return null;
 	}
+	
+	public function user_update_setting()
+	{
+		if (isset($_SESSION['userinfo'])) {
+			$settings = json_encode($_SESSION['settings']);
+			$this->db->set("settings", $settings);
+			$this->db->where( 'id', $_SESSION['userinfo']['id']);
+			$this->db->update ( "user");
+		}
+	}
+	
 }
