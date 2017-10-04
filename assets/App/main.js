@@ -105,16 +105,28 @@ Class('App.main', 'xui.Module',{
 				for(var i=0;i<10;i++){
 					xui.Event.keyboardHook(String(i),0,0,1,function(key){
 						var shortkey=ns.properties.settings.shortkey;
-						var target=shortkey['key'+key];
-						if(target){
-							var submenus=ns.menus.getChildren();
-							_.arr.each(submenus,function(m){
-								var item=m.getItemByItemId(target);
-								if (item){
-									m.boxing().fireItemClickEvent(target);
-									return false;
-								}
-							});
+						if(shortkey){
+							var target=shortkey['key'+key];
+							if(target){
+								var items=ns.menus.getItems();
+								_.arr.each(items,function(i){
+									var m=ns.menus.getChildren(i.id).get(0);
+									var v=m.getItemByItemId(target);
+									if (v){
+										ns.menus.fireItemClickEvent(i.id);
+										m.boxing().fireItemClickEvent(target);
+										return false;
+									}
+								});
+//								var submenus=ns.menus.getChildren();
+//								_.arr.each(submenus,function(m){
+//									var item=m.getItemByItemId(target);
+//									if (item){
+//										m.boxing().fireItemClickEvent(target);
+//										return false;
+//									}
+//								});
+							}
 						}
 					},[i]);
 				}
@@ -137,12 +149,14 @@ Class('App.main', 'xui.Module',{
 				.append(this)
 				.show(tabs,item.id);
 			},null,{target:item.target,id:item.id});
-			_.each(SPA.properties.settings.shortkey, function(id,index){
-				if(id==item.id){
-					var key=parseInt(index.substr(3));
-					tabs.updateItem(item.id,{caption:'['+key+']'+item.caption,_caption:item.caption,_key:key});
-				}
-			});
+			if(SPA.properties.settings&&SPA.properties.settings.shortkey){
+				_.each(SPA.properties.settings.shortkey, function(id,index){
+					if(id==item.id){
+						var key=parseInt(index.substr(3));
+						tabs.updateItem(item.id,{caption:'['+key+']'+item.caption,_caption:item.caption,_key:key});
+					}
+				});
+			}
 		},
 		_menus_selected: function(profile, item, src) {
 			var tabs=SPA.main_tabs,id=item.id;
@@ -277,22 +291,22 @@ Class('App.main', 'xui.Module',{
 			var key='key'+(num>=0?num:tab._key);
 			var old=tab._caption ? tab._caption : tab.caption;
 			var caption=old;
-			if(!settings.shortkey){
-				settings.shortkey={};
-			}
+			var shortkey=_.merge({},settings.shortkey);
+			
 			if(num>=0){
-				if(settings.shortkey[key]){
+				if(shortkey[key]){
 					xui.alert('该快捷键已被占用');
 					return false;
 				}else{
-					settings.shortkey[key] = tab.id;
-					caption = '['+num+']'+old;
+					shortkey[key]=tab.id;
+					caption='['+num+']'+old;
 				}
 			}else{
-				delete settings.shortkey[key];
+				delete shortkey[key];
 			}
-			AJAX.callService('system/request', null, "update_shortkey", {settings:ns.properties.settings}, function(rsp){
+			AJAX.callService('system/request', null, "update_shortkey", {shortkey:shortkey}, function(rsp){
 				tabs.updateItem(tab.id,{caption:caption,_caption:old,_key:num});
+				settings.shortkey=shortkey;
 			});
 			return true;
 			

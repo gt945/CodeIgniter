@@ -420,6 +420,7 @@ class Auth_model extends CI_Model {
 			$_SESSION['_uid'] = $_SESSION['userinfo']['id'];
 			$this->session->set_userdata ( array( "userinfo" => $userinfo) );
 			$this->session->set_userdata ( array( "groupinfo" => $groupinfo) );
+			$this->session->set_userdata ( array( "settings" => json_decode($userinfo['settings'])) );
 		} else {
 			return "权限不足";
 		}
@@ -435,11 +436,19 @@ class Auth_model extends CI_Model {
 		return null;
 	}
 	
-	public function user_update_setting()
+	public function user_get_settings()
+	{
+		if(isset($_SESSION['userinfo']) && isset($_SESSION['settings'])) {
+			return $_SESSION['settings'];
+		}
+		return new stdClass();
+	}
+	public function user_update_settings($settings)
 	{
 		if (isset($_SESSION['userinfo'])) {
-			$settings = json_encode($_SESSION['settings']);
-			$this->db->set("settings", $settings);
+			$_SESSION['settings'] = $settings;
+			$save = json_encode($settings);
+			$this->db->set("settings", $save);
 			$this->db->where( 'id', $_SESSION['userinfo']['id']);
 			$this->db->update ( "user");
 		}

@@ -255,7 +255,9 @@ Class('App.GridFilter', 'xui.Module',{
 							}
 						}
 					});
-					filters.rules.push(group);
+					if(!_.isEmpty(group)){
+						filters.rules.push(group);
+					}
 				}
 			});
 			
@@ -272,6 +274,7 @@ Class('App.GridFilter', 'xui.Module',{
 		},
 		_xui_ui_button_cancel_onclick:function(profile,e,src){
 			var ns=this;
+			ns.fireEvent("onCancel");
 			ns.mainDlg.hide();
 		},
 		_xui_ui_dialog_beforeclose:function(profile,e,src){

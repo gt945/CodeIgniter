@@ -64,6 +64,7 @@ Class('App.GridExporter', 'xui.Module',{
 				.setTreeMode(false)
 				.setRowHandlerWidth(80)
 				.setSelMode("multi")
+				.setColSortable(false)
 				.setHeader([{
 					"id" : "field",
 					"caption" : "字段",

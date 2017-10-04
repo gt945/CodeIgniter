@@ -130,6 +130,7 @@ Class('App.GridEditor','xui.Module',{
 			ns._fetch_data(function(rsp){
 				if(!ns.isDestroyed()){
 					ns.pagebar.setValue("1:"+curPage+":"+( Math.ceil(parseInt(rsp.data.count,10)/pageSize) ),true);
+					ns.pagebar.setCaption('总条数: '+rsp.data.count);
 					ns._fillGrid(rsp.data.rows);
 				}
 			});
@@ -241,8 +242,17 @@ Class('App.GridEditor','xui.Module',{
 				});
 			}
 		},
+		_update_filter:function(){
+			var ns=this;
+			if(ns._search){
+				ns.toolbar.updateItem('filter', {value:true});
+			}else{
+				ns.toolbar.updateItem('filter', {value:false});
+			}
+		},
 		_openFilter:function(field){
 				var ns=this;
+				ns._update_filter();
 				if (ns.properties.filterForm){
 					ns.properties.filterForm.mainDlg.show(null,true);
 					if(field)ns.properties.filterForm.add_condition(field);
@@ -258,8 +268,14 @@ Class('App.GridEditor','xui.Module',{
 							ns._filters=filters;
 							if (filters.rules.length){
 								ns._search=true;
+							}else{
+								ns._search=false;
 							}
+							ns._update_filter();
 							ns.loadGridData(1);
+						},
+						onCancel:function(){
+							ns._update_filter();
 						}
 					});
 				}

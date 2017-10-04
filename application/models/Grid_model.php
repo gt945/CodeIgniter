@@ -1364,7 +1364,8 @@ class Grid_model extends Crud_Model
 			$items[0]->sub[] = (object)array(
 				"id" => "filter",
 				"image" => "@xui_ini.appPath@image/filter.png",
-				"caption" => "搜索"
+				"caption" => "搜索",
+				"type" => "statusButton"
 			);
 		}
 		if ($this->group) {

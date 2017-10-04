@@ -235,20 +235,20 @@ class System extends MY_Controller {
 	private function request_setting_get()
 	{
 		$ret = new stdClass();
-		if (!isset($_SESSION['settings']->workyear)) {
-			$_SESSION['settings']->workyear = (int)date('Y');
-			$this->auth_model->user_update_setting();
+		$settings = $this->auth_model->user_get_settings();
+		if (!isset($settings->workyear)) {
+			$settings->workyear = (int)date('Y');
+			$this->auth_model->user_update_settings($settings);
 		}
-		$ret->workyear = $_SESSION['settings']->workyear;
+		$ret->workyear = $settings->workyear;
 		return $ret;
 	}
 	
 	private function request_setting_set()
 	{
-		if (isset($this->paras->workyear)) {
-			$_SESSION['settings']->workyear = (int)$this->paras->workyear;
-			$this->auth_model->user_update_setting();
-		}
+		$settings = $this->auth_model->user_get_settings();
+		$settings->workyear = (int)$this->paras->workyear;
+		$this->auth_model->user_update_settings($settings);
 		return 1;
 	}
 	
@@ -302,8 +302,9 @@ class System extends MY_Controller {
 	
 	private function request_update_shortkey()
 	{
-		$_SESSION['settings'] = $this->paras->settings;
-		$this->auth_model->user_update_setting();
+		$settings = $this->auth_model->user_get_settings();
+		$settings->shortkey = $this->paras->shortkey;
+		$this->auth_model->user_update_settings($settings);
 	}
 	
 	private function request_toolbar()
@@ -346,7 +347,7 @@ class System extends MY_Controller {
 			"caption" => "退出"
 		);
 		$rsp->toolbar = $items;
-		$rsp->settings = $_SESSION['settings'];
+		$rsp->settings = $this->auth_model->user_get_settings();
 		return $rsp;
 	}
 }
