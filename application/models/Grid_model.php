@@ -366,8 +366,8 @@ class Grid_model extends Crud_Model
 			$this->$db->table($table);
 			$this->$db->from("{$table} b");
 			$this->$db->select("b.{$this->primary}");
-			$this->$db->fields = $this->grid_model->fields;
-			$this->$db->crud_field = $this->grid_model->crud_field;
+			$this->$db->fields = $this->fields;
+			$this->$db->crud_field = $this->crud_field;
 			$alias = "b";
 		}
 
