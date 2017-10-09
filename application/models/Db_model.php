@@ -62,13 +62,16 @@ class Db_Model extends CI_Model
 
 		foreach ($filters->rules as $r) {
 			if (isset($r->field)) {
-				if (isset($this->fields) && !isset($this->fields[$r->field])) {			 //字段不存在
+				$r->field = $this->has_field($r->field);
+				if ($r->field === FALSE) { //字段不存在
 					continue;
 				}
-				if (isset($this->crud_field) && !$this->crud_field[$r->field]['_role_r']) {			 //没有读权限
+				
+				if (!$this->field_role_r($r->field)) { //没有读权限
 					continue;
 				}
-				if (isset($this->fields) && isset($this->fields["{$r->field}_py"])) {
+				
+				if ($this->has_py_field($r->field)) {
 					if ($filters->groupOp === "OR") {
 						$this->or_group_start();
 					} else {
@@ -199,5 +202,51 @@ class Db_Model extends CI_Model
 		} else {
 			$this->parse_rules("AND", $field, $type, $value, "a");
 		}
+	}
+	
+	public function has_field($field)
+	{
+		if (!isset($this->fields)){
+			return $field;
+		}
+		$k = array_search(strtolower($field), array_map('strtolower', $this->fields));
+		if ($k === FALSE) {
+			return $k;
+		}
+		return $this->fields[$k];
+	}
+	
+	public function has_py_field($field)
+	{
+		if (!isset($this->fields)){
+			return FALSE;
+		}
+		$k = array_search(strtolower("{$field}_py"), array_map('strtolower', $this->fields));
+		if ($k === FALSE) {
+			return $k;
+		}
+		return TRUE;
+	}
+	
+	public function field_role_r($field)
+	{
+		if (!isset($this->crud_field)){
+			return TRUE;
+		}
+		if (!isset($this->crud_field[$field])) {
+			return FALSE;
+		}
+		return $this->crud_field[$field]['_role_r'];
+	}
+	
+	public function field_role_u($field)
+	{
+		if (!isset($this->crud_field)){
+			return TRUE;
+		}
+		if (!isset($this->crud_field[$field])) {
+			return FALSE;
+		}
+		return $this->crud_field[$field]['_role_u'];
 	}
 }

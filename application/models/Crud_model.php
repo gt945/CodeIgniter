@@ -121,7 +121,7 @@ class Crud_model extends Db_Model {
 				foreach ( $crud_field as $k => $f ) {
 					$f['_role_r'] = $this->auth_model->check_role($f['role_r']);
 					$f['_role_u'] = $this->auth_model->check_role($f['role_u']);
-					$fields[$f ['name']] = true;
+					$fields[$f ['name']] = $f ['name'];
 					unset ( $crud_field [$k] );
 					if($f['prop'] & Crud_model::PROP_FIELD_PRIMARY) {
 						$obj->primary = $f['name'];
