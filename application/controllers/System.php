@@ -236,10 +236,6 @@ class System extends MY_Controller {
 	{
 		$ret = new stdClass();
 		$settings = $this->auth_model->user_get_settings();
-		if (!isset($settings->workyear)) {
-			$settings->workyear = (int)date('Y');
-			$this->auth_model->user_update_settings($settings);
-		}
 		$ret->workyear = $settings->workyear;
 		return $ret;
 	}

@@ -438,10 +438,15 @@ class Auth_model extends CI_Model {
 	
 	public function user_get_settings()
 	{
+		$ret = new stdClass();
 		if(isset($_SESSION['userinfo']) && isset($_SESSION['settings'])) {
-			return $_SESSION['settings'];
+			$ret = $_SESSION['settings'];
 		}
-		return new stdClass();
+		if (!isset($ret->workyear)) {
+			$ret->workyear = (int)date('Y');
+			//$this->user_update_settings($ret);
+		}
+		return $ret;
 	}
 	public function user_update_settings($settings)
 	{

@@ -400,7 +400,7 @@ Class('App.GridEditor','xui.Module',{
 					ns._flow_action(item.actionId);
 					break;
 				case "custom":
-					if(typeof item.app=='string'){
+					if(typeof item.app=='string'&&item.app!=''){
 						if (item.prop.keep&&ns._items[item.app]&&!ns._items[item.app].isDestroyed()){
 							ns._items[item.app].show();
 						}else{
@@ -421,6 +421,10 @@ Class('App.GridEditor','xui.Module',{
 							});
 						}
 
+					}else if(typeof item.uri=='string'&&item.uri!=''){
+						AJAX.callService(item.uri,null,item.target,{},function(rsp){
+							xui.message(rsp.data);
+						});
 					}
 					break;
 				}

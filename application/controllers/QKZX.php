@@ -761,4 +761,101 @@ EOF;
 		}
 		return 1;
 	}
+	
+	private function request_update_sales_stats()
+	{
+		ini_set('max_execution_time', 0);
+		$settings = $this->auth_model->user_get_settings();
+		$this->db->select(array('JID', 'NoStart', 'sum(orderCount) AS OrderCount'));
+		$this->db->from('journalorders');
+		$this->db->where(array('saleStyle' => 5, 'Jyear' => $settings->workyear));
+		$this->db->group_by(array('JID', 'NoStart'));
+		$sql1 = $this->db->get_compiled_select();
+		
+		$this->db->select(array('JID', 'NoStart', 'sum(orderCount) AS OrderCount'));
+		$this->db->from('journalorders');
+		$this->db->where('Jyear' , $settings->workyear);
+		$this->db->where_in('saleStyle', array(20,21));
+		$this->db->group_by(array('JID', 'NoStart'));
+		$sql2 = $this->db->get_compiled_select();
+		
+		$this->db->select(array('JID', 'NoStart', 'sum(orderCount) AS OrderCount'));
+		$this->db->from('journalorders');
+		$this->db->where(array('saleStyle' => 4, 'Jyear' => $settings->workyear));
+		$this->db->group_by(array('JID', 'NoStart'));
+		$sql3 = $this->db->get_compiled_select();
+		
+		$this->db->select(array('JID', 'NoStart', 'sum(orderCount) AS OrderCount'));
+		$this->db->from('journalorders');
+		$this->db->where('Jyear' , $settings->workyear);
+		$this->db->where_in('saleStyle', array(1,2,6,8));
+		$this->db->group_by(array('JID', 'NoStart'));
+		$sql4 = $this->db->get_compiled_select();
+		
+		$this->db->select(array('JID', 'NoStart', 'sum(orderCount) AS OrderCount'));
+		$this->db->from('journalorders');
+		$this->db->where(array('saleStyle' => 8, 'Jyear' => $settings->workyear));
+		$this->db->group_by(array('JID', 'NoStart'));
+		$sql5 = $this->db->get_compiled_select();
+		
+		$this->db->select(array('JID', 'NoStart', 'sum(orderCount) AS OrderCount'));
+		$this->db->from('journalorders jo');
+		$this->db->from('customers cu');
+		$this->db->where('jo.year', $settings->workyear);
+		$this->db->where('jo.cid = cu.id');
+		$this->db->group_start();
+		$this->db->group_start();
+		$this->db->where(array('cu.IsDelivery' => 1, 'cu.isAlone' => 0, 'cu.Discount<' => 100));
+		$this->db->where_not_in('jo.SaleStyle', array(2,5));
+		$this->db->group_end();
+		$this->db->or_where('jo.SaleStyle', 7);
+		$this->db->group_end();
+		$this->db->group_by(array('jo.JID', 'jo.NoStart'));
+		$sql6 = $this->db->get_compiled_select();
+		
+		$this->db->from('deliverydetails a');
+		//$this->db->select(array('a.JID', 'a.No', 'b.name'));
+		$this->db->join('journalbaseinfo b', 'a.JID = b.id', 'LEFT');
+		$this->db->join('publishnotify c', 'a.JID = c.JID and a.No = c.No', 'LEFT');
+		$this->db->join('journalstockmanage d', 'a.JID = d.JID and a.No = d.No', 'LEFT');
+		$this->db->join("({$sql1}) e", 'a.JID = e.JID and a.No = e.NoStart', 'LEFT');
+		$this->db->join("({$sql2}) f", 'a.JID = f.JID and a.No = f.NoStart', 'LEFT');
+		$this->db->join("({$sql3}) g", 'a.JID = g.JID and a.No = g.NoStart', 'LEFT');
+		$this->db->join("({$sql4}) h", 'a.JID = h.JID and a.No = h.NoStart', 'LEFT');
+		$this->db->join("({$sql5}) i", 'a.JID = i.JID and a.No = i.NoStart', 'LEFT');
+		$this->db->join("({$sql6}) j", 'a.JID = j.JID and a.No = j.NoStart', 'LEFT');
+		$this->db->select(array('a.JID', 'a.No', 'b.Name', 'b.NofPerYear', 
+			'b.Price', 'b.SaleDiscount', 'b.Classify', 'b.PublishStyle', 'b.Year','b.Price',
+			'ifnull(c.PublishCounts,0) as PublishCounts',
+			'ifnull(d.Counts,0) as StockCount',
+			'ifnull(e.OrderCount,0) as EditOrderCount',
+			'ifnull(f.OrderCount,0) as PostInCity',
+			'ifnull(g.OrderCount,0) as PostOutCity',
+			'ifnull(h.OrderCount,0) as ToPress',
+			'ifnull(i.OrderCount,0) as Gift',
+			'ifnull(j.OrderCount,0) as SelfSale'
+		
+		));
+		$this->db->where('a.year', $settings->workyear);
+		$this->db->group_by(array('a.JID', 'a.No'));
+		$this->db->order_by('a.JID, a.No');
+		$data = $this->db->get()->result_array();
+		$this->db->delete('jounalsale_statcache', array('Year'=>$settings->workyear));
+		foreach($data as &$d) {
+			$d['PublishTotalPrice'] = $d['Price'] * $d['PublishCounts'];
+			$d['PostTotal'] = $d['PostInCity'] + $d['PostOutCity'];
+			$d['DeliverCount'] = $d['EditOrderCount'] + $d['PostTotal'] + $d['SelfSale'] + $d['Gift'];
+			$d['DeliverTotalCost'] = $d['DeliverCount'] * $d['Price'];
+			$d['SaleCount'] = $d['PostTotal'] - 10 + $d['SelfSale'];			//销售数量
+			$d['SaleCountCost'] = $d['SaleCount'] * $d['Price'];				//销售码洋
+			$d['SaleDiscount'] = ((int)$d['SaleDiscount'] )? $d['SaleDiscount'] : 100;
+			$d['RealCost'] = $d['SaleCountCost'] * $d['SaleDiscount'] / 100;			//销售实洋
+			unset($d['Name']);
+			unset($d['NofPerYear']);
+			unset($d['DeliverTotalCost']);
+			$this->db->insert('jounalsale_statcache', $d);
+			
+		}
+		return "统计完成";
+	}
 }

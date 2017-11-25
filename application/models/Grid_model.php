@@ -260,7 +260,8 @@ class Grid_model extends Crud_Model
 		} else if (is_array($data)) {
 			$data = (object)array(
 				"data" => $data,
-				"count" => 1
+				"count" => 1,
+				"sql" => ''
 			);
 		} else {
 			$data = null;
