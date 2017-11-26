@@ -858,4 +858,67 @@ EOF;
 		}
 		return "统计完成";
 	}
+	
+	private function request_update_cost_stats()
+	{
+		ini_set('max_execution_time', 0);
+		$settings = $this->auth_model->user_get_settings();
+		
+		$this->db->select(array('PNID','ifnull(sum((`Price` * `TotalPaper`)),0) as Fee'));
+		$this->db->from('publishnotifydetails');
+		$this->db->group_by('PNID');
+		$sql1 = $this->db->get_compiled_select();
+		
+		$this->db->select(array('PNID','ifnull(sum((`Price` * `Counts`)),0) as Fee'));
+		$this->db->from('publishnotifyprice');
+		$this->db->group_by('PNID');
+		$sql2 = $this->db->get_compiled_select();
+		
+		$this->db->select(array('y.JID', 'y.No', 'ifnull(sum((`x`.`Price` * `x`.`Count`)),0) as Fee'));
+		$this->db->from('publishbefore x');
+		$this->db->join('journalfeemaster y', 'x.JFMID = y.id and y.Type = 1', 'LEFT');
+		$this->db->group_by(array('y.JID', 'y.No'));
+		$sql3 = $this->db->get_compiled_select();
+		
+		$this->db->select(array('y.JID', 'y.No', 'ifnull(sum((`x`.`Price` * `x`.`PaperCount`)),0) as Fee'));
+		$this->db->from('superfluityprocess x');
+		$this->db->join('journalfeemaster y', 'x.JFMID = y.id and y.Type = 2', 'LEFT');
+		$this->db->group_by(array('y.JID', 'y.No'));
+		$sql4 = $this->db->get_compiled_select();
+		
+		$this->db->select(array('y.JID', 'y.No', 'ifnull(sum((((`x`.`PayFee`+`x`.`EditFee`)+`x`.`CheckFee`)+`x`.`DrawFee`)+`x`.`RemitFee`),0) as Fee'));
+		$this->db->from('factjournalfee x');
+		$this->db->join('journalfeemaster y', 'x.JFMID = y.id and y.Type = 3', 'LEFT');
+		$this->db->group_by(array('y.JID', 'y.No'));
+		$sql5 = $this->db->get_compiled_select();
+		
+		$this->db->from('publishnotify a');
+		$this->db->join('journalbaseinfo b', 'a.JID = b.id', 'LEFT');
+		$this->db->join('publishrecords c', 'a.JID = c.JID and a.No = c.No', 'LEFT');
+		$this->db->join("({$sql1}) d", 'a.id = d.PNID', 'LEFT');
+		$this->db->join("({$sql2}) e", 'a.id = e.PNID', 'LEFT');
+		$this->db->join("({$sql3}) f", 'a.JID = f.JID and a.No = f.No', 'LEFT');
+		$this->db->join("({$sql4}) g", 'a.JID = g.JID and a.No = g.No', 'LEFT');
+		$this->db->join("({$sql5}) h", 'a.JID = h.JID and a.No = h.No', 'LEFT');
+		$this->db->select(array('a.JID', 'a.No', 'a.PublishCounts', 'b.year' , 'c.PrintSheetCount',
+			'ifnull(d.Fee,0) as PaperFee',
+			'ifnull(e.Fee,0) as PrintFee',
+			'ifnull(f.Fee,0) as PublishBeforeFee',
+			'ifnull(g.Fee,0) as SuperFluityProcessFee',
+			'ifnull(h.Fee,0) as FactJournalFee'
+		));
+		$this->db->group_by(array('a.JID', 'a.No'));
+		$this->db->order_by('a.JID, a.No');
+		$this->db->where('b.year',  $settings->workyear);
+
+		$data = $this->db->get()->result_array();
+		$this->db->delete('journalcost_statcache', array('Year'=>$settings->workyear));
+		foreach($data as &$d) {
+			$d['TotalFee'] = $d['PaperFee'] + $d['PrintFee'] + $d['PublishBeforeFee'] + $d['SuperFluityProcessFee'] + $d['FactJournalFee'];
+			$this->db->insert('journalcost_statcache', $d);
+			
+		}
+		return "统计完成";
+	}
+
 }
