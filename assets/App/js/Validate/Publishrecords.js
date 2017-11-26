@@ -30,12 +30,22 @@ Class('App.Validate.Publishrecords', 'xui.Module',{
 				db.getUI("PrintSheetCount").setUIValue(0, true);
 			}
 			if(data.PicturePage.length){
-				var picp=data.PicturePage.split(',');
+				var picp=data.PicturePage.split(','),count=0;
 				_.arr.removeDuplicate(picp);
 				_.arr.removeValue(picp,"0");
 				_.arr.removeValue(picp,"");
 				db.getUI("PicturePage").setUIValue(picp.join(','),true);
-				db.getUI("PicPageCount").setUIValue(picp.length,true);
+				_.arr.each(picp,function(p){
+					pa=p.split('-');
+					if(pa.length==1){
+						count+=1;
+					}else{
+						var start=parseInt(pa[1]);
+						var end=parseInt(pa[0]);
+						count+=Math.abs(end-start)+1;
+					}
+				});
+				db.getUI("PicPageCount").setUIValue(count,true);
 			}else{
 				db.getUI("PicPageCount").setUIValue(0,true);
 			}
