@@ -5,7 +5,7 @@ var LOG = {
 				url : ops
 			};
 		ops.url = ops.url || '';
-		ops.method = ops.method || 'get'
+		ops.method = ops.method || 'get';
 		ops.data = ops.data || {};
 		var getParams = function(data, url) {
 			var arr = [], str;
@@ -13,12 +13,12 @@ var LOG = {
 				arr.push(name + '=' + encodeURIComponent(data[name]));
 			}
 			str = arr.join('&');
-			if (str != '') {
+			if (str !== '') {
 				return url ? (url.indexOf('?') < 0 ? '?' + str : '&' + str)
 						: str;
 			}
 			return '';
-		}
+		};
 		var api = {
 			host : {},
 			process : function(ops) {
@@ -88,7 +88,7 @@ var LOG = {
 		}
 		return api.process(ops);
 	}
-}
+};
 LOG.error=function(message,url,lineNumber){
 	LOG.request({
 		url: SITEURL+'log/index',
@@ -96,10 +96,32 @@ LOG.error=function(message,url,lineNumber){
 		data: {
 			message: message,
 			url: url,
-			lineNumber: lineNumber
+			lineNumber: lineNumber,
+			agent: navigator.userAgent
 		}
 	});
-}
+};
+LOG.callStack=function(){
+	var callstack = [];
+	var isCallstackPopulated = false;
+	try {
+		i.dont.exist+=0; //doesn't exist- that's the point
+	} catch(e) {
+		if (e.stack) {
+			return e.stack;
+		}
+		else if (window.opera && e.message) { //Opera
+			return e.message;
+		}
+	}
+
+	var currentFunction = arguments.callee.caller;
+	while (currentFunction) {
+		callstack.push(currentFunction);
+		currentFunction = currentFunction.caller;
+	}
+	return callstack.join('\n');
+};
 window.onerror = function(message, url, lineNumber) {
 	LOG.error(message,url,lineNumber);
  	return true;

@@ -15,7 +15,8 @@ class Log extends CI_Controller {
 			"line" => $this->input->post ( 'lineNumber' ),
 			"message" => $this->input->post ( 'message' ),
 			"url" => $this->input->post ( 'url' ),
-			"time" => date('Y-m-j H:i:s')
+			"time" => date('Y-m-j H:i:s'),
+			"agent" =>  $this->input->post ( 'agent' )
 		);
 		
 		$this->db->insert('log', $data);
