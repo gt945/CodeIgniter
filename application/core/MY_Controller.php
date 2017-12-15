@@ -42,7 +42,7 @@ class MY_Controller extends CI_Controller {
 				}
 				$response->data = $data;
 			}
-			if ($this->warn_msg) {
+			if (isset($this->warn_msg) && $this->warn_msg) {
 				$response->warn = $this->warn_msg;
 			}
 			header('Content-Type: application/json');
