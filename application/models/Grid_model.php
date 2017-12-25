@@ -68,7 +68,7 @@ class Grid_model extends Crud_Model
 			}
 		}
 
-		if (isset($this->$db->fields['AID']) && (!isset($this->$db->crud_field['AID']) || !$this->$db->crud_field['AID']['_role_r'])) {
+		if (!$this->$db->check_role('role_r')) {
 			$this->$db->where('a.AID', $_SESSION['userinfo']['id']);
 		}
 

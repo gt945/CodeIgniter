@@ -213,17 +213,17 @@ class QKZX extends MY_Controller
 			"groupOp" => "AND",
 			"rules" => array(
 				(object) array(
-					"data" => $this->paras->relate->JID,
+					"data" => $JID,
 					"op" => "eq",
 					"field" => "JID"
 				),
 				(object) array(
-					"data" => $this->paras->relate->Year,
+					"data" => $Year,
 					"op" => "eq",
 					"field" => "Year"
 				),
 				(object) array(
-					"data" => $this->paras->relate->No,
+					"data" => $No,
 					"op" => "eq",
 					"field" => "No"
 				)

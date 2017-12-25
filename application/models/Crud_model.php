@@ -123,12 +123,16 @@ class Crud_model extends Db_Model {
 					$f['_role_u'] = $this->auth_model->check_role($f['role_u']);
 					$fields[$f ['name']] = $f ['name'];
 					unset ( $crud_field [$k] );
+					if ($f['prop'] & Crud_model::PROP_FIELD_UID) {
+						$obj->role = $f;
+					} else {
+						$obj->role = null;
+					}
 					if($f['prop'] & Crud_model::PROP_FIELD_PRIMARY) {
 						$obj->primary = $f['name'];
 					} else if(count($select)
 						&& !in_array($f['name'], $select)
-						&& !in_array(strtolower($f['name']), $select)
-						&& !($f['prop'] & Crud_model::PROP_FIELD_UID)) {
+						&& !in_array(strtolower($f['name']), $select)) {
 						continue;
 					}
 					if ($f['prop'] & Crud_model::PROP_FIELD_CAPTION) {
@@ -550,4 +554,15 @@ class Crud_model extends Db_Model {
 		return $flow_items;
 	}
 
+	public function check_role($role)
+	{
+		if (!isset($this->fields)) {
+			return true;
+		}
+		if (isset($this->role) && $this->role != null) {
+			return $this->auth_model->check_role($this->role[$role] );
+		} else {
+			return true;
+		}
+	}
 }
