@@ -280,7 +280,7 @@ SELECT '邮局本市东' AS orderUnit, orderCount FROM (SELECT IfNULL(SUM(orderC
 union
 SELECT '邮局本市西' AS orderUnit, orderCount FROM(SELECT IfNULL(SUM(orderCount),0) AS orderCount FROM `qkzx_journalorders` WHERE JID = {$JID} and ReportStatus = 1 AND saleStyle = 21 AND Jyear ={$Year} AND nostart ={$No} ) f
 union
-select '本社' as orderUnit, orderCount from (select IfNULL(sum(orderCount),0) as orderCount from `qkzx_journalorders` where JID = {$JID} and ReportStatus = 1 and saleStyle in(1,2,6,8) and jyear = {$Year} and nostart <= {$No} and noend >= {$No}) d
+select '本社' as orderUnit, orderCount from (select IfNULL(sum(orderCount),0) as orderCount from `qkzx_journalorders` where JID = {$JID} and ReportStatus = 1 and saleStyle in(1,2,6,7,8) and jyear = {$Year} and nostart <= {$No} and noend >= {$No}) d
 EOF;
 //		$sql = "select '编辑部' as orderUnit, orderCount from (select ifnull(sum(orderCount),0) as orderCount from `qkzx_journalorders` where JID = ? and saleStyle = 5 and jyear =? and nostart <= ? and noend >=?) a";
 		$ret = $this->db->query($sql);

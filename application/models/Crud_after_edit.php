@@ -26,7 +26,7 @@ SELECT '邮局本市东' AS DeliverTarget, orderCount DeliverCount FROM (SELECT 
 union
 SELECT '邮局本市西' AS DeliverTarget, orderCount DeliverCount FROM(SELECT IfNULL(SUM(orderCount),0) AS orderCount FROM `qkzx_journalorders` WHERE JID = {$d['JID']} AND saleStyle = 21 AND Jyear ={$d['Year']} AND nostart ={$d['No']} ) f
 union
-select '本社' as DeliverTarget, orderCount DeliverCount from (select IfNULL(sum(orderCount),0) as orderCount from `qkzx_journalorders` where JID = {$d['JID']} and saleStyle in(1,2,6,8) and jyear = {$d['Year']} and nostart <= {$d['No']} and noend >= {$d['No']}) d
+select '本社' as DeliverTarget, orderCount DeliverCount from (select IfNULL(sum(orderCount),0) as orderCount from `qkzx_journalorders` where JID = {$d['JID']} and saleStyle in(1,2,6,7,8) and jyear = {$d['Year']} and nostart <= {$d['No']} and noend >= {$d['No']}) d
 
 EOF;
 			$ret = $this->db->query($sql);
