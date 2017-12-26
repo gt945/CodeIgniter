@@ -274,18 +274,19 @@ EOD;
 		
 		$sheet->setCellValue("B2", $data['PID']->caption);	//承印厂
 		$sheet->setCellValue("J2", date('Y-m-d'));	//打印日期
-		$sheet->setCellValue("B3", "{$data['JID']->caption}\n\t({$data['Year']->value}年第{$data['No']->value}期)");  //刊名
-		$sheet->setCellValue("I3", "{$data['PublishCounts']->value} 册");  //印数
-//		$sheet->setCellValue("I3", "{$total} 册");  //印数
-		$sheet->setCellValue("I4", "{$data['Price']->value} 元");   //定价
-		$sheet->setCellValue("A6", $data['KaiId']->caption);  //开本
-		$sheet->setCellValue("B6", $data['SizeId']->caption);	//开本尺寸
-		$sheet->setCellValue("C6", $data['DingKou']->value);	//订口
-		$sheet->setCellValue("D6", $data['QieKou']->value);	//切口
-		$sheet->setCellValue("E6", $data['TianTou']->value);	//天头
-		$sheet->setCellValue("F6", $data['DiJiao']->value);   //地脚
-		$sheet->setCellValue("G6", $data['FanShen']->value);	//翻身
-		$sheet->setCellValue("I5", $data['BindingMethod']->value);   //装订方法
+		$sheet->setCellValue("B3", "{$data['JID']->caption}\n\t({$data['Year']->value}年第{$data['No']->value}期)");	//刊名
+		$sheet->setCellValue("I3", "{$data['PublishCounts']->value} 册");	//印数
+//		$sheet->setCellValue("I3", "{$total} 册");							//印数
+		$sheet->setCellValue("A4", "印装完成日期：{$data['BindupTime']->value}");//印装完成日期
+		$sheet->setCellValue("I4", "{$data['Price']->value} 元");			//定价
+		$sheet->setCellValue("A6", $data['KaiId']->caption);				//开本
+		$sheet->setCellValue("B6", $data['SizeId']->caption);				//开本尺寸
+		$sheet->setCellValue("C6", $data['DingKou']->value);				//订口
+		$sheet->setCellValue("D6", $data['QieKou']->value);					//切口
+		$sheet->setCellValue("E6", $data['TianTou']->value);				//天头
+		$sheet->setCellValue("F6", $data['DiJiao']->value);					//地脚
+		$sheet->setCellValue("G6", $data['FanShen']->value);				//翻身
+		$sheet->setCellValue("I5", $data['BindingMethod']->value);			//装订方法
 
 		$i = 9;
 		foreach($details as $detail) {
@@ -305,9 +306,9 @@ EOD;
 			$i++;
 		}
 
-		$sheet->setCellValue("B15", $data['CoverInk']->value);	   //封面墨色
-		$sheet->setCellValue("H15", $data['TextInk']->value);	   //正文墨色
-//		$sheet->setCellValue("B16", $data['BindingOrder']->value);	   //装订顺序
+		$sheet->setCellValue("B15", $data['CoverInk']->caption + " " + $data['CoverType']->caption);	//封面墨色 + 封面处理方式
+		$sheet->setCellValue("H15", $data['TextInk']->caption);			//正文墨色
+//		$sheet->setCellValue("B16", $data['BindingOrder']->value);		//装订顺序
 //		$sheet->setCellValue("A17", $data['Note']->value);	   //备注
 		$sheet->setCellValue("B16", wordwrap($data['BindingOrder']->value, 125));	   //装订顺序
 		$sheet->setCellValue("A17", wordwrap($data['Note']->value, 125));	   //备注

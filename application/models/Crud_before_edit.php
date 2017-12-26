@@ -480,7 +480,7 @@ class Crud_before_edit extends Crud_hook {
 						$zoom = (int)$d['ZoomPercent'];
 						if ($kai > 0) {
 							$paper = round($page * $count / $kai + 0.4999);
-							$zoompaper = $color * $zoom;
+							$zoompaper = $paper * $zoom;
 							$totalpaper = $paper + $zoompaper;
 							$d['TotalPaper'] = number_format($totalpaper / 1000, 4);
 							$d['PaperCount'] = number_format($paper / 1000, 4);

@@ -77,12 +77,15 @@ EOF;
 					$save['KaiShu'] = $journal['FormatId'];
 					$save['colourCount'] = 2;
 					$paperCount = $d['PublishCounts'] * $map['count'] / $save['KaiShu'];
-					$paperCount = round($paperCount * 2 + 0.4999, 0) / 2 / 1000;
+					$paperCount = round($paperCount * 2 + 0.4999, 0) / 2;
 					$save['PaperCount'] = $paperCount;
 					$save['ZoomPercent'] = 60;
 					$save['ZoomPaperCount'] = $save['PaperCount'] * $save['ZoomPercent'] / 1000;
 					$save['TotalPaper'] = $save['PaperCount'] + $save['ZoomPaperCount'];
 					$save['CreateTime'] = date('Y-m-d H:i:s');
+					$save['TotalPaper'] = number_format($save['TotalPaper'] / 1000, 4);
+					$save['PaperCount'] = number_format($save['PaperCount'] / 1000, 4);
+					$save['ZoomPaperCount'] = number_format($save['ZoomPaperCount'] / 1000, 4);
 					$ret = $this->db->insert('publishnotifydetails', $save);
 				}
 			}
