@@ -117,7 +117,7 @@ Class('App.QKZX.PublishPaperUseDetail', 'xui.Module',{
 					var zoom=parseInt(grid.getCellbyRowCol(row.id,'ZoomPercent').value,10);
 					if(kai>0){
 						var paper= Math.round(page*count/kai+0.4999);
-						var zoompaper=color*zoom;
+						var zoompaper=paper*zoom;
 						var totalpaper=paper+zoompaper;
 						totalpaper=(totalpaper/1000).toFixed(4);
 						paper=(paper/1000).toFixed(4);

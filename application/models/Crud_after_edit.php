@@ -80,7 +80,7 @@ EOF;
 					$paperCount = round($paperCount * 2 + 0.4999, 0) / 2 / 1000;
 					$save['PaperCount'] = $paperCount;
 					$save['ZoomPercent'] = 60;
-					$save['ZoomPaperCount'] = $save['colourCount'] * $save['ZoomPercent'] / 1000;
+					$save['ZoomPaperCount'] = $save['PaperCount'] * $save['ZoomPercent'] / 1000;
 					$save['TotalPaper'] = $save['PaperCount'] + $save['ZoomPaperCount'];
 					$save['CreateTime'] = date('Y-m-d H:i:s');
 					$ret = $this->db->insert('publishnotifydetails', $save);
