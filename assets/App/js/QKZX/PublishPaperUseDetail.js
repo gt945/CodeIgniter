@@ -121,7 +121,7 @@ Class('App.QKZX.PublishPaperUseDetail', 'xui.Module',{
 						var totalpaper=paper+zoompaper;
 						totalpaper=(totalpaper/1000).toFixed(4);
 						paper=(paper/1000).toFixed(4);
-						zoompaper=(zoompaper/1000).toFixed(4);
+						zoompaper=(zoompaper/1000000).toFixed(4);
 						grid.updateCellByRowCol(row.id,"PaperCount",{value:paper});
 						grid.updateCellByRowCol(row.id,"ZoomPaperCount",{value:zoompaper});
 						grid.updateCellByRowCol(row.id,"TotalPaper",{value:totalpaper});
