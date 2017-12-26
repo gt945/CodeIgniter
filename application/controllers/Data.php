@@ -306,7 +306,7 @@ EOD;
 			$i++;
 		}
 
-		$sheet->setCellValue("B15", $data['CoverInk']->caption + " " + $data['CoverType']->caption);	//封面墨色 + 封面处理方式
+		$sheet->setCellValue("B15", $data['CoverInk']->caption . " " . $data['CoverType']->caption);	//封面墨色 + 封面处理方式
 		$sheet->setCellValue("H15", $data['TextInk']->caption);			//正文墨色
 //		$sheet->setCellValue("B16", $data['BindingOrder']->value);		//装订顺序
 //		$sheet->setCellValue("A17", $data['Note']->value);	   //备注
