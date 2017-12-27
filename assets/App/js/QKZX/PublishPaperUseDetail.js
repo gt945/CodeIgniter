@@ -78,6 +78,11 @@ Class('App.QKZX.PublishPaperUseDetail', 'xui.Module',{
 				grid.free();
 			});
 		},
+		_navigateTo:function(ids,relate){
+			var ns=this;
+			ns.properties.recordIds=ids;
+			ns._load(relate);
+		},
 		_grid_oninithotrow:function (profile){
 			//return {caption:"*", cells:[{caption:"<span style='color:#888'>(点击新增)</span>"}]};
 		},

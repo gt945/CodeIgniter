@@ -460,6 +460,9 @@ Class('App.GridForm', 'xui.Module',{
 			db.updateDataToUI();
 			ns.properties.recordIds[0]=recordId;
 			ns.updateUIfromService(recordId);
+			_.each(ns._widgets,function(ele){
+				_.tryF(ele._navigateTo,[ns.properties.recordIds,null],ele);
+			});
 		},
 		_databinder_afterupdatedatafromui:function (profile, dataFromUI){
 			// _.each(dataFromUI,function(o,i){
