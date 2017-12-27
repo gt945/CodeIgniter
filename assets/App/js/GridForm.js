@@ -43,9 +43,9 @@ Class('App.GridForm', 'xui.Module',{
 				var ele=(new xui.UI.Group())
 					.setHost(host)
 					.setCaption(g.name)
-					.setLeft(host._left(g.x) - 10)
+					.setLeft(host._left(g.x) - 7)
 					.setTop(host._top(g.y) - 30)
-					.setWidth(host._width(g.w) + 20)
+					.setWidth(host._width(g.w) + 14)
 					.setHeight(host._height(g.h) + 35)
 					.setToggleBtn(false);
 				host.ctl_block.append(ele);
@@ -245,7 +245,7 @@ Class('App.GridForm', 'xui.Module',{
 		},
 		_left:function(v){
 			v=parseInt(v,10);
-			return 15+v*165;
+			return 20+v*165;
 		},
 		_top:function(v){
 			v=parseInt(v,10);
@@ -486,18 +486,19 @@ Class('App.GridForm', 'xui.Module',{
 			this.mainDlg.close(true);
 		},
 		_maindlg_beforeclose:function (profile){
-			var ns=this, db=ns.databinder;
+			var ns=this, db=ns.databinder,ret;
 			if(db.isDirtied() || ns.isGridDirty()){
 				xui.confirm("确认", "是否放弃修改?", function(){
 					ns.mainDlg.close(false);
 				}, null);
-				return false;
+				ret=false;
 			}else{
 				_.each(ns._widgets,function(ele){
 					_.tryF(ele.destory,[null],ele);
 				});
-				return true;
+				ret=true;
 			}
+			return ret;
 		},
 // 		_maindlg_onhotkeydown:function (profile, keyboard, e, src){
 // 			if(keyboard.key=="esc"){

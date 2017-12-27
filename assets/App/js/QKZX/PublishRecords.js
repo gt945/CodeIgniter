@@ -83,7 +83,13 @@ Class('App.QKZX.PublishRecords', 'xui.Module',{
 							}
 						});
 					}
-					db.setData(data).updateDataToUI();
+					db.setData(data).updateDataToUI(function(map,prf){
+						_.each(map,function(v){
+							if(v.value===null)
+								v.value='';
+						});
+						return map;
+					});
 				},function(){
 				},function(){
 				});
