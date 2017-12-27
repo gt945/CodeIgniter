@@ -277,7 +277,7 @@ EOD;
 		$sheet->setCellValue("B3", "{$data['JID']->caption}\n\t({$data['Year']->value}年第{$data['No']->value}期)");	//刊名
 		$sheet->setCellValue("I3", "{$data['PublishCounts']->value} 册");	//印数
 //		$sheet->setCellValue("I3", "{$total} 册");							//印数
-		$sheet->setCellValue("A4", "印装完成日期：{$data['BindupTime']->value}");//印装完成日期
+		$sheet->setCellValue("B4", $data['BindupTime']->value);				//印装完成日期
 		$sheet->setCellValue("I4", "{$data['Price']->value} 元");			//定价
 		$sheet->setCellValue("A6", $data['KaiId']->caption);				//开本
 		$sheet->setCellValue("B6", $data['SizeId']->caption);				//开本尺寸
