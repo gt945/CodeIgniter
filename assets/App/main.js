@@ -205,6 +205,10 @@ Class('App.main', 'xui.Module',{
 					location.reload();
 				});
 				break;
+			case "clear_cache":
+				AJAX.callService('system/request', null, "clear_cache", null, function(rsp){
+				});
+				break;
 			}
 		},
 		_xui_ui_main_tabs_beforepageclose:function (profile,item,src){

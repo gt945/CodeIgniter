@@ -296,6 +296,13 @@ class System extends MY_Controller {
 		return 0;
 	}
 	
+	private function request_clear_cache()
+	{
+		if ($this->auth_model->is_admin() || $this->auth_model->is_super()) {
+			$this->cache->clean();
+		}
+	}
+	
 	private function request_update_shortkey()
 	{
 		$settings = $this->auth_model->user_get_settings();
@@ -324,6 +331,11 @@ class System extends MY_Controller {
 				"id" => "switch_to",
 				"image" => "@xui_ini.appPath@image/switch.png",
 				"caption" => "切换用户"
+			);
+			$items[0]->sub[] = (object) array(
+				"id" => "clear_cache",
+				"image" => "@xui_ini.appPath@image/clear_cache.png",
+				"caption" => "清除缓存"
 			);
 		}
 		
