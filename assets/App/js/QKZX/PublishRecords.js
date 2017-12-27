@@ -71,6 +71,11 @@ Class('App.QKZX.PublishRecords', 'xui.Module',{
 				relate:relate
 			};
 			if (!profile || (profile && relate[profile.boxing().getDataField()])){
+				var odata=db.getData();
+				_.each(odata,function(v,k){
+					odata[k]='';
+				});
+				db.setData(odata).updateDataToUI();
 				AJAX.callService('QKZX/request',null,"publishrecords",post,function(rsp){
 					if(rsp.data && _.isArr(rsp.data.rows)&&rsp.data.rows.length){
 						var cells=rsp.data.rows[0].cells,
