@@ -109,7 +109,7 @@ class Crud_before_edit extends Crud_hook {
 					}
 
 				} else {																			/* 收订 - 一般客户和其他客户 */
-					if($customer['CType'] != 1) {													/* 收订 - 一般客户 */
+					if ($customer['CType'] != 1 && $customer['CType'] != 7) {						/* 收订 - 一般客户和渠道商*/
 						$d['SaleStyle'] = $customer['CType'];
 					} else {
 						$d['SaleStyle'] = 1;
