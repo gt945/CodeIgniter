@@ -149,6 +149,10 @@ Class('App.QKZX.PublishPaperUseDetail', 'xui.Module',{
 							elem.setItems(rsp.data).setValue(null, true);
 							elem.onChange(function () {
 								gprofile.box._checkNewLine(gprofile,true);
+								grid.updateCell(cell.id, {
+									value: elem.getUIValue(),
+									caption: elem.getCaption()
+								}, false, false);
 							});
 							elem._isset=1;
 						}
