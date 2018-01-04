@@ -78,7 +78,7 @@ class Crud_before_edit extends Crud_hook {
 			}
 			$d['Year'] = $d['Jyear'];
 			$this->load->model('JournalStockManage');
-			if ($d['OrderType'] == 1) {																/* 收订 - 预留库存 */
+			if ($d['OrderType'] == 1) {																/* 收订 */
 				if($customer['CType'] == 2) {														/* 收订 - 预留库存 */
 					$d['SaleStyle'] = 2;
 					$d['ReportStatus'] = 0;
@@ -479,8 +479,8 @@ class Crud_before_edit extends Crud_hook {
 						$color = (int)$d['colourCount'];
 						$zoom = (int)$d['ZoomPercent'];
 						if ($kai > 0) {
-							$paper = round($page * $count / $kai + 0.4999);
-							$zoompaper = $paper * $zoom;
+							$paper = round($page * $count / $kai * 2 + 0.4999, 0) / 2;
+							$zoompaper = round($page * $zoom / $kai * 2 + 0.4999, 0) / 2;
 							$totalpaper = $paper + $zoompaper;
 							$d['TotalPaper'] = number_format($totalpaper / 1000, 4);
 							$d['PaperCount'] = number_format($paper / 1000, 4);

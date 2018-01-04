@@ -121,12 +121,12 @@ Class('App.QKZX.PublishPaperUseDetail', 'xui.Module',{
 					var color=parseInt(grid.getCellbyRowCol(row.id,'colourCount').value,10);
 					var zoom=parseInt(grid.getCellbyRowCol(row.id,'ZoomPercent').value,10);
 					if(kai>0){
-						var paper= Math.round(page*count/kai+0.4999);
-						var zoompaper=paper*zoom;
+						var paper= Math.round(page*count/kai*2+0.4999)/2;
+						var zoompaper=Math.round(page*zoom/kai*2+0.4999)/2;
 						var totalpaper=paper+zoompaper;
 						totalpaper=(totalpaper/1000).toFixed(4);
 						paper=(paper/1000).toFixed(4);
-						zoompaper=(zoompaper/1000000).toFixed(4);
+						zoompaper=(zoompaper/1000).toFixed(4);
 						grid.updateCellByRowCol(row.id,"PaperCount",{value:paper});
 						grid.updateCellByRowCol(row.id,"ZoomPaperCount",{value:zoompaper});
 						grid.updateCellByRowCol(row.id,"TotalPaper",{value:totalpaper});
