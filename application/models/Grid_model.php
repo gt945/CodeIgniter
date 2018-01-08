@@ -572,6 +572,8 @@ class Grid_model extends Crud_Model
 				$cell->value = $d [$f ['name']];
 				if (isset($f ['_caption']) && isset($d [$f ['_caption']])) {
 					$cell->caption = $d [$f ['_caption']];
+				} else {
+					$cell->caption = null;
 				}
 			} elseif ($f ['type'] == Crud_model::TYPE_PASSWORD) {
 				$cell->value = "******";
