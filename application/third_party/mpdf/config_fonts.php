@@ -274,9 +274,16 @@ $this->fontdata = array(
 	"unbatang" => array(/* Korean */
 		'R' => "UnBatang_0613.ttf",
 	),
-    "droidsans" => array(
-        'R' => "DroidSansFallback.ttf",
-    ),
+	"droidsans" => array(
+		'R' => "DroidSansFallback.ttf",
+	),
+	"simsun" => array(
+		'R' => "simsun.ttc",
+		'TTCfontID' => array(
+			'R' => 1,
+		),
+		'sip-ext' => 'simsun-extb',
+	),
 );
 
 
