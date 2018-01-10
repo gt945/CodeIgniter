@@ -933,7 +933,7 @@ EOF;
 		$calc['KaiShu'] = $data->KaiShu->value;
 		$calc['Size'] = $data->Size->value;
 		$calc['PublishCount'] = $data->PublishCount;
-		$calc['colourCount'] = $data->colourCount->value;
+		$calc['colourCount'] = $data->colourCount;
 		$calc['PaperCount'] = $data->PaperCount;
 		$calc['ZoomPercent'] = $data->ZoomPercent;
 		$calc['ZoomPaperCount'] = $data->ZoomPaperCount;
