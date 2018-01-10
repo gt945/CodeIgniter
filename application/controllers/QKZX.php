@@ -921,4 +921,27 @@ EOF;
 		return "统计完成";
 	}
 
+	public function request_calc_paper_details()
+	{
+		$this->load->model('QUtils');
+		$data = $this->paras->data;
+		
+		$calc = array();
+		$calc['PublishContent'] = $data->PublishContent->value;
+		$calc['Pages'] = $data->Pages;
+		$calc['paperDeduceID'] = $data->paperDeduceID->value;
+		$calc['KaiShu'] = $data->KaiShu->value;
+		$calc['Size'] = $data->Size->value;
+		$calc['PublishCount'] = $data->PublishCount;
+		$calc['colourCount'] = $data->colourCount->value;
+		$calc['PaperCount'] = $data->PaperCount;
+		$calc['ZoomPercent'] = $data->ZoomPercent;
+		$calc['ZoomPaperCount'] = $data->ZoomPaperCount;
+		$calc['TotalPaper'] = $data->TotalPaper;
+		$calc['Note'] = $data->Note;
+		$this->QUtils->calc_paper_details($calc);
+		
+		return $calc;
+	}
+
 }

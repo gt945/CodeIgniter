@@ -112,28 +112,20 @@ Class('App.QKZX.PublishPaperUseDetail', 'xui.Module',{
 				return;
 			}
 			var row=grid.getRowbyCell(cell);
-			var pages=grid.getCellbyRowCol(row.id,'Pages').value.split("-");
-			if(pages.length==2){
-				var page=parseInt(pages[1],10);
-				if(page>0){
-					var kai=parseInt(grid.getCellbyRowCol(row.id,'KaiShu').value,10);
-					var count=parseInt(grid.getCellbyRowCol(row.id,'PublishCount').value,10);
-					var color=parseInt(grid.getCellbyRowCol(row.id,'colourCount').value,10);
-					var zoom=parseInt(grid.getCellbyRowCol(row.id,'ZoomPercent').value,10);
-					if(kai>0){
-						var paper= Math.round(page*count/kai*2+0.4999)/2;
-						var zoompaper=Math.round(page*zoom/kai*2+0.4999)/2;
-						var totalpaper=paper+zoompaper;
-						totalpaper=(totalpaper/1000).toFixed(4);
-						paper=(paper/1000).toFixed(4);
-						zoompaper=(zoompaper/1000).toFixed(4);
-						grid.updateCellByRowCol(row.id,"PaperCount",{value:paper});
-						grid.updateCellByRowCol(row.id,"ZoomPaperCount",{value:zoompaper});
-						grid.updateCellByRowCol(row.id,"TotalPaper",{value:totalpaper});
-					}
-					
+			var data=grid.getRowMap(row.id);
+			
+			AJAX.callService('QKZX/request',null,"calc_paper_details",{data:data},function(rsp){
+				if(!ns.isDestroyed()){
+					grid.updateCellByRowCol(row.id,"Pages",{value:rsp.data['Pages']});
+					grid.updateCellByRowCol(row.id,"PaperCount",{value:rsp.data['PaperCount']});
+					grid.updateCellByRowCol(row.id,"ZoomPaperCount",{value:rsp.data['ZoomPaperCount']});
+					grid.updateCellByRowCol(row.id,"TotalPaper",{value:rsp.data['TotalPaper']});
 				}
-			}
+			},function() {
+				grid.busy("正在处理 ...");
+			},function(result){
+				grid.free();
+			});
 		},
 		_grid_afterhotrowadded:function (profile, row){
 

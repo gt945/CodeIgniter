@@ -448,6 +448,7 @@ class Crud_before_edit extends Crud_hook {
 	public function publishnotifydetails_edit($oper, $model, &$data, $old)
 	{
 		$this->load->model('PublishNotify');
+		$this->load->model('QUtils');
 		if ($oper == 'create') {
 			$d = &$data[0];
 			if(isset($d['colourCount'])){
@@ -462,7 +463,7 @@ class Crud_before_edit extends Crud_hook {
 			}
 		} else {
 			$field = array(
-				'PNID', 'KaiShu', 'PublishCount', 'colourCount', 'ZoomPercent', 'Pages'
+				'PublishContent', 'PNID', 'KaiShu', 'PublishCount', 'colourCount', 'ZoomPercent', 'Pages'
 			);
 			$this->array_merge_by_primary($model->primary, $data, $old, $field);
 			foreach($data as &$d) {
@@ -470,24 +471,7 @@ class Crud_before_edit extends Crud_hook {
 				if ($notify && $notify['Status'] > 1) {
 					return $this->result(false, "已进行审核,无法修改");
 				}
-				$pages = explode('-', $d['Pages']);
-				if (count($pages) == 2) {
-					$page = (int)$pages[1];
-					if ($page > 0) {
-						$kai = (int)$d['KaiShu'];
-						$count = (int)$d['PublishCount'];
-						$color = (int)$d['colourCount'];
-						$zoom = (int)$d['ZoomPercent'];
-						if ($kai > 0) {
-							$paper = round($page * $count / $kai * 2 + 0.4999, 0) / 2;
-							$zoompaper = round($page * $zoom / $kai * 2 + 0.4999, 0) / 2;
-							$totalpaper = $paper + $zoompaper;
-							$d['TotalPaper'] = number_format($totalpaper / 1000, 4);
-							$d['PaperCount'] = number_format($paper / 1000, 4);
-							$d['ZoomPaperCount'] = number_format($zoompaper / 1000, 4);
-						}
-					}
-				}
+				$this->QUtils->calc_paper_details($d);
 			}
 		}
 		return $this->result(true);

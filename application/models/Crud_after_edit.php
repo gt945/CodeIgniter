@@ -12,6 +12,7 @@ class Crud_after_edit extends Crud_hook {
 
 	public function publishnotify_edit($oper, $model, $save, $ids)
 	{
+		$this->load->model('QUtils');
 		if ($oper == "create") {
 			$d = $save[0];
 				
@@ -47,19 +48,25 @@ EOF;
 					"id"	=> 'CoverPaper',
 					"name"	=> '封面',
 					"count"	=> 4,
-					"pages"	=> '1-4'
+					"pages"	=> '1-4',
+					"color" => $d['CoverInk'],
+					"kai" => $journal['FormatId'] / 2
 				),
 				array(
 					"id"	=> 'ContentPaper',
 					"name"	=> '正文',
 					"count"	=> $publishrecords['TotalPageCount'],
-					"pages"	=> "1-{$publishrecords['TotalPageCount']}"
+					"pages"	=> "1-{$publishrecords['TotalPageCount']}",
+					"color" => $d['TextInk'],
+					"kai" => $journal['FormatId']
 				),
 				array(
 					"id"	=> 'PicturePaper',
 					"name"	=> '彩版',
 					"count"	=> $publishrecords['PicPageCount'],
-					"pages"	=> "1-{$publishrecords['PicPageCount']}"
+					"pages"	=> "1-{$publishrecords['PicPageCount']}",
+					"color" => 1,
+					"kai" => $journal['FormatId']
 				)
 			);
 			
@@ -74,18 +81,12 @@ EOF;
 					$save['paperDeduceID'] = $paper['id'];
 //					$save['SizeId'] = $paper['size'];
 					$save['Size'] = $paper['size'];
-					$save['KaiShu'] = $journal['FormatId'];
-					$save['colourCount'] = 2;
-					$save['PaperCount'] = $map['count'] * $d['PublishCounts'] / $save['KaiShu'];
-					$save['PaperCount'] = round($save['PaperCount'] * 2 + 0.4999, 0) / 2;
+					$save['KaiShu'] = $map['kai'];
+					$save['colourCount'] = $map['color'];
+					//$save['PageCount'] = $map['count'];
 					$save['ZoomPercent'] = 60;
-					$save['ZoomPaperCount'] = $map['count'] * $save['ZoomPercent'] / $save['KaiShu'];
-					$save['ZoomPaperCount'] = round($save['ZoomPaperCount'] * 2 + 0.4999, 0) / 2;
-					$save['TotalPaper'] = $save['PaperCount'] + $save['ZoomPaperCount'];
 					$save['CreateTime'] = date('Y-m-d H:i:s');
-					$save['TotalPaper'] = number_format($save['TotalPaper'] / 1000, 4);
-					$save['PaperCount'] = number_format($save['PaperCount'] / 1000, 4);
-					$save['ZoomPaperCount'] = number_format($save['ZoomPaperCount'] / 1000, 4);
+					$this->QUtils->calc_paper_details($save);
 					$ret = $this->db->insert('publishnotifydetails', $save);
 				}
 			}
