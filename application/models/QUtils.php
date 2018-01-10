@@ -53,7 +53,7 @@ EOF;
 			$paper = round($page * $count / $kai * 2 + 0.4999, 0) / 2;
 		}
 		
-		if ($data['PublishContent'] == '彩版' || $data['PublishContent'] == '封面') {
+		if ($data['PublishContent'] == '彩版' || $data['PublishContent'] == '封面' || $data['PublishContent'] == '彩插') {
 			$zoompaper = round($color * $zoom * 2 + 0.4999, 0) / 2;
 		} else {
 			$zoompaper = round($page * $zoom / $kai * 2 + 0.4999, 0) / 2;
