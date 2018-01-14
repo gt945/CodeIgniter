@@ -44,6 +44,7 @@ class JournalStockManage extends CI_Model {
 	public function stock_out($count, $tag, $cid = null, $note = null)
 	{
 		//TODO lock stock
+		$note = $note . '(' . $count . ')';
 		if ($this->stock) {
 			$save = array(
 				'JID'	=>	$this->jid,
@@ -53,12 +54,13 @@ class JournalStockManage extends CI_Model {
 				'No'	=>	$this->no,
 				'Counts'	=>	$count,
 				'StockTag'	=>	$tag,
-				'Note'  => $this->stock['Note'] . '<br>' . $note
+				'Note'  => $note
 			);
 			$this->db->insert('stockmanagedetails', $save);
 			$this->stock['Counts'] -= $count;
 			$save = array(
-				'Counts' => $this->stock['Counts']
+				'Counts' => $this->stock['Counts'],
+				'Note' => $this->stock['Note'] . '<br>' . $note
 			);
 			$this->db->where('id', $this->stock['id']);
 			$this->db->update($this->name, $save);
@@ -69,6 +71,7 @@ class JournalStockManage extends CI_Model {
 	public function stock_in($count, $tag, $note = null)
 	{
 		//TODO lock stock
+		$note = $note . '(' . $count . ')';
 		if ($this->stock) {
 			$save = array(
 				'JID'	=>	$this->jid,
@@ -77,12 +80,13 @@ class JournalStockManage extends CI_Model {
 				'No'	=>	$this->no,
 				'Counts'	=>	$count,
 				'StockTag'	=>	$tag,
-				'Note'  => $this->stock['Note'] . '<br>' . $note
+				'Note'  => $note
 			);
 			$this->db->insert('stockmanagedetails', $save);
 			$this->stock['Counts'] += $count;
 			$save = array(
-				'Counts' => $this->stock['Counts']
+				'Counts' => $this->stock['Counts'],
+				'Note' => $this->stock['Note'] . '<br>' . $note
 			);
 			$this->db->where('id', $this->stock['id']);
 			$this->db->update($this->name, $save);
@@ -106,9 +110,5 @@ class JournalStockManage extends CI_Model {
 			);
 			$this->db->insert($this->name, $save);
 		}
-		
 	}
-	
-	
-	
 }

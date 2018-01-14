@@ -103,7 +103,7 @@ class Crud_before_edit extends Crud_hook {
 							//TODO 库存不够
 							//Do Nothing
 						} else {																	/* 收订 - 补刊 - 减库存并记录*/
-							$this->JournalStockManage->stock_out($OrderCount, 11, $d['CID']);
+							$this->JournalStockManage->stock_out($OrderCount, 11, $d['CID'], '收订补刊');
 							$data[] = $d;
 						}
 					}
@@ -134,7 +134,7 @@ class Crud_before_edit extends Crud_hook {
 							} else {																/* 收订 - 其他客户 - 代理类期刊 - 减库存并记录*/
 								$d['ReportStatus'] = 1;
 								$d['SaleStyle'] = 7;
-								$this->JournalStockManage->stock_out($OrderCount, 10, $d['CID']);
+								$this->JournalStockManage->stock_out($OrderCount, 10, $d['CID'], '收订代理类期刊');
 							}
 						} else {																	/* 收订 - 其他客户 - 非代理类期刊*/
 							$this->load->model('ReportCounts');
@@ -185,7 +185,7 @@ class Crud_before_edit extends Crud_hook {
 								} else {															/* 收订 - 其他客户 - 非代理类期刊 - 报数表有记录 - 减库存并记录*/
 									$d['ReportStatus'] = 1;
 									$d['SaleStyle'] = 7;
-									$this->JournalStockManage->stock_out($OrderCount, 10, $d['CID']);
+									$this->JournalStockManage->stock_out($OrderCount, 10, $d['CID'], '收订其他客户非代理类期刊（已报数）');
 								}
 							} else {																/* 收订 - 其他客户 - 非代理类期刊 - 报数表无记录*/
 								$this->JournalStockManage->prepare($d['JID'], $d['Jyear'], $i);
@@ -200,7 +200,7 @@ class Crud_before_edit extends Crud_hook {
 								} else {															/* 收订 - 其他客户 - 非代理类期刊 - 报数表无记录 - 减库存并记录*/
 									$d['ReportStatus'] = 1;
 									$d['SaleStyle'] = 7;
-									$this->JournalStockManage->stock_out($OrderCount, 10, $d['CID']);
+									$this->JournalStockManage->stock_out($OrderCount, 10, $d['CID'], '收订其他客户非代理类期刊（未报数）');
 								}
 							}
 						}

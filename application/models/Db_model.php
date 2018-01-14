@@ -209,11 +209,12 @@ class Db_Model extends CI_Model
 		if (!isset($this->fields)){
 			return $field;
 		}
-		$k = array_search(strtolower($field), array_map('strtolower', $this->fields));
-		if ($k === FALSE) {
-			return $k;
+		foreach($this->fields as $k=>$f) {
+			if (strtolower($field) == strtolower($k)) {
+				return $k;
+			}
 		}
-		return $this->fields[$k];
+		return FALSE;
 	}
 	
 	public function has_py_field($field)
@@ -221,22 +222,23 @@ class Db_Model extends CI_Model
 		if (!isset($this->fields)){
 			return FALSE;
 		}
-		$k = array_search(strtolower("{$field}_py"), array_map('strtolower', $this->fields));
-		if ($k === FALSE) {
-			return $k;
+		foreach($this->fields as $k=>$f) {
+			if (strtolower("{$field}_py") == strtolower($k)) {
+				return TRUE;
+			}
 		}
-		return TRUE;
+		return FALSE;
 	}
 	
 	public function field_role_r($field)
 	{
-		if (!isset($this->crud_field)){
+		if (!isset($this->fields)){
 			return TRUE;
 		}
-		if (!isset($this->crud_field[$field])) {
+		if (!isset($this->fields[$field])) {
 			return FALSE;
 		}
-		return $this->crud_field[$field]['_role_r'];
+		return $this->fields[$field]['_role_r'];
 	}
 	
 	public function field_role_u($field)

@@ -159,6 +159,9 @@ Class('App.GridEditor','xui.Module',{
 					if(ns.properties.gridSetting[h.id].type=="checkbox"){
 						row.cells[i].value=!!parseInt(row.cells[i].value,10);
 					}
+					if(ns.properties.gridSetting[h.id].type==5){
+						row.cells[i].tips='['+row.cells[i].value+']'+row.cells[i].caption;
+					}
 				});
 			});
 			return rows;
