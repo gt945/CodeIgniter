@@ -495,7 +495,7 @@ EOD;
 //			$d = $ret[0]->cells;
 //			$sheet->setCellValue("B2", $d['JID']->caption);
 //		}
-		$sheet->setCellValue("A1", $customer['PostCode']);
+		$sheet->setCellValue("A1", $customer['ReceivePost']);
 		$sheet->setCellValue("A2", $customer['ReceiveAddress']);
 		$sheet->setCellValue("A3", $customer['Receiver']);
 		$sheet->setCellValue("A4", "{$customer['ContactMobile']} / {$customer['ContactPhone']}");
