@@ -521,6 +521,7 @@ EOD;
 			$sheet->getRowDimension($i)->setRowHeight(30);
 			$total += $d['Counts']->value;
 			$total2 += $d['daiFa']->value;
+			$this->db->update('deliverydetails', array('isPrint'=>1), array('id'=>$r->id));
 			$i++;
 		}
 		
