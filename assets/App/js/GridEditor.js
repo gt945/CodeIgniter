@@ -1,7 +1,7 @@
 Class('App.GridEditor','xui.Module',{
 	Instance:{ 
 		properties : {
-			pageSize:20,
+			autoPageSize:20,
 			sidx:"",
 			sord:"",
 			filterForm:null
@@ -51,10 +51,39 @@ Class('App.GridEditor','xui.Module',{
 				.onClick("_ctl_sbutton1_onclick")
 			);
 			
+			append((new xui.UI.ComboInput())
+				.setHost(host,"page_size")
+				.setRight(100)
+				.setTop(3)
+				.setWidth(110)
+				.setLabelSize(60)
+				.setLabelCaption("每页条数:")
+				.setType("listbox")
+				.setItems([{
+					"id" : "0",
+					"caption" : "自动"
+				},
+				{
+					"id" : "30",
+					"caption" : "30"
+				},
+				{
+					"id" : "60",
+					"caption" : "60"
+				},
+				{
+					"id" : "100",
+					"caption" : "100"
+				}])
+				.setDirtyMark(false)
+				.setValue("0")
+				.onChange("_page_size_onchange")
+			);
+			
 			append((new xui.UI.PageBar())
 				.setHost(host,"pagebar")
 				.setTop(3)
-				.setRight(100)
+				.setRight(210)
 				.setCaption("页数:")
 				.onClick("_pagebar_onclick")
 			);
@@ -81,7 +110,6 @@ Class('App.GridEditor','xui.Module',{
 					.setSelMode("single")
 					.onGetContent("_grid_ongetcontent")
 					.setRowNumbered(true);
-					ns.properties.pageSize=-1;
 				}else{
 					grid.setTreeMode(false).setRowHandlerWidth(24).setSelMode("multi");
 				}
@@ -98,9 +126,17 @@ Class('App.GridEditor','xui.Module',{
 				grid.free();
 			});
 		},
+		_get_page_size:function(){
+			var ns=this,obj=ns.page_size;
+			var pageSize=parseInt(obj.getUIValue());
+			if(!pageSize){
+				pageSize=ns.properties.autoPageSize;
+			}
+			return pageSize;
+		},
 		_fetch_data:function(callback){
 			var ns=this,grid=ns.grid;
-			var pageSize=ns.properties.pageSize;
+			var pageSize=ns._get_page_size();
 			var post={
 				nodeid:ns._nodeid,
 				page:ns._curPage,
@@ -124,7 +160,7 @@ Class('App.GridEditor','xui.Module',{
 		},
 		loadGridData:function(curPage){
 			var ns=this,grid=ns.grid;
-			var pageSize=ns.properties.pageSize;
+			var pageSize=ns._get_page_size();
 			
 			ns._curPage=curPage;
 			ns._fetch_data(function(rsp){
@@ -477,7 +513,7 @@ Class('App.GridEditor','xui.Module',{
 		},
 		_grid_resize:function(profile,w,h){
 			var ns=this;
-			ns.properties.pageSize=parseInt((h-27)/21,10);
+			ns.properties.autoPageSize=parseInt((h-27)/21,10);
 		},
 		_refresh_row:function(id){
 			var ns=this;
@@ -545,6 +581,10 @@ Class('App.GridEditor','xui.Module',{
 				}
 			}
 			return false;
+		},
+		_page_size_onchange:function (){
+			var ns=this;
+			ns.loadGridData(1);
 		}
 	}
 });
