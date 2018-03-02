@@ -191,6 +191,7 @@ Class('App.GridEditor','xui.Module',{
 		_buildRows:function(rows){
 			var ns=this;
 			_.arr.each(rows,function(row){
+				row.tips=row.id;
 				_.arr.each(ns.properties.gridHeaders,function(h,i){
 					if(ns.properties.gridSetting[h.id].type=="checkbox"){
 						row.cells[i].value=!!parseInt(row.cells[i].value,10);

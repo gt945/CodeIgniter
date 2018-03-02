@@ -41,6 +41,7 @@ Class('App.login', 'xui.Module',{
 				.setMinBtn(false)
 				.setMaxBtn(false)
 				.setCloseBtn(false)
+				.setDock("origin")
 			);
 
 			host.dialog.append(
@@ -132,30 +133,6 @@ Class('App.login', 'xui.Module',{
 			// ]]Code created by CrossUI RAD Studio
 		},
 		events:{"onRender":"_com_onrender"},
-		// 可以自定义哪些界面控件将会被加到父容器中
-		customAppend : function(parent, subId, left, top){
-			this.dialog.showModal(parent, left, top);
-			return false;
-		},
-		// 加载其他资源可以用本函数
-		iniResource: function(com, threadid){
-			//xui.Thread.suspend(threadid);
-			//var callback=function(resp){
-			//	com.encrypt.setPrivateKey(resp.data);
-			//	xui.Thread.resume(threadid);
-			//};
-			//xui.Thread.observableRun(function(threadid){
-			//	xui.Ajax(SITEURL+'user/pubkey', null, callback, null,threadid).start();
-			//});
-		},
-		// 加载其他Com可以用本函数
-		iniExComs : function(com, threadid){
-			//xui.Thread.suspend(threadid);
-			//var callback=function(/**/){
-			//	/**/
-			//	xui.Thread.resume(threadid);
-			//};
-		},
 		_com_onrender:function(){
 			var ns=this;
 			xui.Event.keyboardHook("enter", 0, 0, 0, function(){
