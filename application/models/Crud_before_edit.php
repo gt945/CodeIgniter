@@ -211,6 +211,15 @@ class Crud_before_edit extends Crud_hook {
 					
 				}
 			} else if ($d['OrderType'] == 2) {														/* 退订*/
+				$customer = $this->db->get_where('customers', array('id' => $d['CID']))->row_array();
+				if (!$customer) {
+					return $this->result(false, "不存在该客户");
+				}
+				
+				//新建退订单时，默认销售类型应该跟客户的销售类型保持一致，手动修改销售类型则以修改为准。
+				if ($d['SaleStyle'] == 1 && $customer['CType'] != 7) {
+					$d['SaleStyle'] = $customer['CType'];
+				}
 
 				unset($data[0]);
 				for ($i = $NoStart; $i <= $NoEnd; $i++) {
@@ -323,7 +332,6 @@ class Crud_before_edit extends Crud_hook {
 					$td['NoStart'] = $i;
 					$td['NoEnd'] = $i;
 					$td['ReportStatus'] = $report_status;
-					$td['SaleStyle'] = 1;
 					$data[] = $td;
 				}
 			}
