@@ -19,7 +19,7 @@ class Data extends MY_Controller {
 	public function export()
 	{
 		ini_set('max_execution_time', 0);
-// 		ini_set('memory_limit','512M');
+		ini_set('memory_limit','512M');
 		
 		$this->load->model('grid_model');
 		$table = $this->input->post_get("key");
@@ -42,13 +42,24 @@ class Data extends MY_Controller {
 				if ($paras->key) {
 					$row[] = $this->grid_model->crud_field[$this->grid_model->primary]['caption'];
 				}
-
+				$colNumber = 0;
 				foreach($setting as $s){
 					if (isset($this->grid_model->crud_field[$s[0]]) && $this->grid_model->crud_field[$s[0]]['_role_r']) {
 						
 						$fields[$s[0]] = $s[1]?1:0;
 						if ($s[1]) {
 							$row[] = $this->grid_model->crud_field[$s[0]]['caption'];
+							switch($this->grid_model->crud_field[$s[0]]['type']) {
+								case Crud_model::TYPE_NUMBER:
+									break;
+								default:
+									$colString = PHPExcel_Cell::stringFromColumnIndex($colNumber);
+									$this->excel->getActiveSheet()->getStyle("{$colString}:{$colString}")
+										->getNumberFormat()
+										->setFormatCode(PHPExcel_Style_NumberFormat::FORMAT_TEXT);
+									break;
+							}
+							$colNumber++;
 						}
 					}
 				}
