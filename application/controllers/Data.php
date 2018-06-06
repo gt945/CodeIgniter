@@ -28,7 +28,7 @@ class Data extends MY_Controller {
 		
 		$setting = $paras->setting;
 		$paras->page = 1;
-		$paras->size = 500;
+		$paras->size = 100;
 		$fields = array();
 		$sheet = array();
 		
