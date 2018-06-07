@@ -927,7 +927,7 @@ EOF;
 		$data = $this->paras->data;
 		
 		$calc = array();
-		$calc['PublishContent'] = $data->PublishContent->value;
+		$calc['PublishContent'] = $data->PublishContent;
 		$calc['Pages'] = $data->Pages;
 		$calc['paperDeduceID'] = $data->paperDeduceID->value;
 		$calc['KaiShu'] = $data->KaiShu->value;

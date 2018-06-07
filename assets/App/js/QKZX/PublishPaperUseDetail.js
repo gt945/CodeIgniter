@@ -111,21 +111,24 @@ Class('App.QKZX.PublishPaperUseDetail', 'xui.Module',{
 			if(isHotRow) {
 				return;
 			}
-			var row=grid.getRowbyCell(cell);
-			var data=grid.getRowMap(row.id);
+			_.asyRun(function(){
+				var row=grid.getRowbyCell(cell);
+				var data=grid.getRowMap(row.id);
+				
+				AJAX.callService('QKZX/request',null,"calc_paper_details",{data:data},function(rsp){
+					if(!ns.isDestroyed()){
+						grid.updateCellByRowCol(row.id,"Pages",{value:rsp.data['Pages']});
+						grid.updateCellByRowCol(row.id,"PaperCount",{value:rsp.data['PaperCount']});
+						grid.updateCellByRowCol(row.id,"ZoomPaperCount",{value:rsp.data['ZoomPaperCount']});
+						grid.updateCellByRowCol(row.id,"TotalPaper",{value:rsp.data['TotalPaper']});
+					}
+				},function() {
+					grid.busy("正在处理 ...");
+				},function(result){
+					grid.free();
+				});
+			}, 300);
 			
-			AJAX.callService('QKZX/request',null,"calc_paper_details",{data:data},function(rsp){
-				if(!ns.isDestroyed()){
-					grid.updateCellByRowCol(row.id,"Pages",{value:rsp.data['Pages']});
-					grid.updateCellByRowCol(row.id,"PaperCount",{value:rsp.data['PaperCount']});
-					grid.updateCellByRowCol(row.id,"ZoomPaperCount",{value:rsp.data['ZoomPaperCount']});
-					grid.updateCellByRowCol(row.id,"TotalPaper",{value:rsp.data['TotalPaper']});
-				}
-			},function() {
-				grid.busy("正在处理 ...");
-			},function(result){
-				grid.free();
-			});
 		},
 		_grid_afterhotrowadded:function (profile, row){
 
@@ -141,10 +144,13 @@ Class('App.QKZX.PublishPaperUseDetail', 'xui.Module',{
 							elem.setItems(rsp.data).setValue(null, true);
 							elem.onChange(function () {
 								gprofile.box._checkNewLine(gprofile,true);
-								grid.updateCell(cell.id, {
-									value: elem.getUIValue(),
-									caption: elem.getCaption()
-								}, false, false);
+								if(cell&&cell.id){
+									grid.updateCell(cell.id, {
+										value: elem.getUIValue(),
+										caption: elem.getCaption()
+									}, false, false);
+								}
+								
 							});
 							elem._isset=1;
 						}
