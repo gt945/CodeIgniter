@@ -11,7 +11,7 @@ Class('App.QKZX.DeliveryAppend', 'xui.Module',{
 				.setHost(host,"mainDlg")
 				.setLeft(25)
 				.setTop(19)
-				.setWidth(800)
+				.setWidth(1000)
 				.setHeight(480)
 				.setResizer(true)
 				.setResizerProp({vertical:true,horizontal:true,minHeight:300,minWidth:300})
