@@ -110,6 +110,8 @@ Class('App.GridExporter', 'xui.Module',{
 			var ns=this,grid=ns.grid;
 			var rows=[];
 			for(i in ns.properties.gridSetting){
+				if(ns.properties.gridSetting[i].type>=99)
+					continue;
 				rows.push({cells:[{value:i,caption:ns.properties.gridSetting[i].caption[0]}]});
 			}
 			grid.setRows(rows);
