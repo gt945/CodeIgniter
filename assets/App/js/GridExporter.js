@@ -152,7 +152,8 @@ Class('App.GridExporter', 'xui.Module',{
 				raw:ns._raw,
 				sidx:ns.properties._sidx,
 				sord:ns.properties._sord,
-				sub:ns.properties._sub
+				sub:ns.properties._sub,
+				values:ns.properties.values
 			};
 			
 			xui.IAjax.post(SITEURL+'data/export',{key:ns.properties.gridId,paras:paras});

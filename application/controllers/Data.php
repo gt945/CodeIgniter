@@ -27,6 +27,25 @@ class Data extends MY_Controller {
 		$paras = json_decode($paras_json);
 		
 		$setting = $paras->setting;
+		$values = $paras->values;
+		
+		if(count($values) && $values[0]) {
+			foreach($values as &$v) {
+				$v = (int)$v;
+			}
+			$paras->search = true;
+			$paras->filters = (object) array(
+				"groupOp" => "AND",
+				"rules" => array(
+					(object) array(
+						"data" => implode(",", $values),
+						"op" => "in",
+						"field" => "id"
+					)	
+				)
+			);
+		}
+
 		$paras->page = 1;
 		$paras->size = 100;
 		$fields = array();
