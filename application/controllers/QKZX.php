@@ -633,10 +633,10 @@ EOF;
 			if ($smd) {
 				if ($smd['StockTag'] == '10') {
 					$smd['StockTag'] = '2';
-					$smd['Note'] = "零售出库(已发货)!";
+					$smd['Note'] .= "\n零售出库(已发货)!";
 				} else {
 					$smd['StockTag'] = '3';
-					$smd['Note'] = "补刊出库(已发货)!";
+					$smd['Note'] .= "\n补刊出库(已发货)!";
 				}
 
 				$save = array(
@@ -667,7 +667,7 @@ EOF;
 		$this->load->model('JournalStockManage');
 		foreach($this->paras->data as $d){
 			$this->JournalStockManage->prepare($d->JID, $d->Year, $d->No);
-			$this->JournalStockManage->stock_in($d->RealCounts, 1);
+			$this->JournalStockManage->stock_in($d->RealCounts, 1, "发刊到库存");
 		}
 		return 1;
 	}
@@ -738,7 +738,7 @@ EOF;
 		$CID = (int)$this->paras->CID;
 		$this->load->model('JournalStockManage');
 		if ($this->JournalStockManage->prepare($JID, $Year, $No)) {
-			$this->JournalStockManage->stock_in($Counts, 6, NULL, "退订入库");
+			$this->JournalStockManage->stock_in($Counts, 6, "退订入库");
 			
 			$BatchID = date('Ymd');
 			$save = array(
@@ -766,6 +766,9 @@ EOF;
 	{
 		ini_set('max_execution_time', 0);
 		$settings = $this->auth_model->user_get_settings();
+		if (!$settings->workyear) {
+			return "请设置工作年";
+		}
 		$this->db->select(array('JID', 'NoStart', 'sum(orderCount) AS OrderCount'));
 		$this->db->from('journalorders');
 		$this->db->where(array('saleStyle' => 5, 'Jyear' => $settings->workyear));
@@ -785,11 +788,16 @@ EOF;
 		$this->db->group_by(array('JID', 'NoStart'));
 		$sql3 = $this->db->get_compiled_select();
 		
-		$this->db->select(array('JID', 'NoStart', 'sum(orderCount) AS OrderCount'));
-		$this->db->from('journalorders');
-		$this->db->where('Jyear' , $settings->workyear);
-		$this->db->where_in('saleStyle', array(1,2,6,8));
-		$this->db->group_by(array('JID', 'NoStart'));
+//		$this->db->select(array('JID', 'NoStart', 'sum(orderCount) AS OrderCount'));
+//		$this->db->from('journalorders');
+//		$this->db->where('Jyear' , $settings->workyear);
+//		$this->db->where_in('saleStyle', array(1,2,6,8));
+//		$this->db->group_by(array('JID', 'NoStart'));
+//		$sql4 = $this->db->get_compiled_select();
+
+		$this->db->select(array('JID', 'No', 'sum(Counts) AS OrderCount'));
+		$this->db->from('arrivalmanage');
+		$this->db->group_by(array('JID', 'No'));
 		$sql4 = $this->db->get_compiled_select();
 		
 		$this->db->select(array('JID', 'NoStart', 'sum(orderCount) AS OrderCount'));
@@ -821,7 +829,8 @@ EOF;
 		$this->db->join("({$sql1}) e", 'a.JID = e.JID and a.No = e.NoStart', 'LEFT');
 		$this->db->join("({$sql2}) f", 'a.JID = f.JID and a.No = f.NoStart', 'LEFT');
 		$this->db->join("({$sql3}) g", 'a.JID = g.JID and a.No = g.NoStart', 'LEFT');
-		$this->db->join("({$sql4}) h", 'a.JID = h.JID and a.No = h.NoStart', 'LEFT');
+//		$this->db->join("({$sql4}) h", 'a.JID = h.JID and a.No = h.NoStart', 'LEFT');
+		$this->db->join("({$sql4}) h", 'a.JID = h.JID and a.No = h.No', 'LEFT');
 		$this->db->join("({$sql5}) i", 'a.JID = i.JID and a.No = i.NoStart', 'LEFT');
 		$this->db->join("({$sql6}) j", 'a.JID = j.JID and a.No = j.NoStart', 'LEFT');
 		$this->db->select(array('a.JID', 'a.No', 'b.Name', 'b.NofPerYear', 

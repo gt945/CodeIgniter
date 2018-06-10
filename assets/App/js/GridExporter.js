@@ -110,7 +110,7 @@ Class('App.GridExporter', 'xui.Module',{
 			var ns=this,grid=ns.grid;
 			var rows=[];
 			for(i in ns.properties.gridSetting){
-				if(ns.properties.gridSetting[i].type>=99)
+				if(ns.properties.gridSetting[i].virtual||ns.properties.gridSetting[i].object)
 					continue;
 				rows.push({cells:[{value:i,caption:ns.properties.gridSetting[i].caption[0]}]});
 			}

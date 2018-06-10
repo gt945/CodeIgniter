@@ -60,7 +60,7 @@ class JournalStockManage extends CI_Model {
 			$this->stock['Counts'] -= $count;
 			$save = array(
 				'Counts' => $this->stock['Counts'],
-				'Note' => $this->stock['Note'] . '<br>' . $note
+				'Note' => $this->stock['Note'] . "\n" . $note
 			);
 			$this->db->where('id', $this->stock['id']);
 			$this->db->update($this->name, $save);
@@ -86,7 +86,7 @@ class JournalStockManage extends CI_Model {
 			$this->stock['Counts'] += $count;
 			$save = array(
 				'Counts' => $this->stock['Counts'],
-				'Note' => $this->stock['Note'] . '<br>' . $note
+				'Note' => $this->stock['Note'] . "\n" . $note
 			);
 			$this->db->where('id', $this->stock['id']);
 			$this->db->update($this->name, $save);

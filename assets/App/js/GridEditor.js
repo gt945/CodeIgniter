@@ -88,13 +88,6 @@ Class('App.GridEditor','xui.Module',{
 				.onClick("_pagebar_onclick")
 			);
 			
-			// append((new xui.UI.Block())
-			// 	.setHost(host,"block")
-			// 	.setHeight(200)
-			// 	.setDock("bottom")
-			// 	.setBorderType("none")
-			// );
-			
 			return children;
 		},
 		events:{"onRender":"_com_onrender"},
@@ -575,16 +568,56 @@ Class('App.GridEditor','xui.Module',{
 		_grid_oncontextmenu:function(profile,e,src,item){
 			var ns=this;
 			if(item&&item._cells){
+				var items=[];
+				var context=new xui.UI.PopMenu();
 				var setting=ns.properties.gridSetting[item.id];
 				if (setting.filter){
-					ns._openFilter(item.id);
+					items.push({
+						id:"search",
+						caption:"搜索"
+					});
 				}
+				items.push({
+					id:"sum",
+					caption:"求和"
+				});
+				context.setItems(items);
+				var callback=function(prf,i){
+					switch(i.id){
+						case "search":
+							ns._openFilter(item.id);
+							break;
+						case "sum":
+							var sum=ns._col_sum(item.id);
+							xui.alert("本页总和为："+sum);
+							break;
+					}
+				}
+				context.onMenuSelected(callback);
+				context.onHide(function(profile){
+					delete context;
+				});
+				context.pop(src);
+				return false;
 			}
 			return false;
 		},
 		_page_size_onchange:function (){
 			var ns=this;
 			ns.loadGridData(1);
+		},
+		_col_sum:function(col){
+			var ns=this,grid=ns.grid;
+			var sum=0;
+			var rows=grid.getRows();
+			_.arr.each(rows,function(row){
+				var cell=grid.getCellbyRowCol(row.id,col);
+				var value=parseInt(cell.value);
+				if(!_.isNaN(value)){
+					sum+=value;
+				}
+			});
+			return sum;
 		}
 	}
 });

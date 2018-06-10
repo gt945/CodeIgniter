@@ -641,7 +641,7 @@ class Crud_before_edit extends Crud_hook {
 				unset($data[0]);
 			} else if($d['Counts'] > 0) {
 				//IMPORTANT: 入库0
-				$this->JournalStockManage->stock_in(0, 1);
+				$this->JournalStockManage->stock_in(0, 1, "到货不足");
 			} else {
 				return $this->result(false, "到货数量不正确");
 			}
