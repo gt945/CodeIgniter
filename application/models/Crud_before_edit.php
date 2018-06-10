@@ -109,17 +109,16 @@ class Crud_before_edit extends Crud_hook {
 					}
 
 				} else {																			/* 收订 - 一般客户和其他客户 */
+					$sale_style = 1;
 					if ($customer['CType'] != 1 && $customer['CType'] != 7) {						/* 收订 - 一般客户和渠道商*/
-						$d['SaleStyle'] = $customer['CType'];
-					} else {
-						$d['SaleStyle'] = 1;
+						$sale_style = $customer['CType'];
 					}
 
 					unset($data[0]);
 					for ($i = $NoStart; $i <= $NoEnd; $i++) {
 						$d['NoStart'] = $i;
 						$d['NoEnd'] = $i;
-						
+						$d['SaleStyle'] = $sale_style;
 						if ($journalbaseinfo['Classify'] == 1) {									/* 收订 - 其他客户 - 代理类期刊*/
 
 							$this->JournalStockManage->prepare($d['JID'], $d['Jyear'], $i);
