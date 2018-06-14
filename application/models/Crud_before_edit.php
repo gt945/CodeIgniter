@@ -279,14 +279,18 @@ class Crud_before_edit extends Crud_hook {
 										//$this->JournalStockManage->stock_in($OrderCount, 1);
 										$this->append("由储运收退货后入库存！");
 									} else {															/* 退订 - 退订数量小于等于订单总数 - 非代理类期刊 - 已报数 - 有印制单 - 未发货*/
-	//									if ($customer['CType'] == 9 || $customer['CType'] == 7) {		/* 退订 - 退订数量小于等于订单总数 - 非代理类期刊 - 已报数 - 有印制单 - 未发货 - 补刊*/
-	//										$this->JournalStockManage->prepare($d['JID'], $d['Jyear'], $i);
-	//										$this->JournalStockManage->stock_in($OrderCount, 1, "未发货零售订单退订入库");
-	//									}
-										if ($customer['CType'] != 2) {									/* 退订 - 退订数量小于等于订单总数 - 非代理类期刊 - 已报数 - 有印制单 - 未发货 - 非预留库存订单*/
+//										if ($customer['CType'] == 9 || $customer['CType'] == 7) {		/* 退订 - 退订数量小于等于订单总数 - 非代理类期刊 - 已报数 - 有印制单 - 未发货 - 补刊*/
+//											$this->JournalStockManage->prepare($d['JID'], $d['Jyear'], $i);
+//											$this->JournalStockManage->stock_in($OrderCount, 1, "未发货零售订单退订入库");
+//										}
+										if ($d['SaleStyle'] == 7 || $d['SaleStyle'] == 9 ) {			/* 退订 - 退订数量小于等于订单总数 - 非代理类期刊 - 已报数 - 有印制单 - 未发货 - 零售/补刊*/
 											$this->JournalStockManage->prepare($d['JID'], $d['Jyear'], $i);
-											$this->JournalStockManage->stock_in($OrderCount, 6, "未发货订单退订入库");
+											$this->JournalStockManage->stock_in($OrderCount, 1, "未发货零售/补刊订单退订入库");
 										}
+//										if ($customer['CType'] != 2) {									/* 退订 - 退订数量小于等于订单总数 - 非代理类期刊 - 已报数 - 有印制单 - 未发货 - 非预留库存订单*/
+//											$this->JournalStockManage->prepare($d['JID'], $d['Jyear'], $i);
+//											$this->JournalStockManage->stock_in($OrderCount, 6, "未发货订单退订入库");
+//										}
 //										if ($customer['CType'] != 2) {									/* 退订 - 退订数量小于等于订单总数 - 非代理类期刊 - 已报数 - 有印制单 - 未发货 - 非预留库存订单*/
 //											$this->db->from('journalorders');
 //											$this->db->where('Year', $d['Jyear']);
