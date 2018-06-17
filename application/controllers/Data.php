@@ -54,6 +54,130 @@ class Data extends MY_Controller {
 		$ret = $this->grid_model->table($table);
 		if ($ret) {
 			if ($this->grid_model->prepare()) {
+				$this->load->library('spout');
+				$tempname = tempnam(APPPATH.'cache/', 'export');
+				$writer = $this->spout->create('xlsx');
+				$writer->setTempFolder(APPPATH.'cache/')
+					->openToFile($tempname);
+				
+				$row = array();
+				if ($paras->key) {
+					$row[] = $this->grid_model->crud_field[$this->grid_model->primary]['caption'];
+				}
+				$colNumber = 0;
+				foreach($setting as $s){
+					if (isset($this->grid_model->crud_field[$s[0]]) && $this->grid_model->crud_field[$s[0]]['_role_r']) {
+						
+						$fields[$s[0]] = $s[1]?1:0;
+						if ($s[1]) {
+							$row[] = $this->grid_model->crud_field[$s[0]]['caption'];
+							switch($this->grid_model->crud_field[$s[0]]['type']) {
+								case Crud_model::TYPE_NUMBER:
+									break;
+								default:
+//									$colString = PHPExcel_Cell::stringFromColumnIndex($colNumber);
+//									$this->excel->getActiveSheet()->getStyle("{$colString}:{$colString}")
+//										->getNumberFormat()
+//										->setFormatCode(PHPExcel_Style_NumberFormat::FORMAT_TEXT);
+									break;
+							}
+							$colNumber++;
+						}
+					}
+				}
+				$writer->addrow($row);
+				$line = 2;
+				$count = 0;
+				$total = 0;
+				
+				while ($count == 0 || $count < $total) {
+					$data = $this->grid_model->wrapper_sheet($paras);
+					$this->grid_model->pop_cache();
+					if (!count($data->data)) {
+						break;
+					}
+					$total = $data->count;
+					$paras->page++;
+					foreach($data->data as $d) {
+						unset($row);
+						$row = array();
+						if ($paras->key) {
+							$row[] = $d[$this->grid_model->primary];
+						}
+						foreach($fields as $k=>$f) {
+							if ($f) {
+								if ($paras->raw) {
+									$row[] = $d[$k];
+								} elseif (isset($this->grid_model->crud_field[$k]['_caption'])) {
+									$this->grid_model->wrapper_caption($this->grid_model->crud_field[$k], $d);
+									$row[] = $d[$this->grid_model->crud_field[$k]['_caption']];
+								} else {
+									$row[] = $d[$k];
+								}
+							}
+						}
+						$writer->addrow($row);
+					}
+
+					$count += count($data->data);
+					$line += count($data->data);
+				}
+				
+				$writer->close();
+				
+				
+				$filename=date('Ymd').'.xlsx'; //save our workbook as this file name
+				header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'); //mime type
+				header('Content-Disposition: attachment;filename="'.$filename.'"'); //tell browser what's the file name
+				header('Content-Length: ' . filesize($tempname));
+				header('Cache-Control: max-age=0'); //no cache
+				readfile($tempname);
+				unlink($tempname);
+			} else {
+				$error = "内部错误";
+			}
+		} else {
+			$error = "数据表错误";
+		}
+	}
+	public function export2()
+	{
+		ini_set('max_execution_time', 0);
+		ini_set('memory_limit','512M');
+		
+		$this->load->model('grid_model');
+		$table = $this->input->post_get("key");
+		$paras_json = $this->input->post_get("paras");
+		$paras = json_decode($paras_json);
+		
+		$setting = $paras->setting;
+		$values = $paras->values;
+		
+		if(count($values) && $values[0]) {
+			foreach($values as &$v) {
+				$v = (int)$v;
+			}
+			$paras->search = true;
+			$paras->filters = (object) array(
+				"groupOp" => "AND",
+				"rules" => array(
+					(object) array(
+						"data" => implode(",", $values),
+						"op" => "in",
+						"field" => "id"
+					)	
+				)
+			);
+		}
+
+		$paras->page = 1;
+		$paras->size = 100;
+		$fields = array();
+		$sheet = array();
+		
+		$ret = $this->grid_model->table($table);
+		if ($ret) {
+			if ($this->grid_model->prepare()) {
 				$this->load->library('excel');
 				$this->excel->setActiveSheetIndex(0);
 				
