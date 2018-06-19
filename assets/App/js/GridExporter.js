@@ -159,6 +159,8 @@ Class('App.GridExporter', 'xui.Module',{
 			};
 			
 			xui.IAjax.post(SITEURL+'data/export',{key:ns.properties.gridId,paras:paras});
+			xui.message("正在导出...");
+			ns._close_click();
 		}
 	}
 });
