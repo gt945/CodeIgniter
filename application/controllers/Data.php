@@ -47,7 +47,7 @@ class Data extends MY_Controller {
 		}
 
 		$paras->page = 1;
-		$paras->size = 100;
+		$paras->size = 1000;
 		$fields = array();
 		$sheet = array();
 		
