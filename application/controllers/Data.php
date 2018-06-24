@@ -601,6 +601,7 @@ EOD;
 		ini_set('max_execution_time', 0);
 		$CID = (int)$this->input->post_get("CID");
 		$BatchIDs = explode(',', $this->input->post_get("BatchIDs"));
+		$DeliveStatus = (int)$this->input->post_get("DeliveStatus");
 		foreach($BatchIDs as &$bid) {
 			$bid = (int)$bid;
 		}
@@ -634,6 +635,11 @@ EOD;
 					"data" => $BatchIDs,
 					"op" => "in",
 					"field" => "BatchID"
+				),
+				(object) array(
+					"data" => $DeliveStatus,
+					"op" => "eq",
+					"field" => "DeliveStatus"
 				)
 			)
 		);

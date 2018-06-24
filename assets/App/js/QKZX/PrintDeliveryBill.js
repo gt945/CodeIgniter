@@ -17,7 +17,7 @@ Class('App.QKZX.PrintDeliveryBill', 'xui.Module',{
 				.setLeft(25)
 				.setTop(19)
 				.setWidth(480)
-				.setHeight(148)
+				.setHeight(172)
 				.setResizer(true)
 				.setOverflow("hidden")
 				.setCaption("打印客户取刊单")
@@ -72,7 +72,7 @@ Class('App.QKZX.PrintDeliveryBill', 'xui.Module',{
 			var row=pgrid.getActiveRow();
 			if (row) {
 				var cid_id;
-				_.arr.each(['BatchID','CID'],function(f, i){
+				_.arr.each(['BatchID','CID','DeliveStatus'],function(f, i){
 					var cell=pgrid.getCellbyRowCol(row.id, f);
 					var ele=_.unserialize(editor_prop.gridSetting[f].form);
 					ns.ctl_block.append(ele
@@ -116,7 +116,7 @@ Class('App.QKZX.PrintDeliveryBill', 'xui.Module',{
 		_ctl_sbutton14_onclick:function(){
 			var ns=this,db=ns.databinder,data=db.getData();
 			if (!_.isEmpty(data)) {
-				xui.Dom.submit(SITEURL+'data/delivery_bill',{CID:data.CID.value,BatchIDs:data.BatchID.value},'post');
+				xui.Dom.submit(SITEURL+'data/delivery_bill',{CID:data.CID.value,BatchIDs:data.BatchID.value,DeliveStatus:data.DeliveStatus.value},'post');
 			}
 		}
 	}
