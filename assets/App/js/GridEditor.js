@@ -588,8 +588,8 @@ Class('App.GridEditor','xui.Module',{
 							ns._openFilter(item.id);
 							break;
 						case "sum":
-							var sum=ns._col_sum(item.id);
-							xui.alert("本页总和为："+sum);
+							var msg=ns._col_sum(item.id);
+							xui.alert(msg);
 							break;
 					}
 				}
@@ -609,7 +609,17 @@ Class('App.GridEditor','xui.Module',{
 		_col_sum:function(col){
 			var ns=this,grid=ns.grid;
 			var sum=0;
-			var rows=grid.getRows();
+			var rows=[];
+			var msg='本页总和为：';
+			var values=grid.getUIValue(true);
+			if(values&&values.length){
+				_.arr.each(values,function(id){
+					rows.push(grid.getRowbyRowId(id));
+				});
+				var msg='选中条目总和为：';
+			}else{
+				rows=grid.getRows();
+			}
 			_.arr.each(rows,function(row){
 				var cell=grid.getCellbyRowCol(row.id,col);
 				var value=parseInt(cell.value);
@@ -617,7 +627,7 @@ Class('App.GridEditor','xui.Module',{
 					sum+=value;
 				}
 			});
-			return sum;
+			return msg+sum;
 		}
 	}
 });
