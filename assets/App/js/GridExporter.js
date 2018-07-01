@@ -140,11 +140,11 @@ Class('App.GridExporter', 'xui.Module',{
 		},
 		_export_onclick:function(){
 			var ns=this,grid=ns.grid;
-			var setting=[];
+			var setting={};
 			var ids=grid.getUIValue(true);
 			_.arr.each(ids,function(id){
 				var cell=grid.getCellbyRowCol(id, 0, 'min');
-				setting.push([cell,1]);
+				setting[cell]=1;
 			});
 			var paras={
 				setting:setting,
