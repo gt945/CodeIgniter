@@ -47,6 +47,7 @@ class QKZX extends MY_Controller
 		$data = $this->db->sheet();
 		foreach($data as &$d) {
 			unset($d['id']);
+			unset($d['CreateTime']);
 			$d['year'] = $year_new;
 			$this->db->insert('journalbaseinfo', $d);
 		}
