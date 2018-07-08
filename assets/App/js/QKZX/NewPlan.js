@@ -35,7 +35,7 @@ Class('App.QKZX.NewPlan', 'xui.Module',{
 
 			host.dialog.append(
 				(new xui.UI.Input())
-					.setHost(host,"ctl_input1")
+					.setHost(host,"year")
 					.setLeft(20)
 					.setTop(20)
 					.setLabelSize(70)
@@ -45,24 +45,28 @@ Class('App.QKZX.NewPlan', 'xui.Module',{
 			return children;
 			// ]]Code created by CrossUI RAD Studio
 		},
+		events:{"onRender":"_com_onrender"},
 		customAppend : function(parent, subId, left, top){
 			this.dialog.showModal(parent, left, top);
 			return true;
 		},
+		_com_onrender:function(){
+			var ns=this;
+			ns.year.setUIValue((new Date()).getFullYear()+1);
+		},
 		_gen_button_onclick:function(profile, e, src, value){
 			var ns=this;
-			ns.dialog.busy();
-			xui.request(SITEURL+"QKZX/generate_new_plan", null, function(rsp){
-//				 if(!ns.isDestroyed()){
-//					 if (rsp.code != 200) {
-//						 grid.updateCell(cell.id, {value:ovalue}, true, false);
-//					 }
-//				 }
+			var paras={
+				year: ns.year.getUIValue()
+			};
+
+			AJAX.callService("QKZX/request", null, "generate_new_plan", paras, function(rsp){
+				
+			}, function(){
+				ns.dialog.busy();
+			},function(result){
 				ns.dialog.free();
-			},function(){
-//				 grid.updateCell(cell.id, {value:ovalue}, true, false);
-				ns.dialog.free();
-			},null,{method:'post'});
+			});
 		}
 
 	}

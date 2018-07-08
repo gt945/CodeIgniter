@@ -30,18 +30,26 @@ class QKZX extends MY_Controller
 
 	private function request_generate_new_plan()
 	{
-//		$this->load->model('crud_model');
-//		$dbContext = $this->crud_model->table('journalbaseinfo');
-//		$this->crud_model->prepare($dbContext, false);
-//		$this->crud_model->parm($dbContext, 'where', 'year', '2014');
-//		$data = $this->crud_model->sheet($dbContext);
-//
-//		foreach($data as &$d) {
-//			unset($d['id']);
-//			$d['year'] = '2015';
-//			$this->crud_model->insert($dbContext, $d);
-//
-//		}
+		$year_new = (int)$this->paras->year;
+		$year_cur = $year_new - 1;
+		
+		$this->db->select('count(id) as count');
+		$this->db->from('journalbaseinfo');
+		$this->db->where('year', $year_new);
+	
+		$count = (int)$this->db->cell('count');
+		if ($count) {
+			$this->reply(400, "已存在{$year_new}年的数据");
+		}
+		$this->db->select('*');
+		$this->db->from('journalbaseinfo');
+		$this->db->where('year', $year_cur);
+		$data = $this->db->sheet();
+		foreach($data as &$d) {
+			unset($d['id']);
+			$d['year'] = $year_new;
+			$this->db->insert('journalbaseinfo', $d);
+		}
 		$this->reply(200);
 	}
 
